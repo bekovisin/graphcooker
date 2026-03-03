@@ -297,6 +297,8 @@ export interface FooterSettings {
   size: number;
   color: string;
   advancedStyles: boolean;
+  textStyling: TextStyling;
+  showTextStyling: boolean;
   sourceName: string;
   sourceUrl: string;
   multipleSources: boolean;

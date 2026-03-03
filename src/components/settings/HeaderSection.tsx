@@ -1,10 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
-import { NumberInput } from '@/components/shared/NumberInput';
 import { SettingRow } from '@/components/shared/SettingRow';
 import { ColorPicker } from '@/components/shared/ColorPicker';
 import { Switch } from '@/components/ui/switch';
@@ -18,17 +16,47 @@ import {
 } from '@/components/ui/select';
 import type { TextAlignment, TextStyling, BorderStyle } from '@/types/chart';
 
-const alignmentOptions: { value: TextAlignment; icon: typeof AlignLeft }[] = [
-  { value: 'left', icon: AlignLeft },
-  { value: 'center', icon: AlignCenter },
-  { value: 'right', icon: AlignRight },
-];
+// ── Reusable TabMenu ──
+function TabMenu<T extends string>({ value, onChange, options }: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex rounded-md border border-gray-200 overflow-hidden w-full">
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
+            value === opt.value ? 'bg-blue-500 text-white font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'
+          } ${i > 0 ? 'border-l border-gray-200' : ''}`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const borderOptions: { value: BorderStyle; label: string }[] = [
   { value: 'none', label: 'None' },
   { value: 'top', label: 'Top' },
   { value: 'bottom', label: 'Bottom' },
   { value: 'both', label: 'Both' },
+];
+
+const fontFamilyOptions = [
+  'Inter, sans-serif',
+  'Roboto, sans-serif',
+  'Montserrat, sans-serif',
+  'Arial',
+  'Helvetica',
+  'Georgia',
+  'Times New Roman',
+  'Courier New',
+  'Verdana',
+  'system-ui',
 ];
 
 interface TextBlockProps {
@@ -68,42 +96,23 @@ function TextBlock({ subHeader, text, onTextChange, styling, onStylingChange }: 
       </SettingRow>
 
       {showStyling && (
-        <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-          {/* Font Family */}
-          <SettingRow label="Font family">
-            <Input
-              value={styling.fontFamily}
-              onChange={(e) => onStylingChange({ fontFamily: e.target.value })}
-              className="h-8 text-xs w-full"
-              placeholder="e.g. Arial, sans-serif"
-            />
-          </SettingRow>
-
-          {/* Font Size */}
-          <NumberInput
-            label="Font size"
-            value={styling.fontSize}
-            onChange={(v) => onStylingChange({ fontSize: v })}
-            min={1}
-            max={200}
-            suffix="px"
-          />
-
-          {/* Font Weight */}
-          <SettingRow label="Font weight">
-            <Select
-              value={styling.fontWeight}
-              onValueChange={(v) => onStylingChange({ fontWeight: v as 'normal' | 'bold' })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
+        <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+          {/* Font Family (full width) */}
+          <Select
+            value={styling.fontFamily}
+            onValueChange={(v) => onStylingChange({ fontFamily: v })}
+          >
+            <SelectTrigger className="h-8 text-xs w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {fontFamilyOptions.map((font) => (
+                <SelectItem key={font} value={font} className="text-xs">
+                  {font}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {/* Color */}
           <ColorPicker
@@ -112,15 +121,47 @@ function TextBlock({ subHeader, text, onTextChange, styling, onStylingChange }: 
             onChange={(color) => onStylingChange({ color })}
           />
 
-          {/* Line Height */}
-          <NumberInput
-            label="Line height"
-            value={styling.lineHeight}
-            onChange={(v) => onStylingChange({ lineHeight: v })}
-            min={0.5}
-            max={5}
-            step={0.1}
-          />
+          {/* Font size + Font weight + Line height — 3-column row */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Size</label>
+              <Input
+                type="number"
+                value={styling.fontSize}
+                onChange={(e) => onStylingChange({ fontSize: parseInt(e.target.value) || 14 })}
+                className="h-7 text-xs w-full"
+                min={1}
+                max={200}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
+              <Select
+                value={styling.fontWeight}
+                onValueChange={(v) => onStylingChange({ fontWeight: v as 'normal' | 'bold' })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Line H</label>
+              <Input
+                type="number"
+                value={styling.lineHeight}
+                onChange={(e) => onStylingChange({ lineHeight: parseFloat(e.target.value) || 1.4 })}
+                className="h-7 text-xs w-full"
+                min={0.5}
+                max={5}
+                step={0.1}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -155,26 +196,17 @@ export function HeaderSection() {
 
   return (
     <AccordionSection id="header" title="Header">
-      {/* Alignment */}
+      {/* Alignment — 3-button tab menu */}
       <SettingRow label="Alignment">
-        <div className="flex rounded-md border border-gray-200 overflow-hidden">
-          {alignmentOptions.map((opt) => {
-            const Icon = opt.icon;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => update({ alignment: opt.value })}
-                className={`px-3 py-1.5 transition-colors ${
-                  settings.alignment === opt.value
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-white text-gray-600 hover:bg-gray-50'
-                } ${opt.value !== 'left' ? 'border-l border-gray-200' : ''}`}
-              >
-                <Icon className="w-4 h-4" />
-              </button>
-            );
-          })}
-        </div>
+        <TabMenu
+          value={settings.alignment}
+          onChange={(v) => update({ alignment: v as TextAlignment })}
+          options={[
+            { value: 'left', label: 'Left' },
+            { value: 'center', label: 'Center' },
+            { value: 'right', label: 'Right' },
+          ]}
+        />
       </SettingRow>
 
       {/* TITLE */}

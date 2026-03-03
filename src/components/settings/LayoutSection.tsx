@@ -2,8 +2,8 @@
 
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
-import { NumberInput } from '@/components/shared/NumberInput';
 import { ColorPicker } from '@/components/shared/ColorPicker';
+import { Input } from '@/components/ui/input';
 
 export function LayoutSection() {
   const settings = useEditorStore((s) => s.settings.layout);
@@ -15,73 +15,84 @@ export function LayoutSection() {
 
   return (
     <AccordionSection id="layout" title="Layout">
-      {/* Max Width */}
-      <NumberInput
-        label="Max width"
-        value={settings.maxWidth}
-        onChange={(v) => update({ maxWidth: v })}
-        min={0}
-        suffix="px"
-      />
-      <p className="text-[10px] text-gray-400 -mt-2 ml-[88px]">
-        Set to 0 for no limit
-      </p>
-
-      {/* Padding - 2x2 Grid */}
+      {/* Padding — 4 inputs side by side, (px) in header */}
       <div className="space-y-1.5">
-        <span className="text-xs text-gray-500 font-medium">Padding</span>
-        <div className="grid grid-cols-2 gap-2">
-          <NumberInput
-            label="Top"
-            value={settings.paddingTop}
-            onChange={(v) => update({ paddingTop: v })}
-            min={0}
-            suffix="px"
-          />
-          <NumberInput
-            label="Right"
-            value={settings.paddingRight}
-            onChange={(v) => update({ paddingRight: v })}
-            min={0}
-            suffix="px"
-          />
-          <NumberInput
-            label="Bottom"
-            value={settings.paddingBottom}
-            onChange={(v) => update({ paddingBottom: v })}
-            min={0}
-            suffix="px"
-          />
-          <NumberInput
-            label="Left"
-            value={settings.paddingLeft}
-            onChange={(v) => update({ paddingLeft: v })}
-            min={0}
-            suffix="px"
-          />
+        <span className="text-xs text-gray-500 font-medium">Padding (px)</span>
+        <div className="grid grid-cols-4 gap-1.5">
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Top</label>
+            <Input
+              type="number"
+              value={settings.paddingTop}
+              onChange={(e) => update({ paddingTop: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Right</label>
+            <Input
+              type="number"
+              value={settings.paddingRight}
+              onChange={(e) => update({ paddingRight: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Bottom</label>
+            <Input
+              type="number"
+              value={settings.paddingBottom}
+              onChange={(e) => update({ paddingBottom: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Left</label>
+            <Input
+              type="number"
+              value={settings.paddingLeft}
+              onChange={(e) => update({ paddingLeft: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Background Color */}
-      <ColorPicker
-        label="Background"
-        value={settings.backgroundColor}
-        onChange={(color) => update({ backgroundColor: color })}
-      />
-
-      {/* Background Opacity */}
-      <NumberInput
-        label="Opacity"
-        value={settings.backgroundOpacity ?? 100}
-        onChange={(v) => update({ backgroundOpacity: v })}
-        min={0}
-        max={100}
-        step={1}
-        suffix="%"
-      />
-      <p className="text-[10px] text-gray-400 -mt-2 ml-[88px]">
-        0 = fully transparent
-      </p>
+      {/* Background color + Opacity (%) + Max width (px) — single row */}
+      <div className="flex items-end gap-1.5">
+        <div className="shrink-0">
+          <ColorPicker
+            label="Background"
+            value={settings.backgroundColor}
+            onChange={(color) => update({ backgroundColor: color })}
+          />
+        </div>
+        <div className="flex-1">
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Opacity (%)</label>
+          <Input
+            type="number"
+            value={settings.backgroundOpacity ?? 100}
+            onChange={(e) => update({ backgroundOpacity: parseInt(e.target.value) || 0 })}
+            className="h-7 text-xs w-full"
+            min={0}
+            max={100}
+          />
+        </div>
+        <div className="flex-1">
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Max W (px)</label>
+          <Input
+            type="number"
+            value={settings.maxWidth}
+            onChange={(e) => update({ maxWidth: parseInt(e.target.value) || 0 })}
+            className="h-7 text-xs w-full"
+            min={0}
+          />
+        </div>
+      </div>
     </AccordionSection>
   );
 }

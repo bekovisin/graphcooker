@@ -178,6 +178,8 @@ export const defaultChartSettings: ChartSettings = {
     size: 11,
     color: '#888888',
     advancedStyles: false,
+    textStyling: { fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 'normal', color: '#888888', lineHeight: 1.4 },
+    showTextStyling: false,
     sourceName: '',
     sourceUrl: '',
     multipleSources: false,
