@@ -31,12 +31,25 @@ import type {
   ChartSettings,
 } from '@/types/chart';
 
-function SubHeader({ children }: { children: React.ReactNode }) {
+// ── Reusable TabMenu ──
+function TabMenu<T extends string>({ value, onChange, options }: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
   return (
-    <div className="pt-2 pb-1">
-      <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-        {children}
-      </h4>
+    <div className="flex rounded-md border border-gray-200 overflow-hidden w-full">
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
+            value === opt.value ? 'bg-blue-500 text-white font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'
+          } ${i > 0 ? 'border-l border-gray-200' : ''}`}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -54,119 +67,7 @@ const fontFamilyOptions = [
   'system-ui',
 ];
 
-interface StylingPanelProps {
-  styling: AxisStyling;
-  onChange: (updates: Partial<AxisStyling>) => void;
-}
-
-function StylingPanel({ styling, onChange }: StylingPanelProps) {
-  return (
-    <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-      <SettingRow label="Font family">
-        <Select
-          value={styling.fontFamily}
-          onValueChange={(v) => onChange({ fontFamily: v })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {fontFamilyOptions.map((font) => (
-              <SelectItem key={font} value={font} className="text-xs">
-                {font}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      <NumberInput
-        label="Font size"
-        value={styling.fontSize}
-        onChange={(v) => onChange({ fontSize: v })}
-        min={6}
-        max={48}
-        step={1}
-        suffix="px"
-      />
-
-      <SettingRow label="Font weight">
-        <Select
-          value={styling.fontWeight}
-          onValueChange={(v) => onChange({ fontWeight: v as FontWeight })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-            <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-            <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      <SettingRow label="Font style">
-        <Select
-          value={styling.fontStyle || 'normal'}
-          onValueChange={(v) => onChange({ fontStyle: v as 'normal' | 'italic' })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-            <SelectItem value="italic" className="text-xs">Italic</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      <ColorPicker
-        label="Color"
-        value={styling.color}
-        onChange={(color) => onChange({ color })}
-      />
-    </div>
-  );
-}
-
-interface GridlineStylingPanelProps {
-  styling: XAxisSettings['gridlineStyling'];
-  onChange: (updates: Partial<XAxisSettings['gridlineStyling']>) => void;
-}
-
-function GridlineStylingPanel({ styling, onChange }: GridlineStylingPanelProps) {
-  return (
-    <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-      <ColorPicker
-        label="Color"
-        value={styling.color}
-        onChange={(color) => onChange({ color })}
-      />
-
-      <NumberInput
-        label="Width"
-        value={styling.width}
-        onChange={(v) => onChange({ width: v })}
-        min={0.5}
-        max={5}
-        step={0.5}
-        suffix="px"
-      />
-
-      <NumberInput
-        label="Dash"
-        value={styling.dashArray}
-        onChange={(v) => onChange({ dashArray: v })}
-        min={0}
-        max={20}
-        step={1}
-      />
-    </div>
-  );
-}
-
-// ── Tick generation helpers (mirrors CustomBarChart logic) ──
+// ── Tick generation helpers ──
 function generateNiceTicks(min: number, max: number, desiredCount = 5): number[] {
   if (max <= min) return [0];
   const range = max - min;
@@ -210,7 +111,88 @@ function formatNumberForLabel(value: number, nf: ChartSettings['numberFormatting
   return `${nf.prefix}${str}${nf.suffix}`;
 }
 
-// ── Multi-select dropdown for label visibility ──
+// ── Inline Styling Row ──
+function InlineStylingPanel({ styling, onChange }: {
+  styling: AxisStyling;
+  onChange: (updates: Partial<AxisStyling>) => void;
+}) {
+  return (
+    <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+      {/* Row 1: Font family (full width) */}
+      <Select
+        value={styling.fontFamily}
+        onValueChange={(v) => onChange({ fontFamily: v })}
+      >
+        <SelectTrigger className="h-8 text-xs w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {fontFamilyOptions.map((font) => (
+            <SelectItem key={font} value={font} className="text-xs">
+              {font}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* Row 2: Size + Weight + Style (3-column) */}
+      <div className="grid grid-cols-3 gap-1.5">
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Size</label>
+          <Input
+            type="number"
+            value={styling.fontSize}
+            onChange={(e) => onChange({ fontSize: parseInt(e.target.value) || 11 })}
+            className="h-7 text-xs w-full"
+            min={6}
+            max={48}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
+          <Select
+            value={styling.fontWeight}
+            onValueChange={(v) => onChange({ fontWeight: v as FontWeight })}
+          >
+            <SelectTrigger className="h-7 text-xs w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="200" className="text-xs">Extra-light</SelectItem>
+              <SelectItem value="300" className="text-xs">Light</SelectItem>
+              <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+              <SelectItem value="500" className="text-xs">Medium</SelectItem>
+              <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+              <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Style</label>
+          <Select
+            value={styling.fontStyle || 'normal'}
+            onValueChange={(v) => onChange({ fontStyle: v as 'normal' | 'italic' })}
+          >
+            <SelectTrigger className="h-7 text-xs w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+              <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      {/* Row 3: Color */}
+      <ColorPicker
+        label="Color"
+        value={styling.color}
+        onChange={(color) => onChange({ color })}
+      />
+    </div>
+  );
+}
+
+// ── Label visibility multi-select ──
 function LabelVisibilityDropdown({
   allLabels,
   hiddenLabels,
@@ -226,16 +208,10 @@ function LabelVisibilityDropdown({
 
   const toggleLabel = (label: string) => {
     const newSet = new Set(hiddenSet);
-    if (newSet.has(label)) {
-      newSet.delete(label);
-    } else {
-      newSet.add(label);
-    }
+    if (newSet.has(label)) newSet.delete(label);
+    else newSet.add(label);
     onChange(Array.from(newSet));
   };
-
-  const showAll = () => onChange([]);
-  const hideAll = () => onChange([...allLabels]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -243,29 +219,18 @@ function LabelVisibilityDropdown({
         <button className="flex items-center justify-between w-full h-8 px-3 rounded-md border border-gray-200 bg-white text-xs hover:bg-gray-50 transition-colors">
           <span className="text-gray-700 truncate">
             {visibleCount === allLabels.length
-              ? 'All labels visible'
+              ? 'All visible'
               : visibleCount === 0
-                ? 'All labels hidden'
-                : `${visibleCount} of ${allLabels.length} visible`}
+                ? 'All hidden'
+                : `${visibleCount}/${allLabels.length} visible`}
           </span>
           <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start" side="bottom">
-        {/* Bulk actions */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
-          <button
-            onClick={showAll}
-            className="text-[10px] text-blue-600 hover:text-blue-700 font-medium"
-          >
-            Show all
-          </button>
-          <button
-            onClick={hideAll}
-            className="text-[10px] text-gray-500 hover:text-gray-700 font-medium"
-          >
-            Hide all
-          </button>
+          <button onClick={() => onChange([])} className="text-[10px] text-blue-600 hover:text-blue-700 font-medium">Show all</button>
+          <button onClick={() => onChange([...allLabels])} className="text-[10px] text-gray-500 hover:text-gray-700 font-medium">Hide all</button>
         </div>
         <div className="max-h-48 overflow-y-auto py-1">
           {allLabels.map((label) => {
@@ -274,15 +239,9 @@ function LabelVisibilityDropdown({
               <button
                 key={label}
                 onClick={() => toggleLabel(label)}
-                className={`flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${
-                  isHidden ? 'text-gray-400' : 'text-gray-700'
-                }`}
+                className={`flex items-center gap-2 w-full px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${isHidden ? 'text-gray-400' : 'text-gray-700'}`}
               >
-                {isHidden ? (
-                  <EyeOff className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                ) : (
-                  <Eye className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                )}
+                {isHidden ? <EyeOff className="w-3.5 h-3.5 text-gray-300 shrink-0" /> : <Eye className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
                 <span className={`truncate ${isHidden ? 'line-through' : ''}`}>{label}</span>
               </button>
             );
@@ -293,6 +252,17 @@ function LabelVisibilityDropdown({
   );
 }
 
+// ── Sub Header ──
+function SubHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="pt-2 pb-1">
+      <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+        {children}
+      </h4>
+    </div>
+  );
+}
+
 export function XAxisSection() {
   const settings = useEditorStore((s) => s.settings.xAxis);
   const numberFormatting = useEditorStore((s) => s.settings.numberFormatting);
@@ -300,9 +270,7 @@ export function XAxisSection() {
   const columnMapping = useEditorStore((s) => s.columnMapping);
   const updateSettings = useEditorStore((s) => s.updateSettings);
 
-  // Generate all tick labels for the multi-select dropdown
   const allTickLabels = useMemo(() => {
-    // Compute min/max from data (mirrors CustomBarChart logic)
     if (!columnMapping.values || columnMapping.values.length === 0) return [];
     let maxV = 0;
     let minV = 0;
@@ -364,60 +332,47 @@ export function XAxisSection() {
 
   return (
     <AccordionSection id="x-axis" title="X axis">
-      {/* Position */}
+      {/* Position — 5-button tab menu */}
       <SettingRow label="Position">
-        <Select
+        <TabMenu
           value={settings.position}
-          onValueChange={(v) => update({ position: v as AxisPosition })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="bottom" className="text-xs">Bottom</SelectItem>
-            <SelectItem value="float_down" className="text-xs">Float down</SelectItem>
-            <SelectItem value="float_up" className="text-xs">Float up</SelectItem>
-            <SelectItem value="top" className="text-xs">Top</SelectItem>
-            <SelectItem value="hidden" className="text-xs">Hidden</SelectItem>
-          </SelectContent>
-        </Select>
+          onChange={(v) => update({ position: v as AxisPosition })}
+          options={[
+            { value: 'bottom', label: 'Bottom' },
+            { value: 'float_down', label: 'Float ↓' },
+            { value: 'float_up', label: 'Float ↑' },
+            { value: 'top', label: 'Top' },
+            { value: 'hidden', label: 'Hidden' },
+          ]}
+        />
       </SettingRow>
 
-      {/* SCALE */}
+      {/* SCALE — 2-button tab + Min/Max in single row */}
       <SubHeader>Scale</SubHeader>
-
-      <SettingRow label="Type">
-        <Select
-          value={settings.scaleType}
-          onValueChange={(v) => update({ scaleType: v as ScaleType })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="linear" className="text-xs">Linear</SelectItem>
-            <SelectItem value="log" className="text-xs">Log</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      <SettingRow label="Min">
+      <div className="flex items-center gap-2">
+        <div className="w-[120px] shrink-0">
+          <TabMenu
+            value={settings.scaleType}
+            onChange={(v) => update({ scaleType: v as ScaleType })}
+            options={[
+              { value: 'linear', label: 'Linear' },
+              { value: 'log', label: 'Log' },
+            ]}
+          />
+        </div>
         <Input
           value={settings.min}
           onChange={(e) => update({ min: e.target.value })}
-          placeholder="Auto"
-          className="h-8 text-xs w-full"
+          placeholder="Min"
+          className="h-8 text-xs flex-1"
         />
-      </SettingRow>
-
-      <SettingRow label="Max">
         <Input
           value={settings.max}
           onChange={(e) => update({ max: e.target.value })}
-          placeholder="Auto"
-          className="h-8 text-xs w-full"
+          placeholder="Max"
+          className="h-8 text-xs flex-1"
         />
-      </SettingRow>
+      </div>
 
       <SettingRow label="Flip axis" variant="inline">
         <Switch
@@ -426,74 +381,91 @@ export function XAxisSection() {
         />
       </SettingRow>
 
-      {/* AXIS TITLE */}
+      {/* AXIS TITLE — toggle to open */}
       <SubHeader>Axis Title</SubHeader>
-
-      <SettingRow label="Title type">
-        <Select
-          value={settings.titleType}
-          onValueChange={(v) => update({ titleType: v as AxisTitleType })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto" className="text-xs">Auto</SelectItem>
-            <SelectItem value="custom" className="text-xs">Custom</SelectItem>
-          </SelectContent>
-        </Select>
+      <SettingRow label="Show title" variant="inline">
+        <Switch
+          checked={settings.titleType !== 'auto' || !!settings.titleText}
+          onCheckedChange={(checked) => {
+            if (checked) update({ titleType: 'custom' });
+            else update({ titleType: 'auto', titleText: '' });
+          }}
+        />
       </SettingRow>
 
       {settings.titleType === 'custom' && (
-        <SettingRow label="Title text">
+        <>
           <Input
             value={settings.titleText}
             onChange={(e) => update({ titleText: e.target.value })}
             placeholder="Enter title..."
             className="h-8 text-xs w-full"
           />
-        </SettingRow>
-      )}
 
-      <SettingRow label="Show styling" variant="inline">
-        <Switch
-          checked={settings.showTitleStyling}
-          onCheckedChange={(checked) => update({ showTitleStyling: checked })}
-        />
-      </SettingRow>
+          {/* Type — 2-button tab */}
+          <TabMenu
+            value={settings.titleType}
+            onChange={(v) => update({ titleType: v as AxisTitleType })}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'custom', label: 'Custom' },
+            ]}
+          />
 
-      {settings.showTitleStyling && (
-        <StylingPanel styling={settings.titleStyling} onChange={updateTitleStyling} />
+          <SettingRow label="Styling" variant="inline">
+            <Switch
+              checked={settings.showTitleStyling}
+              onCheckedChange={(checked) => update({ showTitleStyling: checked })}
+            />
+          </SettingRow>
+
+          {settings.showTitleStyling && (
+            <InlineStylingPanel styling={settings.titleStyling} onChange={updateTitleStyling} />
+          )}
+        </>
       )}
 
       {/* TICKS & LABELS */}
       <SubHeader>Ticks &amp; Labels</SubHeader>
 
-      <SettingRow label="Position">
-        <Select
-          value={settings.tickPosition}
-          onValueChange={(v) => update({ tickPosition: v as TickPosition })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default" className="text-xs">Default</SelectItem>
-            <SelectItem value="left" className="text-xs">Left</SelectItem>
-            <SelectItem value="right" className="text-xs">Right</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
+      {/* Tick position (3-tab) + Label padding — single row */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <TabMenu
+            value={settings.tickPosition}
+            onChange={(v) => update({ tickPosition: v as TickPosition })}
+            options={[
+              { value: 'default', label: 'Default' },
+              { value: 'left', label: 'Left' },
+              { value: 'right', label: 'Right' },
+            ]}
+          />
+        </div>
+        <div className="w-[72px] shrink-0">
+          <Input
+            type="number"
+            value={settings.tickPadding}
+            onChange={(e) => update({ tickPadding: parseInt(e.target.value) || 0 })}
+            className="h-8 text-xs w-full"
+            min={-20}
+            max={40}
+          />
+        </div>
+      </div>
 
-      <NumberInput
-        label="Padding"
-        value={settings.tickPadding}
-        onChange={(v) => update({ tickPadding: v })}
-        min={-20}
-        max={40}
-        step={1}
-        suffix="px"
-      />
+      {/* Space mode (2-tab) + Label width — single row */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <TabMenu
+            value={'auto'}
+            onChange={() => {}}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'custom', label: 'Custom' },
+            ]}
+          />
+        </div>
+      </div>
 
       <NumberInput
         label="Angle"
@@ -505,7 +477,8 @@ export function XAxisSection() {
         suffix="°"
       />
 
-      <SettingRow label="Show styling" variant="inline">
+      {/* Styling toggle */}
+      <SettingRow label="Styling" variant="inline">
         <Switch
           checked={settings.showTickStyling}
           onCheckedChange={(checked) => update({ showTickStyling: checked })}
@@ -513,28 +486,20 @@ export function XAxisSection() {
       </SettingRow>
 
       {settings.showTickStyling && (
-        <StylingPanel styling={settings.tickStyling} onChange={updateTickStyling} />
+        <InlineStylingPanel styling={settings.tickStyling} onChange={updateTickStyling} />
       )}
 
       {/* TICKS TO SHOW */}
       <SubHeader>Ticks to show</SubHeader>
-      <p className="text-[10px] text-gray-400 -mt-1 mb-2">
-        &quot;Auto&quot; picks nice tick intervals automatically. &quot;Custom&quot; lets you set a specific step interval between ticks.
-      </p>
-
       <SettingRow label="Mode">
-        <Select
-          value={settings.ticksToShowMode}
-          onValueChange={(v) => update({ ticksToShowMode: v as TicksToShowMode })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto" className="text-xs">Auto</SelectItem>
-            <SelectItem value="custom" className="text-xs">Custom step</SelectItem>
-          </SelectContent>
-        </Select>
+        <TabMenu
+          value={settings.ticksToShowMode === 'number' ? 'auto' : settings.ticksToShowMode}
+          onChange={(v) => update({ ticksToShowMode: v as TicksToShowMode })}
+          options={[
+            { value: 'auto', label: 'Auto' },
+            { value: 'custom', label: 'Custom' },
+          ]}
+        />
       </SettingRow>
 
       {settings.ticksToShowMode === 'custom' && (
@@ -548,9 +513,8 @@ export function XAxisSection() {
         />
       )}
 
-      {/* TICK MARKS & AXIS LINE */}
-      <SubHeader>Tick Marks &amp; Axis Line</SubHeader>
-
+      {/* TICK MARKS */}
+      <SubHeader>Tick Marks</SubHeader>
       <SettingRow label="Show tick marks" variant="inline">
         <Switch
           checked={settings.tickMarks.show}
@@ -559,43 +523,41 @@ export function XAxisSection() {
       </SettingRow>
 
       {settings.tickMarks.show && (
-        <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-          <SettingRow label="Position">
-            <Select
-              value={settings.tickMarks.position}
-              onValueChange={(v) => updateTickMarks({ position: v as TickMarkPosition })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="outside" className="text-xs">Outside</SelectItem>
-                <SelectItem value="inside" className="text-xs">Inside</SelectItem>
-                <SelectItem value="cross" className="text-xs">Cross</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          <NumberInput
-            label="Length"
-            value={settings.tickMarks.length}
-            onChange={(v) => updateTickMarks({ length: v })}
-            min={1}
-            max={20}
-            step={1}
-            suffix="px"
+        <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+          <TabMenu
+            value={settings.tickMarks.position}
+            onChange={(v) => updateTickMarks({ position: v as TickMarkPosition })}
+            options={[
+              { value: 'outside', label: 'Outside' },
+              { value: 'inside', label: 'Inside' },
+              { value: 'cross', label: 'Cross' },
+            ]}
           />
-
-          <NumberInput
-            label="Width"
-            value={settings.tickMarks.width}
-            onChange={(v) => updateTickMarks({ width: v })}
-            min={0.5}
-            max={5}
-            step={0.5}
-            suffix="px"
-          />
-
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Length</label>
+              <Input
+                type="number"
+                value={settings.tickMarks.length}
+                onChange={(e) => updateTickMarks({ length: parseInt(e.target.value) || 6 })}
+                className="h-7 text-xs w-full"
+                min={1}
+                max={20}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+              <Input
+                type="number"
+                value={settings.tickMarks.width}
+                onChange={(e) => updateTickMarks({ width: parseFloat(e.target.value) || 1 })}
+                className="h-7 text-xs w-full"
+                min={0.5}
+                max={5}
+                step={0.5}
+              />
+            </div>
+          </div>
           <ColorPicker
             label="Color"
             value={settings.tickMarks.color}
@@ -604,6 +566,8 @@ export function XAxisSection() {
         </div>
       )}
 
+      {/* AXIS LINE — toggle, single row: width + color */}
+      <SubHeader>Axis Line</SubHeader>
       <SettingRow label="Show axis line" variant="inline">
         <Switch
           checked={settings.axisLine.show}
@@ -612,59 +576,87 @@ export function XAxisSection() {
       </SettingRow>
 
       {settings.axisLine.show && (
-        <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-          <NumberInput
-            label="Width"
-            value={settings.axisLine.width}
-            onChange={(v) => updateAxisLine({ width: v })}
-            min={0.5}
-            max={5}
-            step={0.5}
-            suffix="px"
-          />
-
-          <ColorPicker
-            label="Color"
-            value={settings.axisLine.color}
-            onChange={(color) => updateAxisLine({ color })}
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+            <Input
+              type="number"
+              value={settings.axisLine.width}
+              onChange={(e) => updateAxisLine({ width: parseFloat(e.target.value) || 1 })}
+              className="h-7 text-xs w-full"
+              min={0.5}
+              max={5}
+              step={0.5}
+            />
+          </div>
+          <div className="shrink-0">
+            <ColorPicker
+              label="Color"
+              value={settings.axisLine.color}
+              onChange={(color) => updateAxisLine({ color })}
+            />
+          </div>
         </div>
       )}
 
-      {/* GRIDLINES */}
+      {/* GRIDLINES — toggle + styling toggle inline */}
       <SubHeader>Gridlines</SubHeader>
-
-      <SettingRow label="Gridlines" variant="inline">
-        <Switch
-          checked={settings.gridlines}
-          onCheckedChange={(checked) => update({ gridlines: checked })}
-        />
-      </SettingRow>
-
-      {settings.gridlines && (
-        <>
-          <SettingRow label="Show styling" variant="inline">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-gray-700">Show gridlines</label>
+          <Switch
+            checked={settings.gridlines}
+            onCheckedChange={(checked) => update({ gridlines: checked })}
+          />
+        </div>
+        {settings.gridlines && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500">Styling</label>
             <Switch
               checked={settings.showGridlineStyling}
               onCheckedChange={(checked) => update({ showGridlineStyling: checked })}
             />
-          </SettingRow>
+          </div>
+        )}
+      </div>
 
-          {settings.showGridlineStyling && (
-            <GridlineStylingPanel
-              styling={settings.gridlineStyling}
-              onChange={updateGridlineStyling}
+      {settings.gridlines && settings.showGridlineStyling && (
+        <div className="flex items-center gap-1.5">
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+            <Input
+              type="number"
+              value={settings.gridlineStyling.width}
+              onChange={(e) => updateGridlineStyling({ width: parseFloat(e.target.value) || 1 })}
+              className="h-7 text-xs w-full"
+              min={0.5}
+              max={5}
+              step={0.5}
             />
-          )}
-        </>
+          </div>
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Dash</label>
+            <Input
+              type="number"
+              value={settings.gridlineStyling.dashArray}
+              onChange={(e) => updateGridlineStyling({ dashArray: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+              max={20}
+            />
+          </div>
+          <div className="shrink-0">
+            <ColorPicker
+              label="Color"
+              value={settings.gridlineStyling.color}
+              onChange={(color) => updateGridlineStyling({ color })}
+            />
+          </div>
+        </div>
       )}
 
       {/* ZERO LINE */}
       <SubHeader>Zero Line</SubHeader>
-      <p className="text-[10px] text-gray-400 -mt-1 mb-2">
-        The vertical line at value 0 on the X axis.
-      </p>
-
       <SettingRow label="Show zero line" variant="inline">
         <Switch
           checked={settings.zeroLine?.show !== false}
@@ -673,44 +665,40 @@ export function XAxisSection() {
       </SettingRow>
 
       {settings.zeroLine?.show !== false && (
-        <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-          <ColorPicker
-            label="Color"
-            value={settings.zeroLine?.color || '#666666'}
-            onChange={(color) => updateZeroLine({ color })}
-          />
-
-          <NumberInput
-            label="Width"
-            value={settings.zeroLine?.width || 1}
-            onChange={(v) => updateZeroLine({ width: v })}
-            min={0.5}
-            max={5}
-            step={0.5}
-            suffix="px"
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+            <Input
+              type="number"
+              value={settings.zeroLine?.width || 1}
+              onChange={(e) => updateZeroLine({ width: parseFloat(e.target.value) || 1 })}
+              className="h-7 text-xs w-full"
+              min={0.5}
+              max={5}
+              step={0.5}
+            />
+          </div>
+          <div className="shrink-0">
+            <ColorPicker
+              label="Color"
+              value={settings.zeroLine?.color || '#666666'}
+              onChange={(color) => updateZeroLine({ color })}
+            />
+          </div>
         </div>
       )}
 
-      {/* LABEL COUNT */}
+      {/* LABEL VISIBILITY */}
       <SubHeader>Label Visibility</SubHeader>
-      <p className="text-[10px] text-gray-400 -mt-1 mb-2">
-        Control how many tick labels are visible and toggle individual labels.
-      </p>
-
       <SettingRow label="Mode">
-        <Select
+        <TabMenu
           value={settings.tickLabelCountMode || 'all'}
-          onValueChange={(v) => update({ tickLabelCountMode: v as TickLabelCountMode })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all" className="text-xs">All</SelectItem>
-            <SelectItem value="custom" className="text-xs">Custom count</SelectItem>
-          </SelectContent>
-        </Select>
+          onChange={(v) => update({ tickLabelCountMode: v as TickLabelCountMode })}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'custom', label: 'Custom' },
+          ]}
+        />
       </SettingRow>
 
       {settings.tickLabelCountMode === 'custom' && (
@@ -724,7 +712,6 @@ export function XAxisSection() {
         />
       )}
 
-      {/* Individual label toggle */}
       {allTickLabels.length > 0 && (
         <SettingRow label="Toggle labels">
           <LabelVisibilityDropdown
@@ -735,12 +722,8 @@ export function XAxisSection() {
         </SettingRow>
       )}
 
-      {/* LAST LABEL PADDING */}
+      {/* LAST LABEL */}
       <SubHeader>Last Label</SubHeader>
-      <p className="text-[10px] text-gray-400 -mt-1 mb-2">
-        Push the last (rightmost) tick label inward so it&apos;s not clipped.
-      </p>
-
       <NumberInput
         label="Inward padding"
         value={settings.lastLabelPadding || 0}

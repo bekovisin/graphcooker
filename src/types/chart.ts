@@ -91,7 +91,7 @@ export type TickPosition = 'default' | 'left' | 'right';
 export type TicksToShowMode = 'auto' | 'number' | 'custom';
 export type TickMarkPosition = 'outside' | 'inside' | 'cross';
 
-export type FontWeight = 'normal' | 'bold' | '600';
+export type FontWeight = '200' | '300' | 'normal' | '500' | '600' | 'bold';
 export type FontStyle = 'normal' | 'italic';
 
 export interface AxisStyling {
@@ -201,8 +201,9 @@ export interface LegendSettings {
   show: boolean;
   clickToFilter: FilterMode;
   alignment: LegendAlignment;
-  titleWeight: 'normal' | 'bold';
-  textWeight: 'normal' | 'bold';
+  titleWeight: 'normal' | '500' | '600' | 'bold';
+  textWeight: 'normal' | '500' | '600' | 'bold';
+  textStyle: 'normal' | 'italic';
   fontFamily: string;
   color: string;
   size: number;

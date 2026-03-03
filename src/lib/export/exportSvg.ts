@@ -18,14 +18,14 @@ export async function exportSvg(
       clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
       clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 
-      // If transparent requested, remove background rect entirely
+      // If transparent requested, remove all background rects (layout bg + plot bg)
       if (options?.transparent) {
-        const bgRect = clonedSvg.querySelector('rect:first-child');
-        if (bgRect) {
-          bgRect.setAttribute('fill', 'none');
-          bgRect.setAttribute('fill-opacity', '0');
-          bgRect.removeAttribute('opacity');
-        }
+        const bgRects = clonedSvg.querySelectorAll(':scope > rect');
+        bgRects.forEach((rect) => {
+          rect.setAttribute('fill', 'none');
+          rect.setAttribute('fill-opacity', '0');
+          rect.removeAttribute('opacity');
+        });
       }
 
       // Apply custom dimensions if provided

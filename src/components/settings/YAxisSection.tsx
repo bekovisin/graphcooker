@@ -3,7 +3,6 @@
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { ColorPicker } from '@/components/shared/ColorPicker';
-import { NumberInput } from '@/components/shared/NumberInput';
 import { SettingRow } from '@/components/shared/SettingRow';
 import {
   Select,
@@ -14,8 +13,39 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import type { YAxisPosition, ScaleType, AxisTitleType, TickPosition, YAxisSpaceMode, FontWeight } from '@/types/chart';
+import type {
+  YAxisPosition,
+  ScaleType,
+  AxisTitleType,
+  TickPosition,
+  YAxisSpaceMode,
+  AxisStyling,
+  YAxisSettings,
+  FontWeight,
+} from '@/types/chart';
+
+// ── Reusable TabMenu ──
+function TabMenu<T extends string>({ value, onChange, options }: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex rounded-md border border-gray-200 overflow-hidden w-full">
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
+            value === opt.value ? 'bg-blue-500 text-white font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'
+          } ${i > 0 ? 'border-l border-gray-200' : ''}`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const fontFamilyOptions = [
   'Inter, sans-serif',
@@ -30,431 +60,361 @@ const fontFamilyOptions = [
   'system-ui',
 ];
 
+// ── Inline Styling Panel ──
+function InlineStylingPanel({ styling, onChange }: {
+  styling: AxisStyling;
+  onChange: (updates: Partial<AxisStyling>) => void;
+}) {
+  return (
+    <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+      {/* Row 1: Font family (full width) */}
+      <Select
+        value={styling.fontFamily}
+        onValueChange={(v) => onChange({ fontFamily: v })}
+      >
+        <SelectTrigger className="h-8 text-xs w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {fontFamilyOptions.map((font) => (
+            <SelectItem key={font} value={font} className="text-xs">
+              {font}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* Row 2: Size + Weight + Style (3-column) */}
+      <div className="grid grid-cols-3 gap-1.5">
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Size</label>
+          <Input
+            type="number"
+            value={styling.fontSize}
+            onChange={(e) => onChange({ fontSize: parseInt(e.target.value) || 11 })}
+            className="h-7 text-xs w-full"
+            min={6}
+            max={48}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
+          <Select
+            value={styling.fontWeight}
+            onValueChange={(v) => onChange({ fontWeight: v as FontWeight })}
+          >
+            <SelectTrigger className="h-7 text-xs w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="200" className="text-xs">Extra-light</SelectItem>
+              <SelectItem value="300" className="text-xs">Light</SelectItem>
+              <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+              <SelectItem value="500" className="text-xs">Medium</SelectItem>
+              <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+              <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Style</label>
+          <Select
+            value={styling.fontStyle || 'normal'}
+            onValueChange={(v) => onChange({ fontStyle: v as 'normal' | 'italic' })}
+          >
+            <SelectTrigger className="h-7 text-xs w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+              <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      {/* Row 3: Color */}
+      <ColorPicker
+        label="Color"
+        value={styling.color}
+        onChange={(color) => onChange({ color })}
+      />
+    </div>
+  );
+}
+
+// ── Sub Header ──
+function SubHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="pt-2 pb-1">
+      <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+        {children}
+      </h4>
+    </div>
+  );
+}
+
 export function YAxisSection() {
   const settings = useEditorStore((s) => s.settings.yAxis);
   const updateSettings = useEditorStore((s) => s.updateSettings);
 
-  const update = (updates: Partial<typeof settings>) => {
+  const update = (updates: Partial<YAxisSettings>) => {
     updateSettings('yAxis', updates);
+  };
+
+  const updateTitleStyling = (updates: Partial<AxisStyling>) => {
+    update({ titleStyling: { ...settings.titleStyling, ...updates } });
+  };
+
+  const updateTickStyling = (updates: Partial<AxisStyling>) => {
+    update({ tickStyling: { ...settings.tickStyling, ...updates } });
+  };
+
+  const updateAxisLine = (updates: Partial<YAxisSettings['axisLine']>) => {
+    update({ axisLine: { ...settings.axisLine, ...updates } });
+  };
+
+  const updateGridlineStyling = (updates: Partial<YAxisSettings['gridlineStyling']>) => {
+    update({ gridlineStyling: { ...settings.gridlineStyling, ...updates } });
   };
 
   return (
     <AccordionSection id="y-axis" title="Y axis">
-      {/* Position */}
+      {/* Position — 3-button tab menu */}
       <SettingRow label="Position">
-        <Select
+        <TabMenu
           value={settings.position}
-          onValueChange={(v: YAxisPosition) => update({ position: v })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="left">Left</SelectItem>
-            <SelectItem value="right">Right</SelectItem>
-            <SelectItem value="hidden">Hidden</SelectItem>
-          </SelectContent>
-        </Select>
+          onChange={(v) => update({ position: v as YAxisPosition })}
+          options={[
+            { value: 'left', label: 'Left' },
+            { value: 'right', label: 'Right' },
+            { value: 'hidden', label: 'Hidden' },
+          ]}
+        />
       </SettingRow>
 
-      {/* Scale type */}
-      <SettingRow label="Scale type">
-        <Select
-          value={settings.scaleType}
-          onValueChange={(v: ScaleType) => update({ scaleType: v })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="linear">Linear</SelectItem>
-            <SelectItem value="log">Log</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      {/* Min / Max */}
-      <SettingRow label="Min">
+      {/* SCALE — 2-button tab + Min/Max in single row */}
+      <SubHeader>Scale</SubHeader>
+      <div className="flex items-center gap-2">
+        <div className="w-[120px] shrink-0">
+          <TabMenu
+            value={settings.scaleType}
+            onChange={(v) => update({ scaleType: v as ScaleType })}
+            options={[
+              { value: 'linear', label: 'Linear' },
+              { value: 'log', label: 'Log' },
+            ]}
+          />
+        </div>
         <Input
           value={settings.min}
           onChange={(e) => update({ min: e.target.value })}
-          className="h-8 text-xs w-full"
-          placeholder="Auto"
+          placeholder="Min"
+          className="h-8 text-xs flex-1"
         />
-      </SettingRow>
-
-      <SettingRow label="Max">
         <Input
           value={settings.max}
           onChange={(e) => update({ max: e.target.value })}
-          className="h-8 text-xs w-full"
-          placeholder="Auto"
+          placeholder="Max"
+          className="h-8 text-xs flex-1"
         />
-      </SettingRow>
-
-      {/* ---- AXIS TITLE ---- */}
-      <div className="pt-2 border-t border-gray-100">
-        <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Axis title
-        </Label>
       </div>
 
-      <SettingRow label="Title type">
-        <Select
-          value={settings.titleType}
-          onValueChange={(v: AxisTitleType) => update({ titleType: v })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">Auto</SelectItem>
-            <SelectItem value="custom">Custom</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* AXIS TITLE — toggle to open */}
+      <SubHeader>Axis Title</SubHeader>
+      <SettingRow label="Show title" variant="inline">
+        <Switch
+          checked={settings.titleType !== 'auto' || !!settings.titleText}
+          onCheckedChange={(checked) => {
+            if (checked) update({ titleType: 'custom' });
+            else update({ titleType: 'auto', titleText: '' });
+          }}
+        />
       </SettingRow>
 
       {settings.titleType === 'custom' && (
-        <SettingRow label="Title text">
+        <>
           <Input
             value={settings.titleText}
             onChange={(e) => update({ titleText: e.target.value })}
+            placeholder="Enter title..."
             className="h-8 text-xs w-full"
-            placeholder="Y axis title"
           />
-        </SettingRow>
-      )}
 
-      <SettingRow label="Show styling" variant="inline">
-        <Switch
-          checked={settings.showTitleStyling}
-          onCheckedChange={(v) => update({ showTitleStyling: v })}
-        />
-      </SettingRow>
+          {/* Type — 2-button tab */}
+          <TabMenu
+            value={settings.titleType}
+            onChange={(v) => update({ titleType: v as AxisTitleType })}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'custom', label: 'Custom' },
+            ]}
+          />
 
-      {settings.showTitleStyling && (
-        <>
-          <SettingRow label="Font family">
-            <Input
-              value={settings.titleStyling.fontFamily}
-              onChange={(e) =>
-                update({
-                  titleStyling: { ...settings.titleStyling, fontFamily: e.target.value },
-                })
-              }
-              className="h-8 text-xs w-full"
+          <SettingRow label="Styling" variant="inline">
+            <Switch
+              checked={settings.showTitleStyling}
+              onCheckedChange={(checked) => update({ showTitleStyling: checked })}
             />
           </SettingRow>
-          <NumberInput
-            label="Font size"
-            value={settings.titleStyling.fontSize}
-            onChange={(v) =>
-              update({
-                titleStyling: { ...settings.titleStyling, fontSize: v },
-              })
-            }
-            min={6}
-            max={48}
-            suffix="px"
-          />
-          <SettingRow label="Font weight">
-            <Select
-              value={settings.titleStyling.fontWeight}
-              onValueChange={(v: FontWeight) =>
-                update({
-                  titleStyling: { ...settings.titleStyling, fontWeight: v },
-                })
-              }
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-          <SettingRow label="Font style">
-            <Select
-              value={settings.titleStyling.fontStyle || 'normal'}
-              onValueChange={(v) =>
-                update({
-                  titleStyling: { ...settings.titleStyling, fontStyle: v as 'normal' | 'italic' },
-                })
-              }
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                <SelectItem value="italic" className="text-xs">Italic</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-          <ColorPicker
-            label="Color"
-            value={settings.titleStyling.color}
-            onChange={(v) =>
-              update({
-                titleStyling: { ...settings.titleStyling, color: v },
-              })
-            }
-          />
+
+          {settings.showTitleStyling && (
+            <InlineStylingPanel styling={settings.titleStyling} onChange={updateTitleStyling} />
+          )}
         </>
       )}
 
-      {/* ---- TICKS & LABELS ---- */}
-      <div className="pt-2 border-t border-gray-100">
-        <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Ticks &amp; labels
-        </Label>
+      {/* TICKS & LABELS — identical layout to X axis */}
+      <SubHeader>Ticks &amp; Labels</SubHeader>
+
+      {/* Tick position (3-tab) + Label padding — single row */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <TabMenu
+            value={settings.tickPosition}
+            onChange={(v) => update({ tickPosition: v as TickPosition })}
+            options={[
+              { value: 'default', label: 'Default' },
+              { value: 'left', label: 'Left' },
+              { value: 'right', label: 'Right' },
+            ]}
+          />
+        </div>
+        <div className="w-[72px] shrink-0">
+          <Input
+            type="number"
+            value={settings.tickPadding}
+            onChange={(e) => update({ tickPadding: parseInt(e.target.value) || 0 })}
+            className="h-8 text-xs w-full"
+            min={0}
+            max={40}
+          />
+        </div>
       </div>
 
-      <SettingRow label="Tick position">
-        <Select
-          value={settings.tickPosition}
-          onValueChange={(v: TickPosition) => update({ tickPosition: v })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default">Default</SelectItem>
-            <SelectItem value="left">Left</SelectItem>
-            <SelectItem value="right">Right</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
+      {/* Space mode (2-tab) + Label width — single row */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <TabMenu
+            value={settings.spaceMode}
+            onChange={(v) => update({ spaceMode: v as YAxisSpaceMode })}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'fixed', label: 'Fixed' },
+            ]}
+          />
+        </div>
+        {settings.spaceMode === 'fixed' && (
+          <div className="w-[72px] shrink-0">
+            <Input
+              type="number"
+              value={settings.spaceModeValue}
+              onChange={(e) => update({ spaceModeValue: parseInt(e.target.value) || 80 })}
+              className="h-8 text-xs w-full"
+              min={20}
+              max={400}
+            />
+          </div>
+        )}
+      </div>
 
-      <NumberInput
-        label="Label padding"
-        value={settings.tickPadding}
-        onChange={(v) => update({ tickPadding: v })}
-        min={0}
-        max={40}
-        step={1}
-        suffix="px"
-      />
-
-      <SettingRow label="Space mode">
-        <Select
-          value={settings.spaceMode}
-          onValueChange={(v: YAxisSpaceMode) => update({ spaceMode: v })}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">Auto</SelectItem>
-            <SelectItem value="fixed">Fixed</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      {settings.spaceMode === 'fixed' && (
-        <NumberInput
-          label="Label width"
-          value={settings.spaceModeValue}
-          onChange={(v) => update({ spaceModeValue: v })}
-          step={1}
-          suffix="px"
+      {/* Styling toggle */}
+      <SettingRow label="Styling" variant="inline">
+        <Switch
+          checked={settings.showTickStyling}
+          onCheckedChange={(checked) => update({ showTickStyling: checked })}
         />
+      </SettingRow>
+
+      {settings.showTickStyling && (
+        <InlineStylingPanel styling={settings.tickStyling} onChange={updateTickStyling} />
       )}
 
-      {/* Tick styling - Color, Size, Weight directly visible */}
-      <ColorPicker
-        label="Color"
-        value={settings.tickStyling.color}
-        onChange={(v) =>
-          update({
-            tickStyling: { ...settings.tickStyling, color: v },
-          })
-        }
-      />
-
-      <NumberInput
-        label="Size"
-        value={settings.tickStyling.fontSize}
-        onChange={(v) =>
-          update({
-            tickStyling: { ...settings.tickStyling, fontSize: v },
-          })
-        }
-        min={6}
-        max={48}
-        suffix="px"
-      />
-
-      <SettingRow label="Weight">
-        <Select
-          value={settings.tickStyling.fontWeight}
-          onValueChange={(v: FontWeight) =>
-            update({
-              tickStyling: { ...settings.tickStyling, fontWeight: v },
-            })
-          }
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-            <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-            <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      <SettingRow label="Font style">
-        <Select
-          value={settings.tickStyling.fontStyle || 'normal'}
-          onValueChange={(v) =>
-            update({
-              tickStyling: { ...settings.tickStyling, fontStyle: v as 'normal' | 'italic' },
-            })
-          }
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-            <SelectItem value="italic" className="text-xs">Italic</SelectItem>
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      <SettingRow label="Font family">
-        <Select
-          value={settings.tickStyling.fontFamily}
-          onValueChange={(v) =>
-            update({
-              tickStyling: { ...settings.tickStyling, fontFamily: v },
-            })
-          }
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {fontFamilyOptions.map((font) => (
-              <SelectItem key={font} value={font} className="text-xs">
-                {font}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </SettingRow>
-
-      {/* ---- AXIS LINE ---- */}
-      <div className="pt-2 border-t border-gray-100">
-        <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Axis line
-        </Label>
-      </div>
-
+      {/* AXIS LINE — toggle, single row: width + color */}
+      <SubHeader>Axis Line</SubHeader>
       <SettingRow label="Show axis line" variant="inline">
         <Switch
           checked={settings.axisLine?.show ?? true}
-          onCheckedChange={(v) =>
-            update({
-              axisLine: { ...(settings.axisLine || { show: true, width: 1, color: '#666666' }), show: v },
-            })
-          }
+          onCheckedChange={(checked) => updateAxisLine({ show: checked })}
         />
       </SettingRow>
 
       {settings.axisLine?.show !== false && (
-        <>
-          <ColorPicker
-            label="Color"
-            value={settings.axisLine?.color || '#666666'}
-            onChange={(v) =>
-              update({
-                axisLine: { ...(settings.axisLine || { show: true, width: 1, color: '#666666' }), color: v },
-              })
-            }
-          />
-          <NumberInput
-            label="Width"
-            value={settings.axisLine?.width || 1}
-            onChange={(v) =>
-              update({
-                axisLine: { ...(settings.axisLine || { show: true, width: 1, color: '#666666' }), width: v },
-              })
-            }
-            min={0.5}
-            max={5}
-            step={0.5}
-            suffix="px"
-          />
-        </>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+            <Input
+              type="number"
+              value={settings.axisLine?.width || 1}
+              onChange={(e) => updateAxisLine({ width: parseFloat(e.target.value) || 1 })}
+              className="h-7 text-xs w-full"
+              min={0.5}
+              max={5}
+              step={0.5}
+            />
+          </div>
+          <div className="shrink-0">
+            <ColorPicker
+              label="Color"
+              value={settings.axisLine?.color || '#666666'}
+              onChange={(color) => updateAxisLine({ color })}
+            />
+          </div>
+        </div>
       )}
 
-      {/* ---- GRIDLINES ---- */}
-      <div className="pt-2 border-t border-gray-100">
-        <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-          Gridlines
-        </Label>
-      </div>
-
-      <SettingRow label="Show gridlines" variant="inline">
-        <Switch
-          checked={settings.gridlines}
-          onCheckedChange={(v) => update({ gridlines: v })}
-        />
-      </SettingRow>
-
-      {settings.gridlines && (
-        <>
-          <SettingRow label="Show styling" variant="inline">
+      {/* GRIDLINES — toggle + styling toggle inline */}
+      <SubHeader>Gridlines</SubHeader>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-gray-700">Show gridlines</label>
+          <Switch
+            checked={settings.gridlines}
+            onCheckedChange={(v) => update({ gridlines: v })}
+          />
+        </div>
+        {settings.gridlines && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500">Styling</label>
             <Switch
               checked={settings.showGridlineStyling}
               onCheckedChange={(v) => update({ showGridlineStyling: v })}
             />
-          </SettingRow>
+          </div>
+        )}
+      </div>
 
-          {settings.showGridlineStyling && (
-            <>
-              <ColorPicker
-                label="Color"
-                value={settings.gridlineStyling.color}
-                onChange={(v) =>
-                  update({
-                    gridlineStyling: { ...settings.gridlineStyling, color: v },
-                  })
-                }
-              />
-              <NumberInput
-                label="Width"
-                value={settings.gridlineStyling.width}
-                onChange={(v) =>
-                  update({
-                    gridlineStyling: { ...settings.gridlineStyling, width: v },
-                  })
-                }
-                min={0.5}
-                max={5}
-                step={0.5}
-                suffix="px"
-              />
-              <NumberInput
-                label="Dash array"
-                value={settings.gridlineStyling.dashArray}
-                onChange={(v) =>
-                  update({
-                    gridlineStyling: { ...settings.gridlineStyling, dashArray: v },
-                  })
-                }
-                min={0}
-                max={20}
-              />
-            </>
-          )}
-        </>
+      {settings.gridlines && settings.showGridlineStyling && (
+        <div className="flex items-center gap-1.5">
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+            <Input
+              type="number"
+              value={settings.gridlineStyling.width}
+              onChange={(e) => updateGridlineStyling({ width: parseFloat(e.target.value) || 1 })}
+              className="h-7 text-xs w-full"
+              min={0.5}
+              max={5}
+              step={0.5}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Dash</label>
+            <Input
+              type="number"
+              value={settings.gridlineStyling.dashArray}
+              onChange={(e) => updateGridlineStyling({ dashArray: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+              max={20}
+            />
+          </div>
+          <div className="shrink-0">
+            <ColorPicker
+              label="Color"
+              value={settings.gridlineStyling.color}
+              onChange={(color) => updateGridlineStyling({ color })}
+            />
+          </div>
+        </div>
       )}
     </AccordionSection>
   );

@@ -122,6 +122,7 @@ export const defaultChartSettings: ChartSettings = {
     alignment: 'inline',
     titleWeight: 'bold',
     textWeight: 'normal',
+    textStyle: 'normal',
     fontFamily: 'Inter, sans-serif',
     color: '#333333',
     size: 12,

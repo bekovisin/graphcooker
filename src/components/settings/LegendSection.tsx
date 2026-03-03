@@ -121,40 +121,54 @@ export function LegendSection() {
 
           {/* Title weight */}
           <SettingRow label="Title weight">
-            <div className="flex rounded-md border border-gray-200 overflow-hidden">
-              {(['normal', 'bold'] as const).map((w) => (
-                <button
-                  key={w}
-                  onClick={() => update({ titleWeight: w })}
-                  className={`px-3 py-1.5 text-xs transition-colors ${
-                    settings.titleWeight === w
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
-                  } ${w === 'bold' ? 'border-l border-gray-200' : ''}`}
-                >
-                  {w === 'normal' ? 'Normal' : 'Bold'}
-                </button>
-              ))}
-            </div>
+            <Select
+              value={settings.titleWeight}
+              onValueChange={(v) => update({ titleWeight: v as typeof settings.titleWeight })}
+            >
+              <SelectTrigger className="h-8 text-xs w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+              </SelectContent>
+            </Select>
           </SettingRow>
 
           {/* Text weight */}
           <SettingRow label="Text weight">
-            <div className="flex rounded-md border border-gray-200 overflow-hidden">
-              {(['normal', 'bold'] as const).map((w) => (
-                <button
-                  key={w}
-                  onClick={() => update({ textWeight: w })}
-                  className={`px-3 py-1.5 text-xs transition-colors ${
-                    settings.textWeight === w
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
-                  } ${w === 'bold' ? 'border-l border-gray-200' : ''}`}
-                >
-                  {w === 'normal' ? 'Normal' : 'Bold'}
-                </button>
-              ))}
-            </div>
+            <Select
+              value={settings.textWeight}
+              onValueChange={(v) => update({ textWeight: v as typeof settings.textWeight })}
+            >
+              <SelectTrigger className="h-8 text-xs w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+
+          {/* Text style */}
+          <SettingRow label="Text style">
+            <Select
+              value={settings.textStyle || 'normal'}
+              onValueChange={(v) => update({ textStyle: v as 'normal' | 'italic' })}
+            >
+              <SelectTrigger className="h-8 text-xs w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+              </SelectContent>
+            </Select>
           </SettingRow>
 
           {/* Color */}

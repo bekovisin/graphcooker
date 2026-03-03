@@ -76,6 +76,9 @@ function getContrastColor(hexColor: string): string {
 function fontWeightToCSS(fw: string): number {
   if (fw === 'bold') return 700;
   if (fw === '600') return 600;
+  if (fw === '500') return 500;
+  if (fw === '300') return 300;
+  if (fw === '200') return 200;
   return 400;
 }
 
@@ -370,14 +373,11 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
   const padding = useMemo(() => {
     const yLabelSpace = yAxisLabelWidth + tickPadding + yAxisTitleWidth;
-    const leftEdgePad = Math.max(xTickEdgePadding.left, 10);
-    const rightEdgePad = Math.max(xTickEdgePadding.right, 10);
-
     return {
-      top: settings.layout.paddingTop + (xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0) + 10,
-      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + rightEdgePad,
-      bottom: settings.layout.paddingBottom + (!xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0) + 10,
-      left: settings.layout.paddingLeft + (!yAxisRight && !yAxisHidden ? yLabelSpace : 0) + leftEdgePad,
+      top: settings.layout.paddingTop + (xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
+      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.right,
+      bottom: settings.layout.paddingBottom + (!xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
+      left: settings.layout.paddingLeft + (!yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.left,
     };
   }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, xTickEdgePadding]);
 
@@ -625,9 +625,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             <g key={`xtick-${tick}`}>
               {tickMarksShow && (
                 <line
-                  x1={x}
+                  x1={x + lastPad}
                   y1={tmY1}
-                  x2={x}
+                  x2={x + lastPad}
                   y2={tmY2}
                   stroke={settings.xAxis.tickMarks.color}
                   strokeWidth={settings.xAxis.tickMarks.width}
@@ -1018,6 +1018,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                       fontSize,
                       fontFamily: settings.legend.fontFamily || 'Inter, sans-serif',
                       fontWeight: fontWeightToCSS(settings.legend.textWeight),
+                      fontStyle: settings.legend.textStyle || 'normal',
                       fill: settings.legend.color,
                     }}
                   >
@@ -1049,6 +1050,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                     fontSize,
                     fontFamily: settings.legend.fontFamily || 'Inter, sans-serif',
                     fontWeight: fontWeightToCSS(settings.legend.textWeight),
+                    fontStyle: settings.legend.textStyle || 'normal',
                     fill: settings.legend.color,
                   }}
                 >

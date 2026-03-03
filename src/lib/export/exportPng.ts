@@ -60,12 +60,12 @@ async function svgToCanvas(
     clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 
     if (options?.transparent) {
-      const bgRect = clonedSvg.querySelector('rect:first-child');
-      if (bgRect) {
-        bgRect.setAttribute('fill', 'none');
-        bgRect.setAttribute('fill-opacity', '0');
-        bgRect.removeAttribute('opacity');
-      }
+      const bgRects = clonedSvg.querySelectorAll(':scope > rect');
+      bgRects.forEach((rect) => {
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('fill-opacity', '0');
+        rect.removeAttribute('opacity');
+      });
     }
 
     const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
