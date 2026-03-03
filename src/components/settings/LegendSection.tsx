@@ -3,7 +3,6 @@
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { ColorPicker } from '@/components/shared/ColorPicker';
-import { NumberInput } from '@/components/shared/NumberInput';
 import { SettingRow } from '@/components/shared/SettingRow';
 import {
   Select,
@@ -16,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { NumberInput } from '@/components/shared/NumberInput';
 import type {
   FilterMode,
   LegendAlignment,
@@ -24,12 +24,28 @@ import type {
   DataColorsHeader,
 } from '@/types/chart';
 
-const alignmentOptions: { value: LegendAlignment; label: string }[] = [
-  { value: 'left', label: 'Left' },
-  { value: 'center', label: 'Center' },
-  { value: 'right', label: 'Right' },
-  { value: 'inline', label: 'Inline' },
-];
+// ── Reusable TabMenu ──
+function TabMenu<T extends string>({ value, onChange, options }: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex rounded-md border border-gray-200 overflow-hidden w-full">
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
+            value === opt.value ? 'bg-blue-500 text-white font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'
+          } ${i > 0 ? 'border-l border-gray-200' : ''}`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 const fontFamilyOptions = [
   'Inter, sans-serif',
@@ -64,43 +80,34 @@ export function LegendSection() {
 
       {settings.show && (
         <>
-          {/* Click legend to filter */}
+          {/* Click to filter — 3-button tab menu */}
           <SettingRow label="Click to filter">
-            <Select
+            <TabMenu
               value={settings.clickToFilter}
-              onValueChange={(v: FilterMode) => update({ clickToFilter: v })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="off">Off</SelectItem>
-                <SelectItem value="single_select">Single select</SelectItem>
-                <SelectItem value="multi_select">Multi select</SelectItem>
-              </SelectContent>
-            </Select>
+              onChange={(v) => update({ clickToFilter: v as FilterMode })}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'single_select', label: 'Single' },
+                { value: 'multi_select', label: 'Multi' },
+              ]}
+            />
           </SettingRow>
 
-          {/* Alignment - button group */}
+          {/* Alignment — 4-button tab menu */}
           <SettingRow label="Alignment">
-            <div className="flex rounded-md border border-gray-200 overflow-hidden">
-              {alignmentOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => update({ alignment: opt.value })}
-                  className={`px-3 py-1.5 text-xs transition-colors ${
-                    settings.alignment === opt.value
-                      ? 'bg-gray-800 text-white'
-                      : 'bg-white text-gray-600 hover:bg-gray-50'
-                  } ${opt.value !== 'left' ? 'border-l border-gray-200' : ''}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <TabMenu
+              value={settings.alignment}
+              onChange={(v) => update({ alignment: v as LegendAlignment })}
+              options={[
+                { value: 'left', label: 'Left' },
+                { value: 'center', label: 'Center' },
+                { value: 'right', label: 'Right' },
+                { value: 'inline', label: 'Inline' },
+              ]}
+            />
           </SettingRow>
 
-          {/* Font family */}
+          {/* Font family (full width) */}
           <SettingRow label="Font family">
             <Select
               value={settings.fontFamily}
@@ -119,57 +126,58 @@ export function LegendSection() {
             </Select>
           </SettingRow>
 
-          {/* Title weight */}
-          <SettingRow label="Title weight">
-            <Select
-              value={settings.titleWeight}
-              onValueChange={(v) => update({ titleWeight: v as typeof settings.titleWeight })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          {/* Text weight */}
-          <SettingRow label="Text weight">
-            <Select
-              value={settings.textWeight}
-              onValueChange={(v) => update({ textWeight: v as typeof settings.textWeight })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          {/* Text style */}
-          <SettingRow label="Text style">
-            <Select
-              value={settings.textStyle || 'normal'}
-              onValueChange={(v) => update({ textStyle: v as 'normal' | 'italic' })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                <SelectItem value="italic" className="text-xs">Italic</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
+          {/* Title weight + Text weight + Font style — 3-column row */}
+          <div className="grid grid-cols-3 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Title wt</label>
+              <Select
+                value={settings.titleWeight}
+                onValueChange={(v) => update({ titleWeight: v as typeof settings.titleWeight })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                  <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                  <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Text wt</label>
+              <Select
+                value={settings.textWeight}
+                onValueChange={(v) => update({ textWeight: v as typeof settings.textWeight })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                  <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                  <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Style</label>
+              <Select
+                value={settings.textStyle || 'normal'}
+                onValueChange={(v) => update({ textStyle: v as 'normal' | 'italic' })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           {/* Color */}
           <ColorPicker
@@ -178,26 +186,31 @@ export function LegendSection() {
             onChange={(v) => update({ color: v })}
           />
 
-          {/* Size */}
-          <NumberInput
-            label="Size"
-            value={settings.size}
-            onChange={(v) => update({ size: v })}
-            min={6}
-            max={48}
-            suffix="px"
-          />
-
-          {/* Margin top (spacing between chart and legend) */}
-          <NumberInput
-            label="Spacing from chart"
-            value={settings.marginTop}
-            onChange={(v) => update({ marginTop: v })}
-            min={-20}
-            max={60}
-            step={1}
-            suffix="px"
-          />
+          {/* Size + Spacing from chart — 2-column row */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Size (px)</label>
+              <Input
+                type="number"
+                value={settings.size}
+                onChange={(e) => update({ size: parseInt(e.target.value) || 12 })}
+                className="h-7 text-xs w-full"
+                min={6}
+                max={48}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Spacing (px)</label>
+              <Input
+                type="number"
+                value={settings.marginTop}
+                onChange={(e) => update({ marginTop: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={-20}
+                max={60}
+              />
+            </div>
+          </div>
 
           {/* Title text */}
           <SettingRow label="Title text">
@@ -216,41 +229,53 @@ export function LegendSection() {
             </Label>
           </div>
 
-          <NumberInput
-            label="Width"
-            value={settings.swatchWidth}
-            onChange={(v) => update({ swatchWidth: v })}
-            min={4}
-            max={40}
-            suffix="px"
-          />
-
-          <NumberInput
-            label="Height"
-            value={settings.swatchHeight}
-            onChange={(v) => update({ swatchHeight: v })}
-            min={4}
-            max={40}
-            suffix="px"
-          />
-
-          <NumberInput
-            label="Roundness"
-            value={settings.swatchRoundness}
-            onChange={(v) => update({ swatchRoundness: v })}
-            min={0}
-            max={20}
-            suffix="px"
-          />
-
-          <NumberInput
-            label="Padding"
-            value={settings.swatchPadding}
-            onChange={(v) => update({ swatchPadding: v })}
-            min={0}
-            max={20}
-            suffix="px"
-          />
+          {/* 4 swatch inputs side by side, (px) in label */}
+          <div className="grid grid-cols-4 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">W (px)</label>
+              <Input
+                type="number"
+                value={settings.swatchWidth}
+                onChange={(e) => update({ swatchWidth: parseInt(e.target.value) || 12 })}
+                className="h-7 text-xs w-full"
+                min={4}
+                max={40}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">H (px)</label>
+              <Input
+                type="number"
+                value={settings.swatchHeight}
+                onChange={(e) => update({ swatchHeight: parseInt(e.target.value) || 12 })}
+                className="h-7 text-xs w-full"
+                min={4}
+                max={40}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Rnd (px)</label>
+              <Input
+                type="number"
+                value={settings.swatchRoundness}
+                onChange={(e) => update({ swatchRoundness: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={0}
+                max={20}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Pad (px)</label>
+              <Input
+                type="number"
+                value={settings.swatchPadding}
+                onChange={(e) => update({ swatchPadding: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={0}
+                max={20}
+              />
+            </div>
+          </div>
 
           {/* Outline */}
           <SettingRow label="Outline" variant="inline">
@@ -271,51 +296,43 @@ export function LegendSection() {
             />
           </div>
 
-          {/* Max width */}
-          <NumberInput
-            label="Max width"
-            value={settings.maxWidth}
-            onChange={(v) => update({ maxWidth: v })}
-            min={0}
-            max={100}
-            suffix="%"
-          />
-
-          {/* Orientation */}
-          <SettingRow label="Orientation">
-            <Select
-              value={settings.orientation}
-              onValueChange={(v: LegendOrientation) => update({ orientation: v })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="horizontal">Horizontal</SelectItem>
-                <SelectItem value="vertical">Vertical</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          {/* Position */}
-          <SettingRow label="Position">
-            <Select
-              value={settings.position || 'below'}
-              onValueChange={(v: LegendPosition) => update({ position: v })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="below">Below chart</SelectItem>
-                <SelectItem value="overlay">Overlay on chart</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
+          {/* Orientation + Position — 2-column row */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Orientation</label>
+              <Select
+                value={settings.orientation}
+                onValueChange={(v: LegendOrientation) => update({ orientation: v })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="horizontal">Horizontal</SelectItem>
+                  <SelectItem value="vertical">Vertical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Position</label>
+              <Select
+                value={settings.position || 'below'}
+                onValueChange={(v: LegendPosition) => update({ position: v })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="below">Below chart</SelectItem>
+                  <SelectItem value="overlay">Overlay</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           {/* Overlay position controls */}
           {(settings.position || 'below') === 'overlay' && (
-            <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+            <div className="grid grid-cols-2 gap-1.5 pl-2 border-l-2 border-gray-100">
               <NumberInput
                 label="X offset"
                 value={settings.overlayX ?? 10}
@@ -337,24 +354,36 @@ export function LegendSection() {
             </div>
           )}
 
-          {/* Add data colors to header */}
-          <SettingRow label="Data colors in header">
-            <Select
-              value={settings.dataColorsHeader}
-              onValueChange={(v: DataColorsHeader) =>
-                update({ dataColorsHeader: v })
-              }
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Auto</SelectItem>
-                <SelectItem value="custom">Custom</SelectItem>
-                <SelectItem value="off">Off</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
+          {/* Max width + Data colors in header — 2-column row */}
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Max width (%)</label>
+              <Input
+                type="number"
+                value={settings.maxWidth}
+                onChange={(e) => update({ maxWidth: parseInt(e.target.value) || 100 })}
+                className="h-7 text-xs w-full"
+                min={0}
+                max={100}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Data colors</label>
+              <Select
+                value={settings.dataColorsHeader}
+                onValueChange={(v: DataColorsHeader) => update({ dataColorsHeader: v })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="off">Off</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </>
       )}
     </AccordionSection>

@@ -2,9 +2,9 @@
 
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
-import { NumberInput } from '@/components/shared/NumberInput';
 import { SettingRow } from '@/components/shared/SettingRow';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectTrigger,
@@ -40,25 +40,26 @@ export function AnimationsSection() {
       </SettingRow>
 
       {settings.enabled && (
-        <>
-          {/* Duration */}
-          <NumberInput
-            label="Duration"
-            value={settings.duration}
-            onChange={(v) => update({ duration: v })}
-            min={100}
-            max={5000}
-            step={50}
-            suffix="ms"
-          />
-
-          {/* Animation Type */}
-          <SettingRow label="Animation type">
+        <div className="grid grid-cols-2 gap-1.5">
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Duration (ms)</label>
+            <Input
+              type="number"
+              value={settings.duration}
+              onChange={(e) => update({ duration: parseInt(e.target.value) || 800 })}
+              className="h-7 text-xs w-full"
+              min={100}
+              max={5000}
+              step={50}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Type</label>
             <Select
               value={settings.type}
               onValueChange={(v) => update({ type: v as AnimationType })}
             >
-              <SelectTrigger className="h-8 text-xs w-full">
+              <SelectTrigger className="h-7 text-xs w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -69,8 +70,8 @@ export function AnimationsSection() {
                 ))}
               </SelectContent>
             </Select>
-          </SettingRow>
-        </>
+          </div>
+        </div>
       )}
     </AccordionSection>
   );
