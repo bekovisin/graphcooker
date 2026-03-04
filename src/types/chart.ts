@@ -139,6 +139,8 @@ export interface XAxisSettings {
   tickLabelCountMode: TickLabelCountMode;
   tickLabelCount: number;
   hiddenTickLabels: string[];
+  firstLabelPadding: number;
+  firstTickPadding: number;
   lastLabelPadding: number;
   lastTickPadding: number;
   labelAxisPadding: number;

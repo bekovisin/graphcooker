@@ -75,6 +75,8 @@ export const defaultChartSettings: ChartSettings = {
     tickLabelCountMode: 'all',
     tickLabelCount: 0,
     hiddenTickLabels: [],
+    firstLabelPadding: 0,
+    firstTickPadding: 0,
     lastLabelPadding: 0,
     lastTickPadding: 0,
     labelAxisPadding: 0,

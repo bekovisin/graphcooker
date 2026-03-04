@@ -339,6 +339,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     const firstW = measureTextWidth(firstLabel, xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
     const lastW = measureTextWidth(lastLabel, xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
 
+    const firstLabelPad = settings.xAxis.firstLabelPadding || 0;
+    const lastLabelPad = settings.xAxis.lastLabelPadding || 0;
+
     if (hasAngle) {
       // With angled labels, we need more padding based on text width and angle
       const rad = Math.abs(tickAngle) * (Math.PI / 180);
@@ -347,11 +350,17 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
       const h = xTickStyle.fontSize;
       const effectiveFirst = firstW * cosA + h * sinA;
       const effectiveLast = lastW * cosA + h * sinA;
-      return { left: Math.ceil(effectiveFirst / 2) + 2, right: Math.ceil(effectiveLast / 2) + 2 };
+      return {
+        left: Math.max(0, Math.ceil(effectiveFirst / 2) + 2 - firstLabelPad),
+        right: Math.max(0, Math.ceil(effectiveLast / 2) + 2 - lastLabelPad),
+      };
     }
 
-    return { left: Math.ceil(firstW / 2), right: Math.ceil(lastW / 2) };
-  }, [xTicks, xAxisHidden, xTickStyle, settings.numberFormatting, hasAngle, tickAngle]);
+    return {
+      left: Math.max(0, Math.ceil(firstW / 2) - firstLabelPad),
+      right: Math.max(0, Math.ceil(lastW / 2) - lastLabelPad),
+    };
+  }, [xTicks, xAxisHidden, xTickStyle, settings.numberFormatting, hasAngle, tickAngle, settings.xAxis.firstLabelPadding, settings.xAxis.lastLabelPadding]);
 
   // X axis height depends on angle
   const labelAxisPad = settings.xAxis.labelAxisPadding || 0;
@@ -631,32 +640,37 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             ? xAxisYPos - (tickMarksShow ? tickLen : 0) - 6 - labelAxisPad
             : xAxisYPos + (tickMarksShow ? tickLen : 0) + xTickStyle.fontSize + 4 + labelAxisPad;
 
-          // Last label padding: push the label inward
+          // First / Last label padding: push labels inward
+          const isFirstTick = tickIdx === 0;
           const isLastTick = tickIdx === xTicks.length - 1;
+          const firstPad = isFirstTick ? (settings.xAxis.firstLabelPadding || 0) : 0;
           const lastPad = isLastTick ? -(settings.xAxis.lastLabelPadding || 0) : 0;
-          // Last tick padding: push the tick mark inward (separate control)
+          const labelPad = firstPad + lastPad; // only one will be non-zero
+          // First / Last tick padding: push tick marks inward (separate controls)
+          const firstTickPad = isFirstTick ? (settings.xAxis.firstTickPadding || 0) : 0;
           const lastTickPad = isLastTick ? -(settings.xAxis.lastTickPadding || 0) : 0;
+          const tickPadOffset = firstTickPad + lastTickPad;
 
           return (
             <g key={`xtick-${tick}`}>
-              {/* Tick mark moves with lastTickPad for inward adjustment */}
+              {/* Tick mark moves with tickPadOffset for inward adjustment */}
               {tickMarksShow && (
                 <line
-                  x1={x + lastTickPad}
+                  x1={x + tickPadOffset}
                   y1={tmY1}
-                  x2={x + lastTickPad}
+                  x2={x + tickPadOffset}
                   y2={tmY2}
                   stroke={settings.xAxis.tickMarks.color}
                   strokeWidth={settings.xAxis.tickMarks.width}
                 />
               )}
-              {/* Label moves with lastPad for inward adjustment */}
+              {/* Label moves with labelPad for inward adjustment — always middle anchor */}
               <text
-                x={x + lastPad}
+                x={x + labelPad}
                 y={hasAngle ? xAxisYPos + (xAxisOnTop ? -1 : 1) * ((tickMarksShow ? tickLen : 0) + 4 + labelAxisPad) : labelY}
-                textAnchor={hasAngle ? (tickAngle > 0 ? 'start' : 'end') : (isLastTick && lastPad !== 0 ? 'end' : 'middle')}
+                textAnchor={hasAngle ? (tickAngle > 0 ? 'start' : 'end') : 'middle'}
                 dominantBaseline={hasAngle ? (xAxisOnTop ? 'auto' : 'hanging') : 'auto'}
-                transform={hasAngle ? `rotate(${tickAngle}, ${x + lastPad}, ${xAxisYPos + (xAxisOnTop ? -1 : 1) * ((tickMarksShow ? tickLen : 0) + 4 + labelAxisPad)})` : undefined}
+                transform={hasAngle ? `rotate(${tickAngle}, ${x + labelPad}, ${xAxisYPos + (xAxisOnTop ? -1 : 1) * ((tickMarksShow ? tickLen : 0) + 4 + labelAxisPad)})` : undefined}
                 style={{
                   fontSize: xTickStyle.fontSize,
                   fontFamily: xTickStyle.fontFamily,

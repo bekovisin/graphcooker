@@ -722,6 +722,28 @@ export function XAxisSection() {
         </SettingRow>
       )}
 
+      {/* FIRST LABEL */}
+      <SubHeader>First Label</SubHeader>
+      <NumberInput
+        label="Inward padding"
+        value={settings.firstLabelPadding || 0}
+        onChange={(v) => update({ firstLabelPadding: v })}
+        min={0}
+        max={100}
+        step={1}
+        suffix="px"
+      />
+
+      <NumberInput
+        label="First tick padding"
+        value={settings.firstTickPadding || 0}
+        onChange={(v) => update({ firstTickPadding: v })}
+        min={0}
+        max={100}
+        step={1}
+        suffix="px"
+      />
+
       {/* LAST LABEL */}
       <SubHeader>Last Label</SubHeader>
       <NumberInput
