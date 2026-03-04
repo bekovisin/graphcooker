@@ -76,6 +76,7 @@ export const defaultChartSettings: ChartSettings = {
     tickLabelCount: 0,
     hiddenTickLabels: [],
     lastLabelPadding: 0,
+    labelAxisPadding: 0,
     tickMarks: { show: true, position: 'outside', length: 6, width: 1, color: '#666666' },
     axisLine: { show: true, width: 1, color: '#666666' },
     zeroLine: { show: true, width: 1, color: '#666666' },

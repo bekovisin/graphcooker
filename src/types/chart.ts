@@ -140,6 +140,7 @@ export interface XAxisSettings {
   tickLabelCount: number;
   hiddenTickLabels: string[];
   lastLabelPadding: number;
+  labelAxisPadding: number;
   tickMarks: TickMarksSettings;
   axisLine: AxisLineSettings;
   zeroLine: AxisLineSettings;
@@ -194,7 +195,7 @@ export interface NumberFormattingSettings {
 // Legend
 export type LegendAlignment = 'left' | 'center' | 'right' | 'inline';
 export type LegendOrientation = 'horizontal' | 'vertical';
-export type LegendPosition = 'below' | 'overlay';
+export type LegendPosition = 'below' | 'above' | 'overlay';
 export type DataColorsHeader = 'auto' | 'custom' | 'off';
 
 export interface LegendSettings {

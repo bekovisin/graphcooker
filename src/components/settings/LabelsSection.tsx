@@ -42,7 +42,7 @@ function TabMenu<T extends string>({
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="flex rounded-md border border-gray-200 overflow-hidden w-full">
+    <div className="flex rounded-md border border-gray-300 overflow-hidden w-full">
       {options.map((opt, i) => (
         <button
           key={opt.value}
@@ -51,7 +51,7 @@ function TabMenu<T extends string>({
             value === opt.value
               ? 'bg-blue-500 text-white font-medium'
               : 'bg-white text-gray-600 hover:bg-gray-50'
-          } ${i > 0 ? 'border-l border-gray-200' : ''}`}
+          } ${i > 0 ? 'border-l border-gray-300' : ''}`}
         >
           {opt.label}
         </button>

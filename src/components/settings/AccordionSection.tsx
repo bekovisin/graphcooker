@@ -21,11 +21,11 @@ export function AccordionSection({
   children,
 }: AccordionSectionProps) {
   return (
-    <AccordionItem value={id} className="border-b border-gray-200 border-t-0">
-      <AccordionTrigger className="px-4 py-2 text-[13px] font-bold text-gray-700 hover:bg-gray-50 hover:no-underline [&[data-state=open]]:bg-blue-50 [&[data-state=open]]:text-blue-900">
+    <AccordionItem value={id} className="border-b border-gray-300/60 border-t-0">
+      <AccordionTrigger className="px-4 py-2 text-[13px] font-bold text-gray-800 hover:bg-gray-50 hover:no-underline [&[data-state=open]]:bg-blue-50/80 [&[data-state=open]]:text-blue-900">
         {title}
       </AccordionTrigger>
-      <AccordionContent className="px-4 pb-4 bg-gray-50">
+      <AccordionContent className="px-4 pb-4 bg-gray-50/50">
         <div className="space-y-3 pt-3">{children}</div>
       </AccordionContent>
     </AccordionItem>

@@ -38,14 +38,14 @@ function TabMenu<T extends string>({ value, onChange, options }: {
   options: { value: T; label: string }[];
 }) {
   return (
-    <div className="flex rounded-md border border-gray-200 overflow-hidden w-full">
+    <div className="flex rounded-md border border-gray-300 overflow-hidden w-full">
       {options.map((opt, i) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
           className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
             value === opt.value ? 'bg-blue-500 text-white font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'
-          } ${i > 0 ? 'border-l border-gray-200' : ''}`}
+          } ${i > 0 ? 'border-l border-gray-300' : ''}`}
         >
           {opt.label}
         </button>
@@ -216,7 +216,7 @@ function LabelVisibilityDropdown({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="flex items-center justify-between w-full h-8 px-3 rounded-md border border-gray-200 bg-white text-xs hover:bg-gray-50 transition-colors">
+        <button className="flex items-center justify-between w-full h-8 px-3 rounded-md border border-gray-300 bg-white text-xs hover:bg-gray-50 transition-colors">
           <span className="text-gray-700 truncate">
             {visibleCount === allLabels.length
               ? 'All visible'
@@ -730,6 +730,16 @@ export function XAxisSection() {
         onChange={(v) => update({ lastLabelPadding: v })}
         min={0}
         max={100}
+        step={1}
+        suffix="px"
+      />
+
+      <NumberInput
+        label="Label-axis padding"
+        value={settings.labelAxisPadding || 0}
+        onChange={(v) => update({ labelAxisPadding: v })}
+        min={0}
+        max={50}
         step={1}
         suffix="px"
       />
