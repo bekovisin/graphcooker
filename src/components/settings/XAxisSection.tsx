@@ -738,8 +738,18 @@ export function XAxisSection() {
         label="Label-axis padding"
         value={settings.labelAxisPadding || 0}
         onChange={(v) => update({ labelAxisPadding: v })}
-        min={0}
+        min={-50}
         max={50}
+        step={1}
+        suffix="px"
+      />
+
+      <NumberInput
+        label="Last tick padding"
+        value={settings.lastTickPadding || 0}
+        onChange={(v) => update({ lastTickPadding: v })}
+        min={0}
+        max={100}
         step={1}
         suffix="px"
       />

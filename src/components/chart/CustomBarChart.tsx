@@ -347,17 +347,17 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
       const h = xTickStyle.fontSize;
       const effectiveFirst = firstW * cosA + h * sinA;
       const effectiveLast = lastW * cosA + h * sinA;
-      return { left: Math.ceil(effectiveFirst / 2) + 4, right: Math.ceil(effectiveLast / 2) + 4 };
+      return { left: Math.ceil(effectiveFirst / 2) + 2, right: Math.ceil(effectiveLast / 2) + 2 };
     }
 
-    return { left: Math.ceil(firstW / 2) + 2, right: Math.ceil(lastW / 2) + 2 };
+    return { left: Math.ceil(firstW / 2), right: Math.ceil(lastW / 2) };
   }, [xTicks, xAxisHidden, xTickStyle, settings.numberFormatting, hasAngle, tickAngle]);
 
   // X axis height depends on angle
   const labelAxisPad = settings.xAxis.labelAxisPadding || 0;
   const xAxisHeight = useMemo(() => {
     if (xAxisHidden) return 0;
-    if (!hasAngle) return xTickStyle.fontSize + 20 + labelAxisPad;
+    if (!hasAngle) return xTickStyle.fontSize + 10 + labelAxisPad;
     // Angled: compute height based on longest tick label and angle
     const maxLabel = xTicks.reduce((longest, tick) => {
       const label = formatNumber(tick, settings.numberFormatting);
@@ -365,7 +365,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     }, '');
     const maxW = measureTextWidth(maxLabel, xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
     const rad = Math.abs(tickAngle) * (Math.PI / 180);
-    return Math.ceil(maxW * Math.sin(rad) + xTickStyle.fontSize * Math.cos(rad)) + 20 + labelAxisPad;
+    return Math.ceil(maxW * Math.sin(rad) + xTickStyle.fontSize * Math.cos(rad)) + 10 + labelAxisPad;
   }, [xAxisHidden, hasAngle, tickAngle, xTicks, xTickStyle, settings.numberFormatting, labelAxisPad]);
 
   const xAxisTitleHeight = settings.xAxis.titleType === 'custom' && settings.xAxis.titleText ? settings.xAxis.titleStyling.fontSize + 10 : 0;
@@ -382,12 +382,6 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     };
   }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, xTickEdgePadding]);
 
-  // Bar sizing
-  const barHeight = settings.bars.barHeight;
-  const spacingMain = settings.bars.spacingMain;
-  const labelRowHeight = isAboveBars ? yTickStyle.fontSize + 8 : 0;
-  const categoryHeight = barHeight + spacingMain + labelRowHeight;
-
   // Early legend height calculation (needed for 'above' positioning)
   const legendIsOverlay = settings.legend.position === 'overlay';
   const legendIsAbove = settings.legend.position === 'above';
@@ -399,9 +393,25 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     if (settings.legend.orientation === 'vertical') {
       return series.length * (legendFontSize + legendGapEarly) + marginTop + 10;
     }
-    return legendFontSize + 20 + marginTop;
+    return legendFontSize + 10 + marginTop;
   })();
   const legendAboveOffset = legendIsAbove ? legendHeight : 0;
+
+  // Bar sizing: when heightProp is provided, compute bar height to fill the space
+  const spacingMain = settings.bars.spacingMain;
+  const labelRowHeight = isAboveBars ? yTickStyle.fontSize + 8 : 0;
+  const barHeight = (() => {
+    if (heightProp && categories.length > 0) {
+      // Subtract non-bar space from total height to get available bar area
+      const nonBarSpace = padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);
+      const availableForBars = heightProp - nonBarSpace;
+      const perCategory = availableForBars / categories.length;
+      // bar height = per category height - spacing - label row
+      return Math.max(4, perCategory - spacingMain - labelRowHeight);
+    }
+    return settings.bars.barHeight;
+  })();
+  const categoryHeight = barHeight + spacingMain + labelRowHeight;
 
   const computedChartHeight = categories.length * categoryHeight + padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);
   const svgHeight = heightProp || computedChartHeight;
@@ -621,18 +631,20 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             ? xAxisYPos - (tickMarksShow ? tickLen : 0) - 6 - labelAxisPad
             : xAxisYPos + (tickMarksShow ? tickLen : 0) + xTickStyle.fontSize + 4 + labelAxisPad;
 
-          // Last label padding: push ONLY the label inward (tick mark stays fixed)
+          // Last label padding: push the label inward
           const isLastTick = tickIdx === xTicks.length - 1;
           const lastPad = isLastTick ? -(settings.xAxis.lastLabelPadding || 0) : 0;
+          // Last tick padding: push the tick mark inward (separate control)
+          const lastTickPad = isLastTick ? -(settings.xAxis.lastTickPadding || 0) : 0;
 
           return (
             <g key={`xtick-${tick}`}>
-              {/* Tick mark stays at original x position (no lastPad) */}
+              {/* Tick mark moves with lastTickPad for inward adjustment */}
               {tickMarksShow && (
                 <line
-                  x1={x}
+                  x1={x + lastTickPad}
                   y1={tmY1}
-                  x2={x}
+                  x2={x + lastTickPad}
                   y2={tmY2}
                   stroke={settings.xAxis.tickMarks.color}
                   strokeWidth={settings.xAxis.tickMarks.width}
@@ -970,16 +982,23 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
         {/* ── Legend (rendered inside SVG for proper export) ── */}
         {settings.legend.show && (() => {
-          // Legend Y: above = top of SVG, below = after chart area, overlay = custom
+          // Legend padding offsets
+          const lPadT = settings.legend.paddingTop || 0;
+          const lPadR = settings.legend.paddingRight || 0;
+          const lPadB = settings.legend.paddingBottom || 0;
+          const lPadL = settings.legend.paddingLeft || 0;
+          // xAxisSpaceBelow: the space taken by x-axis elements (ticks, labels, title) — excludes layout padding
+          const xAxisSpaceBelow = !xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0;
+          // Legend Y: independent of layout padding — uses chart area + xAxis space only
           const legendY = legendIsOverlay
-            ? chartTop + (settings.legend.overlayY ?? 10)
+            ? chartTop + (settings.legend.overlayY ?? 10) + lPadT
             : legendIsAbove
-              ? (settings.legend.marginTop || 0)
-              : chartBottom + padding.bottom + (settings.legend.marginTop || 0);
+              ? (settings.legend.marginTop || 0) + lPadT
+              : chartBottom + xAxisSpaceBelow + (settings.legend.marginTop || 0) + lPadT;
           // Legend X: NOT affected by layout padding (uses full width for alignment)
           let curX = legendIsOverlay
-            ? padding.left + (settings.legend.overlayX ?? 10)
-            : 0;
+            ? padding.left + (settings.legend.overlayX ?? 10) + lPadL
+            : 0 + lPadL;
           const swW = settings.legend.swatchWidth;
           const swH = settings.legend.swatchHeight;
           const gap = settings.legend.swatchPadding || 8;
@@ -994,11 +1013,13 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
           if (!legendIsOverlay) {
             if (settings.legend.alignment === 'center') {
-              curX = (width - totalWidth) / 2;
+              curX = (width - totalWidth) / 2 + lPadL - lPadR;
             } else if (settings.legend.alignment === 'right') {
-              curX = width - totalWidth;
+              curX = width - totalWidth - lPadR;
             }
           }
+          // lPadB is applied to total height calculation via legendHeight (reserved for future adjustments)
+          void lPadB;
 
           if (settings.legend.orientation === 'vertical') {
             return legendItems.map((item, idx) => {

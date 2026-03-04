@@ -140,6 +140,7 @@ export interface XAxisSettings {
   tickLabelCount: number;
   hiddenTickLabels: string[];
   lastLabelPadding: number;
+  lastTickPadding: number;
   labelAxisPadding: number;
   tickMarks: TickMarksSettings;
   axisLine: AxisLineSettings;
@@ -221,6 +222,10 @@ export interface LegendSettings {
   position: LegendPosition;
   overlayX: number;
   overlayY: number;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
   dataColorsHeader: DataColorsHeader;
 }
 

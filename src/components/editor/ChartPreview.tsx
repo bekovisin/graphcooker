@@ -185,7 +185,7 @@ export function ChartPreview() {
                   columnMapping={columnMapping}
                   settings={settings}
                   width={chartAreaWidth}
-                  height={hasFixedHeight ? undefined : undefined}
+                  height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
                 />
               ) : series.length > 0 ? (
                 isAboveBars ? (

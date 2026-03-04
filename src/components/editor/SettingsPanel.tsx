@@ -52,7 +52,7 @@ export function SettingsPanel() {
     : sections;
 
   return (
-    <div className="w-[340px] border-l bg-gray-50/40 flex flex-col shrink-0">
+    <div className="w-[340px] border-l flex flex-col shrink-0" style={{ backgroundColor: '#f7f7f7' }}>
       <SearchSettings />
       <ScrollArea className="flex-1">
         <Accordion type="single" collapsible className="pb-8">

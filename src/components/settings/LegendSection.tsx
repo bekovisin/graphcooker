@@ -355,6 +355,60 @@ export function LegendSection() {
             </div>
           )}
 
+          {/* ---- PADDING ---- */}
+          <div className="pt-2 border-t border-gray-100">
+            <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Padding
+            </Label>
+          </div>
+
+          <div className="grid grid-cols-4 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Top</label>
+              <Input
+                type="number"
+                value={settings.paddingTop ?? 0}
+                onChange={(e) => update({ paddingTop: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={-50}
+                max={100}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Right</label>
+              <Input
+                type="number"
+                value={settings.paddingRight ?? 0}
+                onChange={(e) => update({ paddingRight: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={-50}
+                max={100}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Bottom</label>
+              <Input
+                type="number"
+                value={settings.paddingBottom ?? 0}
+                onChange={(e) => update({ paddingBottom: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={-50}
+                max={100}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Left</label>
+              <Input
+                type="number"
+                value={settings.paddingLeft ?? 0}
+                onChange={(e) => update({ paddingLeft: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={-50}
+                max={100}
+              />
+            </div>
+          </div>
+
           {/* Max width + Data colors in header — 2-column row */}
           <div className="grid grid-cols-2 gap-1.5">
             <div>
