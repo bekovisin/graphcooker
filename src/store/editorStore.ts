@@ -22,6 +22,7 @@ interface EditorState {
 
   // Data
   data: DataRow[];
+  columnOrder: string[];
   columnMapping: ColumnMapping;
 
   // Settings
@@ -41,7 +42,19 @@ interface EditorState {
   setCanvasBackgroundColor: (color: string) => void;
   setSettingsSearchQuery: (query: string) => void;
   setData: (data: DataRow[]) => void;
+  setDataAndColumns: (data: DataRow[], columnOrder: string[]) => void;
+  setColumnOrder: (order: string[]) => void;
   setColumnMapping: (mapping: ColumnMapping) => void;
+  updateCell: (rowIndex: number, colName: string, value: string | number | null) => void;
+  updateCellBatch: (updates: Array<{ row: number; col: string; value: string | number | null }>) => void;
+  insertRow: (atIndex: number) => void;
+  removeRow: (rowIndex: number) => void;
+  removeRows: (rowIndices: number[]) => void;
+  insertColumn: (atIndex: number, name: string) => void;
+  removeColumn: (colIndex: number) => void;
+  reorderColumn: (fromIndex: number, toIndex: number) => void;
+  reorderRow: (fromIndex: number, toIndex: number) => void;
+  sortByColumn: (colName: string, direction: 'asc' | 'desc') => void;
   updateSettings: <K extends keyof ChartSettings>(section: K, updates: Partial<ChartSettings[K]>) => void;
   setSettings: (settings: ChartSettings) => void;
   setIsDirty: (dirty: boolean) => void;
@@ -97,6 +110,11 @@ function mergeSettings(saved: Partial<ChartSettings>): ChartSettings {
   return merged as unknown as ChartSettings;
 }
 
+function deriveColumnOrder(data: DataRow[]): string[] {
+  if (!data || data.length === 0) return [];
+  return Object.keys(data[0]);
+}
+
 export const useEditorStore = create<EditorState>((set) => ({
   visualizationId: null,
   visualizationName: 'Untitled visualization',
@@ -108,6 +126,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   canvasBackgroundColor: '#e5e7eb',
   settingsSearchQuery: '',
   data: defaultData,
+  columnOrder: deriveColumnOrder(defaultData),
   columnMapping: defaultColumnMapping,
   settings: defaultChartSettings,
   isDirty: false,
@@ -121,8 +140,121 @@ export const useEditorStore = create<EditorState>((set) => ({
   setCustomPreviewSize: (width, height) => set({ customPreviewWidth: width, customPreviewHeight: height }),
   setCanvasBackgroundColor: (color) => set({ canvasBackgroundColor: color }),
   setSettingsSearchQuery: (query) => set({ settingsSearchQuery: query }),
-  setData: (data) => set({ data, isDirty: true }),
+  setData: (data) => set({ data, columnOrder: deriveColumnOrder(data), isDirty: true }),
+  setDataAndColumns: (data, columnOrder) => set({ data, columnOrder, isDirty: true }),
+  setColumnOrder: (order) => set({ columnOrder: order, isDirty: true }),
   setColumnMapping: (mapping) => set({ columnMapping: mapping, isDirty: true }),
+
+  updateCell: (rowIndex, colName, value) =>
+    set((state) => {
+      const newData = [...state.data];
+      newData[rowIndex] = { ...newData[rowIndex], [colName]: value };
+      return { data: newData, isDirty: true };
+    }),
+
+  updateCellBatch: (updates) =>
+    set((state) => {
+      const newData = state.data.map((row) => ({ ...row }));
+      for (const u of updates) {
+        if (newData[u.row]) {
+          newData[u.row][u.col] = u.value;
+        }
+      }
+      return { data: newData, isDirty: true };
+    }),
+
+  insertRow: (atIndex) =>
+    set((state) => {
+      const newRow: DataRow = {};
+      state.columnOrder.forEach((col) => (newRow[col] = ''));
+      const newData = [...state.data];
+      newData.splice(atIndex, 0, newRow);
+      return { data: newData, isDirty: true };
+    }),
+
+  removeRow: (rowIndex) =>
+    set((state) => {
+      const newData = state.data.filter((_, i) => i !== rowIndex);
+      return { data: newData.length > 0 ? newData : [Object.fromEntries(state.columnOrder.map((c) => [c, '']))], isDirty: true };
+    }),
+
+  removeRows: (rowIndices) =>
+    set((state) => {
+      const indexSet = new Set(rowIndices);
+      const newData = state.data.filter((_, i) => !indexSet.has(i));
+      return { data: newData.length > 0 ? newData : [Object.fromEntries(state.columnOrder.map((c) => [c, '']))], isDirty: true };
+    }),
+
+  insertColumn: (atIndex, name) =>
+    set((state) => {
+      const newOrder = [...state.columnOrder];
+      newOrder.splice(atIndex, 0, name);
+      const newData = state.data.map((row) => {
+        const newRow: DataRow = {};
+        newOrder.forEach((col) => {
+          newRow[col] = col === name ? '' : (row[col] ?? '');
+        });
+        return newRow;
+      });
+      return { data: newData, columnOrder: newOrder, isDirty: true };
+    }),
+
+  removeColumn: (colIndex) =>
+    set((state) => {
+      const colName = state.columnOrder[colIndex];
+      if (!colName) return {};
+      const newOrder = state.columnOrder.filter((_, i) => i !== colIndex);
+      if (newOrder.length === 0) return {};
+      const newData = state.data.map((row) => {
+        const newRow: DataRow = {};
+        newOrder.forEach((col) => { newRow[col] = row[col] ?? ''; });
+        return newRow;
+      });
+      // Clean up column mapping references
+      const mapping = { ...state.columnMapping };
+      if (mapping.labels === colName) mapping.labels = '';
+      if (mapping.values) mapping.values = mapping.values.filter((v) => v !== colName);
+      if (mapping.chartsGrid === colName) mapping.chartsGrid = undefined;
+      if (mapping.rowFilter === colName) mapping.rowFilter = undefined;
+      if (mapping.infoPopups) mapping.infoPopups = mapping.infoPopups.filter((v) => v !== colName);
+      return { data: newData, columnOrder: newOrder, columnMapping: mapping, isDirty: true };
+    }),
+
+  reorderColumn: (fromIndex, toIndex) =>
+    set((state) => {
+      const newOrder = [...state.columnOrder];
+      const [moved] = newOrder.splice(fromIndex, 1);
+      newOrder.splice(toIndex, 0, moved);
+      return { columnOrder: newOrder, isDirty: true };
+    }),
+
+  reorderRow: (fromIndex, toIndex) =>
+    set((state) => {
+      const newData = [...state.data];
+      const [moved] = newData.splice(fromIndex, 1);
+      newData.splice(toIndex, 0, moved);
+      return { data: newData, isDirty: true };
+    }),
+
+  sortByColumn: (colName, direction) =>
+    set((state) => {
+      const newData = [...state.data].sort((a, b) => {
+        const aVal = a[colName];
+        const bVal = b[colName];
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        const aNum = Number(aVal);
+        const bNum = Number(bVal);
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return direction === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+        const aStr = String(aVal);
+        const bStr = String(bVal);
+        return direction === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+      });
+      return { data: newData, isDirty: true };
+    }),
 
   updateSettings: (section, updates) =>
     set((state) => ({
@@ -150,6 +282,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       canvasBackgroundColor: '#e5e7eb',
       settingsSearchQuery: '',
       data: defaultData,
+      columnOrder: deriveColumnOrder(defaultData),
       columnMapping: defaultColumnMapping,
       settings: defaultChartSettings,
       isDirty: false,
@@ -163,6 +296,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       visualizationName: viz.name,
       chartType: viz.chartType,
       data: viz.data,
+      columnOrder: deriveColumnOrder(viz.data),
       settings: mergeSettings(viz.settings),
       columnMapping: viz.columnMapping,
       isDirty: false,

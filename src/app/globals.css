@@ -41,9 +41,7 @@
   }
 }
 
-/* AG Grid theme override */
-.ag-theme-alpine {
-  --ag-font-size: 13px;
-  --ag-row-height: 32px;
-  --ag-header-height: 36px;
+/* Spreadsheet styles */
+.spreadsheet-container:focus {
+  outline: none;
 }

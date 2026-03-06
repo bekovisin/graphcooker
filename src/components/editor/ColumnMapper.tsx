@@ -3,8 +3,6 @@
 import { useMemo } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -12,16 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Wand2, X } from 'lucide-react';
+import { Upload, RefreshCw, X } from 'lucide-react';
+import { COLUMN_ROLE_COLORS } from './spreadsheet/constants';
+import { colIndexToLetter, formatColumnBadge } from './spreadsheet/utils';
 
-export function ColumnMapper() {
-  const { data, columnMapping, setColumnMapping } = useEditorStore();
+interface ColumnMapperProps {
+  onUploadClick: () => void;
+}
 
-  const availableColumns = useMemo(() => {
-    if (!data || data.length === 0) return [];
-    return Object.keys(data[0]);
-  }, [data]);
+export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
+  const { columnOrder, columnMapping, setColumnMapping } = useEditorStore();
+
+  const availableColumns = useMemo(() => columnOrder, [columnOrder]);
 
   const autoSetColumns = () => {
     if (availableColumns.length === 0) return;
@@ -33,60 +33,103 @@ export function ColumnMapper() {
   const toggleValue = (col: string) => {
     const current = columnMapping.values || [];
     if (current.includes(col)) {
-      setColumnMapping({
-        ...columnMapping,
-        values: current.filter((c) => c !== col),
-      });
+      setColumnMapping({ ...columnMapping, values: current.filter((c) => c !== col) });
     } else {
-      setColumnMapping({
-        ...columnMapping,
-        values: [...current, col],
-      });
+      setColumnMapping({ ...columnMapping, values: [...current, col] });
     }
   };
 
+  const labelColors = COLUMN_ROLE_COLORS.label;
+  const valueColors = COLUMN_ROLE_COLORS.value;
+  const gridColors = COLUMN_ROLE_COLORS.chartsGrid;
+  const filterColors = COLUMN_ROLE_COLORS.rowFilter;
+  const popupColors = COLUMN_ROLE_COLORS.infoPopup;
+
+  const labelsIndex = availableColumns.indexOf(columnMapping.labels);
+  const labelBadge = labelsIndex >= 0 ? colIndexToLetter(labelsIndex) : '';
+  const valuesBadge = formatColumnBadge(columnMapping.values || [], availableColumns);
+
   return (
-    <div className="w-[260px] border-l bg-white flex flex-col shrink-0">
+    <div className="w-[280px] border-l bg-white flex flex-col shrink-0">
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
-        <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-          Column mapping
-        </h3>
-        <Button variant="ghost" size="sm" onClick={autoSetColumns} className="gap-1 text-xs h-7">
-          <Wand2 className="w-3 h-3" />
-          Auto
-        </Button>
+        <span className="text-sm font-semibold text-gray-800">Data</span>
+        <button
+          onClick={onUploadClick}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+        >
+          <Upload className="w-3 h-3" />
+          Upload data
+        </button>
       </div>
 
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-5">
-          {/* Labels / Time (REQUIRED) */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <Label className="text-xs font-medium text-gray-700">Labels / time</Label>
-              <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-red-500 border-red-200">
-                REQUIRED
-              </Badge>
-            </div>
-            <Select
-              value={columnMapping.labels || ''}
-              onValueChange={(val) => setColumnMapping({ ...columnMapping, labels: val })}
+          {/* Section label */}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              Select columns to visualise
+            </span>
+            <button
+              onClick={autoSetColumns}
+              className="flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-600 font-medium"
             >
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Select column" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableColumns.map((col) => (
-                  <SelectItem key={col} value={col} className="text-xs">
-                    {col}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <RefreshCw className="w-3 h-3" />
+              Auto set columns
+            </button>
+          </div>
+
+          {/* Labels / Time (REQUIRED) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-700">Labels/time</span>
+              <span
+                className="text-[9px] font-bold uppercase px-1 py-0 rounded"
+                style={{ color: labelColors.text, backgroundColor: labelColors.bg, border: `1px solid ${labelColors.border}` }}
+              >
+                Required
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select
+                value={columnMapping.labels || ''}
+                onValueChange={(val) => setColumnMapping({ ...columnMapping, labels: val })}
+              >
+                <SelectTrigger className="h-8 text-xs flex-1">
+                  <SelectValue placeholder="Select column" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableColumns.map((col) => (
+                    <SelectItem key={col} value={col} className="text-xs">
+                      {col}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {labelBadge && (
+                <span
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white shrink-0"
+                  style={{ backgroundColor: labelColors.badge }}
+                >
+                  {labelBadge}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Values */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-gray-700">Values</Label>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-700">Values</span>
+              {valuesBadge && (
+                <span
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  style={{ backgroundColor: valueColors.badge }}
+                >
+                  {valuesBadge}
+                </span>
+              )}
+            </div>
             <div className="space-y-1">
               {availableColumns
                 .filter((col) => col !== columnMapping.labels)
@@ -96,11 +139,12 @@ export function ColumnMapper() {
                     <button
                       key={col}
                       onClick={() => toggleValue(col)}
-                      className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs transition-colors ${
+                      className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs transition-colors"
+                      style={
                         isSelected
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-gray-50 text-gray-600 border border-transparent hover:bg-gray-100'
-                      }`}
+                          ? { backgroundColor: valueColors.bg, color: valueColors.text, border: `1px solid ${valueColors.border}` }
+                          : { backgroundColor: '#f9fafb', color: '#6b7280', border: '1px solid transparent' }
+                      }
                     >
                       <span>{col}</span>
                       {isSelected && <X className="w-3 h-3" />}
@@ -110,9 +154,19 @@ export function ColumnMapper() {
             </div>
           </div>
 
-          {/* Charts grid (optional) */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-gray-500">Charts grid</Label>
+          {/* Charts grid */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500">Charts grid</span>
+              {columnMapping.chartsGrid && (
+                <span
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  style={{ backgroundColor: gridColors.badge }}
+                >
+                  {colIndexToLetter(availableColumns.indexOf(columnMapping.chartsGrid))}
+                </span>
+              )}
+            </div>
             <Select
               value={columnMapping.chartsGrid || '__none__'}
               onValueChange={(val) =>
@@ -123,21 +177,27 @@ export function ColumnMapper() {
                 <SelectValue placeholder="None (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__" className="text-xs">
-                  None
-                </SelectItem>
+                <SelectItem value="__none__" className="text-xs">None</SelectItem>
                 {availableColumns.map((col) => (
-                  <SelectItem key={col} value={col} className="text-xs">
-                    {col}
-                  </SelectItem>
+                  <SelectItem key={col} value={col} className="text-xs">{col}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Row filter (optional) */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-gray-500">Row filter</Label>
+          {/* Row filter */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500">Row filter</span>
+              {columnMapping.rowFilter && (
+                <span
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  style={{ backgroundColor: filterColors.badge }}
+                >
+                  {colIndexToLetter(availableColumns.indexOf(columnMapping.rowFilter))}
+                </span>
+              )}
+            </div>
             <Select
               value={columnMapping.rowFilter || '__none__'}
               onValueChange={(val) =>
@@ -148,21 +208,27 @@ export function ColumnMapper() {
                 <SelectValue placeholder="None (optional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__" className="text-xs">
-                  None
-                </SelectItem>
+                <SelectItem value="__none__" className="text-xs">None</SelectItem>
                 {availableColumns.map((col) => (
-                  <SelectItem key={col} value={col} className="text-xs">
-                    {col}
-                  </SelectItem>
+                  <SelectItem key={col} value={col} className="text-xs">{col}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Info for custom popups (optional) */}
-          <div className="space-y-2">
-            <Label className="text-xs font-medium text-gray-500">Info for custom popups</Label>
+          {/* Info for custom popups */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-gray-500">Info for custom popups</span>
+              {(columnMapping.infoPopups?.length ?? 0) > 0 && (
+                <span
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  style={{ backgroundColor: popupColors.badge }}
+                >
+                  {formatColumnBadge(columnMapping.infoPopups || [], availableColumns)}
+                </span>
+              )}
+            </div>
             <div className="space-y-1">
               {availableColumns.map((col) => {
                 const isSelected = (columnMapping.infoPopups || []).includes(col);
@@ -173,14 +239,15 @@ export function ColumnMapper() {
                       const current = columnMapping.infoPopups || [];
                       setColumnMapping({
                         ...columnMapping,
-                        infoPopups: isSelected
-                          ? current.filter((c) => c !== col)
-                          : [...current, col],
+                        infoPopups: isSelected ? current.filter((c) => c !== col) : [...current, col],
                       });
                     }}
-                    className={`flex items-center w-full px-2.5 py-1 rounded text-xs ${
-                      isSelected ? 'bg-gray-100 text-gray-800' : 'text-gray-400 hover:text-gray-600'
-                    }`}
+                    className="flex items-center w-full px-2.5 py-1 rounded text-xs transition-colors"
+                    style={
+                      isSelected
+                        ? { backgroundColor: popupColors.bg, color: popupColors.text, border: `1px solid ${popupColors.border}` }
+                        : { color: '#9ca3af', border: '1px solid transparent' }
+                    }
                   >
                     <span>{col}</span>
                   </button>
