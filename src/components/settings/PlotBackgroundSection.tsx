@@ -16,14 +16,27 @@ export function PlotBackgroundSection() {
 
   return (
     <AccordionSection id="plot-background" title="Plot background">
-      {/* Background color + Border toggle — single row */}
-      <div className="flex items-center justify-between">
-        <ColorPicker
-          label="Background color"
-          value={settings.backgroundColor}
-          onChange={(v) => update({ backgroundColor: v })}
-        />
-        <div className="flex items-center gap-2">
+      {/* Background color + Opacity + Border toggle */}
+      <div className="flex items-center gap-2">
+        <div className="shrink-0">
+          <ColorPicker
+            label="Background"
+            value={settings.backgroundColor}
+            onChange={(v) => update({ backgroundColor: v })}
+          />
+        </div>
+        <div className="w-[64px] shrink-0">
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Opacity %</label>
+          <Input
+            type="number"
+            value={settings.backgroundOpacity ?? 100}
+            onChange={(e) => update({ backgroundOpacity: parseInt(e.target.value) || 0 })}
+            className="h-7 text-xs w-full"
+            min={0}
+            max={100}
+          />
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
           <label className="text-xs text-gray-500">Border</label>
           <Switch
             checked={settings.border}

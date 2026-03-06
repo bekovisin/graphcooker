@@ -206,8 +206,8 @@ export function LegendSection() {
                 value={settings.marginTop}
                 onChange={(e) => update({ marginTop: parseInt(e.target.value) || 0 })}
                 className="h-7 text-xs w-full"
-                min={-20}
-                max={60}
+                min={-100}
+                max={100}
               />
             </div>
           </div>

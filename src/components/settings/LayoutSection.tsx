@@ -26,7 +26,8 @@ export function LayoutSection() {
               value={settings.paddingTop}
               onChange={(e) => update({ paddingTop: parseInt(e.target.value) || 0 })}
               className="h-7 text-xs w-full"
-              min={0}
+              min={-50}
+              max={200}
             />
           </div>
           <div>
@@ -36,7 +37,8 @@ export function LayoutSection() {
               value={settings.paddingRight}
               onChange={(e) => update({ paddingRight: parseInt(e.target.value) || 0 })}
               className="h-7 text-xs w-full"
-              min={0}
+              min={-50}
+              max={200}
             />
           </div>
           <div>
@@ -46,7 +48,8 @@ export function LayoutSection() {
               value={settings.paddingBottom}
               onChange={(e) => update({ paddingBottom: parseInt(e.target.value) || 0 })}
               className="h-7 text-xs w-full"
-              min={0}
+              min={-50}
+              max={200}
             />
           </div>
           <div>
@@ -56,7 +59,8 @@ export function LayoutSection() {
               value={settings.paddingLeft}
               onChange={(e) => update({ paddingLeft: parseInt(e.target.value) || 0 })}
               className="h-7 text-xs w-full"
-              min={0}
+              min={-50}
+              max={200}
             />
           </div>
         </div>

@@ -178,6 +178,7 @@ export interface YAxisSettings {
 // Plot Background
 export interface PlotBackgroundSettings {
   backgroundColor: string;
+  backgroundOpacity: number;
   border: boolean;
   borderColor: string;
   borderWidth: number;

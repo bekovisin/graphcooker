@@ -109,6 +109,7 @@ export const defaultChartSettings: ChartSettings = {
   },
   plotBackground: {
     backgroundColor: '#ffffff',
+    backgroundOpacity: 100,
     border: false,
     borderColor: '#cccccc',
     borderWidth: 1,

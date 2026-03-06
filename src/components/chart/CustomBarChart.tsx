@@ -544,6 +544,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             width={plotWidth}
             height={categories.length * categoryHeight}
             fill={settings.plotBackground.backgroundColor}
+            fillOpacity={(settings.plotBackground.backgroundOpacity ?? 100) / 100}
           />
         )}
 
