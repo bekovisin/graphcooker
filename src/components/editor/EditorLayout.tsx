@@ -115,22 +115,16 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     }
   }, []);
 
-  // Auto-save
+  // Auto-save — saves data immediately, captures thumbnail in background
   const saveVisualization = useCallback(async () => {
     setIsSaving(true);
     try {
-      // Capture thumbnail in the background
-      const thumbnail = await captureThumbnail();
-
       const body: Record<string, unknown> = {
         name: visualizationName,
         data,
         settings,
         columnMapping,
       };
-      if (thumbnail) {
-        body.thumbnail = thumbnail;
-      }
 
       const res = await fetch(`/api/visualizations/${visualizationId}`, {
         method: 'PUT',
@@ -146,6 +140,17 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     } finally {
       setIsSaving(false);
     }
+
+    // Capture and save thumbnail in background (non-blocking)
+    captureThumbnail().then((thumbnail) => {
+      if (thumbnail) {
+        fetch(`/api/visualizations/${visualizationId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ thumbnail }),
+        }).catch(() => {});
+      }
+    });
   }, [visualizationId, visualizationName, data, settings, columnMapping, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
 
   // Debounced auto-save

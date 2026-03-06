@@ -18,6 +18,7 @@ import {
   FolderOpen,
   ChevronRight,
   ChevronDown,
+  Trash2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DashboardSidebar, FolderItem } from '@/components/dashboard/DashboardSidebar';
 import { VisualizationCard, VizItem } from '@/components/dashboard/VisualizationCard';
-import { BulkExportDialog, BulkExportOptions } from '@/components/dashboard/BulkExportDialog';
+import { BulkExportDialog } from '@/components/dashboard/BulkExportDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { toast } from 'sonner';
 
@@ -422,9 +423,8 @@ export default function DashboardPage() {
     return new Blob([array], { type: mime });
   };
 
-  // Bulk export handler
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleBulkExport = async (format: string, _options?: BulkExportOptions) => {
+  // Bulk export handler (always PNG from stored thumbnails)
+  const handleBulkExport = async () => {
     const toExport = visualizations.filter((v) => selectedIds.has(v.id));
     if (toExport.length === 0) return;
 
@@ -445,7 +445,7 @@ export default function DashboardPage() {
               const blobUrl = URL.createObjectURL(blob);
               const link = document.createElement('a');
               link.href = blobUrl;
-              link.download = `${viz.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.${format === 'png' ? 'png' : format}`;
+              link.download = `${viz.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.png`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
@@ -466,12 +466,42 @@ export default function DashboardPage() {
       })(),
       {
         loading: `Exporting ${withThumbnails.length} visualization${withThumbnails.length > 1 ? 's' : ''}...`,
-        success: `Exported ${withThumbnails.length} file${withThumbnails.length > 1 ? 's' : ''} as ${format.toUpperCase()}`,
+        success: `Exported ${withThumbnails.length} file${withThumbnails.length > 1 ? 's' : ''} as PNG`,
         error: 'Export failed',
       }
     );
 
     exitSelectionMode();
+  };
+
+  // Bulk delete handler
+  const handleBulkDelete = () => {
+    const count = selectedIds.size;
+    if (count === 0) return;
+
+    setConfirmDialog({
+      open: true,
+      title: `Delete ${count} visualization${count > 1 ? 's' : ''}?`,
+      description: `${count} selected visualization${count > 1 ? 's' : ''} will be permanently deleted. This action cannot be undone.`,
+      confirmLabel: `Delete ${count} item${count > 1 ? 's' : ''}`,
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const idsToDelete = Array.from(selectedIds);
+          await Promise.all(
+            idsToDelete.map((id) =>
+              fetch(`/api/visualizations/${id}`, { method: 'DELETE' })
+            )
+          );
+          setVisualizations((prev) => prev.filter((v) => !selectedIds.has(v.id)));
+          toast.success(`Deleted ${count} visualization${count > 1 ? 's' : ''}`);
+          exitSelectionMode();
+        } catch (error) {
+          console.error('Failed to bulk delete:', error);
+          toast.error('Failed to delete some visualizations');
+        }
+      },
+    });
   };
 
   const activeFolderName = activeFolderId !== null
@@ -790,15 +820,26 @@ export default function DashboardPage() {
                   All
                 </Button>
                 {selectedIds.size > 0 && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="gap-1 text-xs h-7"
-                    onClick={() => setShowBulkExport(true)}
-                  >
-                    <Download className="w-3 h-3" />
-                    Export
-                  </Button>
+                  <>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="gap-1 text-xs h-7"
+                      onClick={() => setShowBulkExport(true)}
+                    >
+                      <Download className="w-3 h-3" />
+                      Export
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="gap-1 text-xs h-7"
+                      onClick={handleBulkDelete}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Delete
+                    </Button>
+                  </>
                 )}
                 <Button
                   variant="ghost"
@@ -880,7 +921,7 @@ function ListViewRow({ viz, isSelected, isSelectionMode, onToggleSelect, onDelet
 
   const thumbnailImg = viz.thumbnail
     // eslint-disable-next-line @next/next/no-img-element
-    ? <img src={viz.thumbnail} alt="" className="w-full h-full object-cover" />
+    ? <img src={viz.thumbnail} alt="" className="w-full h-full object-contain" />
     : <BarChart3 className="w-4 h-4 text-gray-200" />;
 
   return (

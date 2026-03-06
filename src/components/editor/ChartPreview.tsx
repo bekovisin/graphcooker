@@ -67,7 +67,7 @@ export function ChartPreview() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: canvasBackgroundColor }}>
       {/* Toolbar */}
-      <div className="flex items-center justify-center py-2 px-4 border-b bg-white">
+      <div className="flex items-center justify-start py-2 px-4 border-b bg-white">
         <ResponsiveToolbar />
       </div>
 

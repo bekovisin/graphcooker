@@ -147,13 +147,13 @@ export function VisualizationCard({
       )}
 
       {/* Thumbnail / Preview */}
-      <div className="aspect-[16/10] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center border-b overflow-hidden">
+      <div className="aspect-[16/10] bg-white flex items-center justify-center border-b overflow-hidden">
         {viz.thumbnail ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={viz.thumbnail}
             alt={viz.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         ) : (
           <div className="flex flex-col items-center gap-1">
