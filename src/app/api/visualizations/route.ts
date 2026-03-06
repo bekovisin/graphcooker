@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { visualizations, projects } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 
 export async function GET() {
   try {
-    const result = await db.select().from(visualizations).orderBy(desc(visualizations.updatedAt));
+    const result = await db
+      .select({
+        id: visualizations.id,
+        projectId: visualizations.projectId,
+        name: visualizations.name,
+        chartType: visualizations.chartType,
+        thumbnail: visualizations.thumbnail,
+        createdAt: visualizations.createdAt,
+        updatedAt: visualizations.updatedAt,
+        folderId: projects.folderId,
+      })
+      .from(visualizations)
+      .leftJoin(projects, eq(visualizations.projectId, projects.id))
+      .orderBy(desc(visualizations.updatedAt));
     return NextResponse.json(result);
   } catch (error) {
     console.error('Failed to fetch visualizations:', error);
@@ -38,7 +51,7 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(visualization, { status: 201 });
+    return NextResponse.json({ ...visualization, folderId: body.folderId || null }, { status: 201 });
   } catch (error) {
     console.error('Failed to create visualization:', error);
     return NextResponse.json({ error: 'Failed to create visualization' }, { status: 500 });

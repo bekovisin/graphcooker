@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { visualizations } from '@/lib/db/schema';
+import { visualizations, projects } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(
@@ -57,6 +57,14 @@ export async function PUT(
 
     if (!updated) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
+    }
+
+    // If folderId is provided, update the project's folder
+    if (body.folderId !== undefined) {
+      await db
+        .update(projects)
+        .set({ folderId: body.folderId })
+        .where(eq(projects.id, updated.projectId));
     }
 
     return NextResponse.json(updated);

@@ -61,7 +61,7 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
   };
 
   return (
-    <div className="flex items-center justify-between h-14 px-4 border-b bg-white shrink-0">
+    <div className="relative flex items-center h-14 px-4 border-b bg-white shrink-0">
       {/* Left: Back + Name */}
       <div className="flex items-center gap-3 min-w-0">
         <Link
@@ -97,51 +97,55 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
             {visualizationName}
           </button>
         )}
+      </div>
 
-        {/* Save status */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          {isSaving ? (
-            <>
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Saving...</span>
-            </>
-          ) : isDirty ? (
-            <span>Unsaved changes</span>
-          ) : lastSavedAt ? (
-            <>
-              <Check className="w-3 h-3 text-green-500" />
-              <span>Saved</span>
-            </>
-          ) : null}
+      {/* Center: Tabs — absolutely centered on screen */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+        <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'preview'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Preview
+          </button>
+          <button
+            onClick={() => setActiveTab('data')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'data'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Data
+          </button>
         </div>
       </div>
 
-      {/* Center: Tabs */}
-      <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-        <button
-          onClick={() => setActiveTab('preview')}
-          className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'preview'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Preview
-        </button>
-        <button
-          onClick={() => setActiveTab('data')}
-          className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'data'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Data
-        </button>
-      </div>
+      {/* Right: Save status + Export */}
+      <div className="flex items-center gap-3 ml-auto">
+        {/* Save status badge */}
+        <div className="flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1 whitespace-nowrap">
+          {isSaving ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
+              <span className="text-gray-500">Saving...</span>
+            </>
+          ) : isDirty ? (
+            <span className="text-amber-500">Unsaved changes</span>
+          ) : lastSavedAt ? (
+            <>
+              <Check className="w-3 h-3 text-green-500" />
+              <span className="text-gray-500">Saved</span>
+            </>
+          ) : (
+            <span className="text-gray-400">—</span>
+          )}
+        </div>
 
-      {/* Right: Export */}
-      <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="default" size="sm" className="gap-1.5">
