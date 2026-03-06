@@ -2,9 +2,10 @@
 
 import { memo, useCallback, useRef } from 'react';
 import { ColumnMapping } from '@/types/chart';
-import { ColumnRole } from './types';
+import { ColumnRole, ColumnTypeConfig } from './types';
 import { COLUMN_ROLE_COLORS, ROW_NUMBER_WIDTH } from './constants';
 import { colIndexToLetter, getColumnRole } from './utils';
+import { useEditorStore } from '@/store/editorStore';
 
 interface SpreadsheetHeaderProps {
   columns: string[];
@@ -20,6 +21,7 @@ interface SpreadsheetHeaderProps {
   dragSourceIndex: number | null;
   dropTargetIndex: number | null;
   onDropTargetUpdate: (index: number | null) => void;
+  onColumnTypeClick?: (colIndex: number) => void;
 }
 
 export const SpreadsheetHeader = memo(function SpreadsheetHeader({
@@ -36,8 +38,10 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
   dragSourceIndex,
   dropTargetIndex,
   onDropTargetUpdate,
+  onColumnTypeClick,
 }: SpreadsheetHeaderProps) {
   const headerRef = useRef<HTMLDivElement>(null);
+  const columnTypes = useEditorStore((s) => s.columnTypes);
 
   const handleResizeMouseDown = useCallback(
     (colIndex: number, e: React.MouseEvent) => {
@@ -60,7 +64,6 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
   const handleHeaderMouseDown = useCallback(
     (colIndex: number, e: React.MouseEvent) => {
       if (e.button !== 0) return;
-      // Small delay to distinguish click from drag
       const startX = e.clientX;
       const startY = e.clientY;
 
@@ -76,7 +79,6 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
       const handleUp = () => {
         document.removeEventListener('mousemove', handleMove);
         document.removeEventListener('mouseup', handleUp);
-        // It was a click, not a drag
         onColumnClick(colIndex, e);
       };
 
@@ -94,6 +96,14 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
     },
     [isDraggingColumn, onDropTargetUpdate]
   );
+
+  const getTypeBadge = (colName: string): { label: string; isNumber: boolean } => {
+    const config: ColumnTypeConfig | undefined = columnTypes[colName];
+    if (config?.type === 'number') {
+      return { label: '123', isNumber: true };
+    }
+    return { label: 'ABC', isNumber: false };
+  };
 
   return (
     <div ref={headerRef} className="flex sticky top-0 z-20 bg-white" style={{ minWidth: 'fit-content' }}>
@@ -115,6 +125,7 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
         const width = getColumnWidth(colIndex);
         const isDropTarget = isDraggingColumn && dropTargetIndex === colIndex;
         const isDragSource = isDraggingColumn && dragSourceIndex === colIndex;
+        const typeBadge = getTypeBadge(col);
 
         return (
           <div
@@ -133,17 +144,29 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
             }}
             onMouseEnter={() => handleMouseMoveForDrop(colIndex)}
           >
-            {/* Column letter */}
-            <div
-              className="text-[10px] font-bold uppercase px-2 pt-1 leading-none"
-              style={{ color: colors.text }}
-            >
+            {/* Column letter + type badge */}
+            <div className="flex items-center gap-1 px-2 pt-1 leading-none">
               <span
                 className="inline-flex items-center justify-center rounded px-1 py-0.5 text-white text-[9px] font-bold"
                 style={{ backgroundColor: colors.badge }}
               >
                 {colIndexToLetter(colIndex)}
               </span>
+              <button
+                className="inline-flex items-center justify-center rounded px-1 py-0.5 text-[9px] font-bold border hover:opacity-80 transition-opacity"
+                style={{
+                  color: typeBadge.isNumber ? '#1565c0' : '#616161',
+                  backgroundColor: typeBadge.isNumber ? '#e3f2fd' : '#f5f5f5',
+                  borderColor: typeBadge.isNumber ? '#90caf9' : '#e0e0e0',
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onColumnTypeClick?.(colIndex);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                {typeBadge.label}
+              </button>
             </div>
             {/* Column name */}
             <div

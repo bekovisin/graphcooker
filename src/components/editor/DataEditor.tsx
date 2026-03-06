@@ -5,14 +5,21 @@ import { useEditorStore } from '@/store/editorStore';
 import { DataRow } from '@/types/data';
 import { Input } from '@/components/ui/input';
 import { Plus, Search } from 'lucide-react';
-import { Spreadsheet } from './spreadsheet/Spreadsheet';
+import { Spreadsheet, SelectionInfo } from './spreadsheet/Spreadsheet';
 import { ColumnMapper } from './ColumnMapper';
+import { ColumnTypeModal } from './spreadsheet/ColumnTypeModal';
+import { ColumnTypeConfig } from './spreadsheet/types';
 import { generateUniqueColumnName } from './spreadsheet/utils';
 
 export function DataEditor() {
-  const { data, columnOrder, setData, setDataAndColumns, activeTab } = useEditorStore();
+  const { data, columnOrder, columnTypes, setData, setDataAndColumns, setColumnType, activeTab } = useEditorStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchText, setSearchText] = useState('');
+  const [selectionInfo, setSelectionInfo] = useState<SelectionInfo | null>(null);
+
+  // Column type modal state
+  const [typeModalOpen, setTypeModalOpen] = useState(false);
+  const [typeModalColIndex, setTypeModalColIndex] = useState(0);
 
   const addRow = useCallback(() => {
     const newRow: DataRow = {};
@@ -59,6 +66,24 @@ export function DataEditor() {
     fileInputRef.current?.click();
   }, []);
 
+  const handleColumnTypeClick = useCallback((colIndex: number) => {
+    setTypeModalColIndex(colIndex);
+    setTypeModalOpen(true);
+  }, []);
+
+  const handleColumnTypeSave = useCallback(
+    (config: ColumnTypeConfig) => {
+      const colName = columnOrder[typeModalColIndex];
+      if (colName) {
+        setColumnType(colName, config);
+      }
+    },
+    [columnOrder, typeModalColIndex, setColumnType]
+  );
+
+  const typeModalColName = columnOrder[typeModalColIndex] || '';
+  const typeModalCurrentConfig: ColumnTypeConfig = columnTypes[typeModalColName] || { type: 'text' };
+
   if (activeTab !== 'data') return null;
 
   return (
@@ -88,7 +113,11 @@ export function DataEditor() {
         </div>
 
         {/* Grid */}
-        <Spreadsheet onUploadFile={handleUploadClick} />
+        <Spreadsheet
+          onUploadFile={handleUploadClick}
+          onSelectionInfoChange={setSelectionInfo}
+          onColumnTypeClick={handleColumnTypeClick}
+        />
 
         {/* Hidden file input */}
         <input
@@ -105,14 +134,40 @@ export function DataEditor() {
             <Plus className="w-3 h-3" />
             Add row
           </button>
-          <span>
-            {data.length} rows &middot; {columnOrder.length} columns
-          </span>
+          <div className="flex items-center gap-4">
+            {/* Selection info */}
+            {selectionInfo && selectionInfo.count > 1 && (
+              <div className="flex items-center gap-3 text-gray-600">
+                <span>Count: <strong>{selectionInfo.count}</strong></span>
+                {selectionInfo.numericCount > 0 && (
+                  <>
+                    <span>Sum: <strong>{selectionInfo.sum.toLocaleString(undefined, { maximumFractionDigits: 4 })}</strong></span>
+                    <span>Avg: <strong>{selectionInfo.average.toLocaleString(undefined, { maximumFractionDigits: 4 })}</strong></span>
+                    <span>Min: <strong>{selectionInfo.min.toLocaleString(undefined, { maximumFractionDigits: 4 })}</strong></span>
+                    <span>Max: <strong>{selectionInfo.max.toLocaleString(undefined, { maximumFractionDigits: 4 })}</strong></span>
+                  </>
+                )}
+              </div>
+            )}
+            <span>
+              {data.length} rows &middot; {columnOrder.length} columns
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Column Mapper (right side) */}
       <ColumnMapper onUploadClick={handleUploadClick} />
+
+      {/* Column Type Modal */}
+      <ColumnTypeModal
+        open={typeModalOpen}
+        onOpenChange={setTypeModalOpen}
+        colIndex={typeModalColIndex}
+        colName={typeModalColName}
+        currentConfig={typeModalCurrentConfig}
+        onSave={handleColumnTypeSave}
+      />
     </div>
   );
 }

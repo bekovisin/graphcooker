@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { useSpreadsheetSelection } from '@/hooks/useSpreadsheetSelection';
 import { useSpreadsheetClipboard } from '@/hooks/useSpreadsheetClipboard';
@@ -14,11 +14,22 @@ import { SpreadsheetRow } from './SpreadsheetRow';
 import { SpreadsheetContextMenu } from './SpreadsheetContextMenu';
 import { useState } from 'react';
 
-interface SpreadsheetProps {
-  onUploadFile: () => void;
+export interface SelectionInfo {
+  count: number;
+  numericCount: number;
+  sum: number;
+  average: number;
+  min: number;
+  max: number;
 }
 
-export function Spreadsheet({ onUploadFile }: SpreadsheetProps) {
+interface SpreadsheetProps {
+  onUploadFile: () => void;
+  onSelectionInfoChange?: (info: SelectionInfo | null) => void;
+  onColumnTypeClick?: (colIndex: number) => void;
+}
+
+export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeClick }: SpreadsheetProps) {
   const {
     data,
     columnOrder,
@@ -89,6 +100,55 @@ export function Spreadsheet({ onUploadFile }: SpreadsheetProps) {
     return normalizeRange(selection.selectionRange);
   }, [selection.selectionRange]);
 
+  // Compute selection info (sum, count, avg, min, max) for the status bar
+  useEffect(() => {
+    if (!onSelectionInfoChange) return;
+    if (!normalizedSelection) {
+      onSelectionInfoChange(null);
+      return;
+    }
+
+    let count = 0;
+    let numericCount = 0;
+    let sum = 0;
+    let min = Infinity;
+    let max = -Infinity;
+
+    for (let r = normalizedSelection.minRow; r <= normalizedSelection.maxRow; r++) {
+      for (let c = normalizedSelection.minCol; c <= normalizedSelection.maxCol; c++) {
+        count++;
+        const val = data[r]?.[columnOrder[c]];
+        if (val != null && val !== '') {
+          const num = typeof val === 'number' ? val : parseFloat(String(val));
+          if (!isNaN(num)) {
+            numericCount++;
+            sum += num;
+            if (num < min) min = num;
+            if (num > max) max = num;
+          }
+        }
+      }
+    }
+
+    if (numericCount === 0) {
+      onSelectionInfoChange({ count, numericCount: 0, sum: 0, average: 0, min: 0, max: 0 });
+    } else {
+      onSelectionInfoChange({
+        count,
+        numericCount,
+        sum,
+        average: sum / numericCount,
+        min: min === Infinity ? 0 : min,
+        max: max === -Infinity ? 0 : max,
+      });
+    }
+  }, [normalizedSelection, data, columnOrder, onSelectionInfoChange]);
+
+  // Re-focus container after editing ends
+  const refocusContainer = useCallback(() => {
+    setTimeout(() => containerRef.current?.focus(), 0);
+  }, []);
+
   // Cell interactions
   const handleCellMouseDown = useCallback(
     (row: number, col: number, e: React.MouseEvent) => {
@@ -121,17 +181,19 @@ export function Spreadsheet({ onUploadFile }: SpreadsheetProps) {
       const parsedValue = value !== '' && !isNaN(num) ? num : value;
       updateCell(row, colName, parsedValue);
       selection.stopEditing();
+      refocusContainer();
       // Move down after commit
       if (row < rowCount - 1) {
         selection.setActiveCell({ row: row + 1, col });
       }
     },
-    [pushHistory, columnOrder, updateCell, selection, rowCount]
+    [pushHistory, columnOrder, updateCell, selection, rowCount, refocusContainer]
   );
 
   const handleCellEditCancel = useCallback(() => {
     selection.stopEditing();
-  }, [selection]);
+    refocusContainer();
+  }, [selection, refocusContainer]);
 
   // Row interactions
   const handleRowNumberMouseDown = useCallback(
@@ -174,7 +236,6 @@ export function Spreadsheet({ onUploadFile }: SpreadsheetProps) {
 
   const handleCellContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      // Only handle if right-clicking on the grid body (not header/row number)
       if (contextMenu) return;
       e.preventDefault();
       setContextMenu({
@@ -260,38 +321,39 @@ export function Spreadsheet({ onUploadFile }: SpreadsheetProps) {
       if (selection.isEditing) return;
 
       const isMod = e.metaKey || e.ctrlKey;
+      const key = e.key.toLowerCase();
 
-      // Ctrl+Z / Ctrl+Y
-      if (isMod && e.key === 'z' && !e.shiftKey) {
+      // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y (undo/redo)
+      if (isMod && key === 'z' && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
         return;
       }
-      if (isMod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      if (isMod && (key === 'y' || (key === 'z' && e.shiftKey))) {
         e.preventDefault();
         handleRedo();
         return;
       }
 
       // Ctrl+C / Ctrl+X / Ctrl+V
-      if (isMod && e.key === 'c') {
+      if (isMod && key === 'c') {
         e.preventDefault();
         clipboard.handleCopy();
         return;
       }
-      if (isMod && e.key === 'x') {
+      if (isMod && key === 'x') {
         e.preventDefault();
         clipboard.handleCut();
         return;
       }
-      if (isMod && e.key === 'v') {
+      if (isMod && key === 'v') {
         e.preventDefault();
         clipboard.handlePaste();
         return;
       }
 
       // Ctrl+A
-      if (isMod && e.key === 'a') {
+      if (isMod && key === 'a') {
         e.preventDefault();
         selection.selectAll();
         return;
@@ -444,7 +506,7 @@ export function Spreadsheet({ onUploadFile }: SpreadsheetProps) {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-auto relative outline-none bg-white"
+      className="flex-1 overflow-auto relative outline-none bg-white select-none"
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onPaste={handlePaste}
@@ -473,6 +535,7 @@ export function Spreadsheet({ onUploadFile }: SpreadsheetProps) {
         dragSourceIndex={dragReorder.dragSourceIndex}
         dropTargetIndex={dragReorder.dropTargetIndex}
         onDropTargetUpdate={dragReorder.updateDropTarget}
+        onColumnTypeClick={onColumnTypeClick}
       />
 
       {/* Rows */}

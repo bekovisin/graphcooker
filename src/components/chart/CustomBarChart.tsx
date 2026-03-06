@@ -28,6 +28,7 @@ interface CustomBarChartProps {
   settings: ChartSettings;
   width: number;
   height?: number;
+  columnOrder?: string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -169,7 +170,7 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function CustomBarChart({ data, columnMapping, settings, width, height: heightProp }: CustomBarChartProps) {
+export function CustomBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp }: CustomBarChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', series: '', value: 0, color: '' });
   const [animProgress, setAnimProgress] = useState(settings.animations.enabled ? 0 : 1);
@@ -200,7 +201,11 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
       return { series: [] as SeriesData[], categories: [] as string[], maxVal: 0, minVal: 0 };
     }
 
-    const seriesNames = columnMapping.values;
+    // Order values by their position in columnOrder (spreadsheet column order)
+    const valuesSet = new Set(columnMapping.values);
+    const seriesNames = columnOrderProp
+      ? columnOrderProp.filter((col) => valuesSet.has(col))
+      : columnMapping.values;
     const colors = resolveColors(settings.colors, seriesNames);
 
     let cats = data.map((row) => String(row[columnMapping.labels] || ''));
@@ -262,7 +267,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
       maxVal: userMax !== undefined ? userMax : maxV,
       minVal: userMin !== undefined ? userMin : Math.min(0, minV),
     };
-  }, [data, columnMapping, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max]);
+  }, [data, columnMapping, columnOrderProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max]);
 
   // ── Layout calculations ──
   const isAboveBars = settings.labels.barLabelStyle === 'above_bars';

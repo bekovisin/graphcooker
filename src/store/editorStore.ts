@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
+import { ColumnTypeConfig } from '@/components/editor/spreadsheet/types';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 
 export type EditorTab = 'preview' | 'data';
@@ -24,6 +25,7 @@ interface EditorState {
   data: DataRow[];
   columnOrder: string[];
   columnMapping: ColumnMapping;
+  columnTypes: Record<string, ColumnTypeConfig>;
 
   // Settings
   settings: ChartSettings;
@@ -55,6 +57,7 @@ interface EditorState {
   reorderColumn: (fromIndex: number, toIndex: number) => void;
   reorderRow: (fromIndex: number, toIndex: number) => void;
   sortByColumn: (colName: string, direction: 'asc' | 'desc') => void;
+  setColumnType: (colName: string, config: ColumnTypeConfig) => void;
   updateSettings: <K extends keyof ChartSettings>(section: K, updates: Partial<ChartSettings[K]>) => void;
   setSettings: (settings: ChartSettings) => void;
   setIsDirty: (dirty: boolean) => void;
@@ -128,6 +131,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   data: defaultData,
   columnOrder: deriveColumnOrder(defaultData),
   columnMapping: defaultColumnMapping,
+  columnTypes: {},
   settings: defaultChartSettings,
   isDirty: false,
   isSaving: false,
@@ -256,6 +260,12 @@ export const useEditorStore = create<EditorState>((set) => ({
       return { data: newData, isDirty: true };
     }),
 
+  setColumnType: (colName, config) =>
+    set((state) => ({
+      columnTypes: { ...state.columnTypes, [colName]: config },
+      isDirty: true,
+    })),
+
   updateSettings: (section, updates) =>
     set((state) => ({
       settings: {
@@ -284,6 +294,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       data: defaultData,
       columnOrder: deriveColumnOrder(defaultData),
       columnMapping: defaultColumnMapping,
+      columnTypes: {},
       settings: defaultChartSettings,
       isDirty: false,
       isSaving: false,

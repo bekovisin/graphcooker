@@ -69,21 +69,32 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
           onChange={(e) => onEditValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={() => onEditCommit(editValue)}
-          className="absolute inset-0 w-full h-full px-2 text-[13px] border-2 border-blue-500 outline-none bg-white z-10"
-          style={{ width, height }}
+          className="absolute inset-0 w-full h-full px-2 text-[13px] outline-none bg-white z-10"
+          style={{
+            width,
+            height,
+            boxShadow: '0 0 0 2px #3b82f6 inset',
+          }}
         />
       ) : (
         <div
-          className={`w-full h-full px-2 flex items-center text-[13px] border-r border-b overflow-hidden whitespace-nowrap text-ellipsis ${
-            isActive
-              ? 'border-blue-500 border-2 -m-[1px] z-[5]'
+          className="w-full h-full px-2 flex items-center text-[13px] border-r border-b border-gray-200 overflow-hidden whitespace-nowrap text-ellipsis select-none"
+          style={{
+            width,
+            height,
+            ...(isActive
+              ? {
+                  outline: '2px solid #3b82f6',
+                  outlineOffset: '-2px',
+                  zIndex: 5,
+                  position: 'relative' as const,
+                }
               : isSelected
-              ? 'bg-blue-50 border-gray-200'
-              : 'border-gray-200'
-          }`}
-          style={{ width: isActive ? width + 2 : width, height: isActive ? height + 2 : height }}
+              ? { backgroundColor: '#eff6ff' }
+              : {}),
+          }}
         >
-          <span className="truncate">{value != null ? String(value) : ''}</span>
+          <span className="truncate pointer-events-none">{value != null ? String(value) : ''}</span>
         </div>
       )}
     </div>

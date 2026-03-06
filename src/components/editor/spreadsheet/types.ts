@@ -31,3 +31,10 @@ export interface ContextMenuPosition {
 }
 
 export type ColumnRole = 'label' | 'value' | 'chartsGrid' | 'rowFilter' | 'infoPopup' | 'unmapped';
+
+export interface ColumnTypeConfig {
+  type: 'number' | 'text';
+  inputFormat?: string; // e.g. '1,234.56' or '1.234,56'
+  decimalPlaces?: number;
+  outputFormat?: string; // e.g. 'match_input' or custom
+}

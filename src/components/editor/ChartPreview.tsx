@@ -20,7 +20,7 @@ export function ChartPreview() {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const [chartAreaWidth, setChartAreaWidth] = useState(600);
-  const { settings, data, columnMapping, previewDevice, customPreviewWidth, activeTab, canvasBackgroundColor } = useEditorStore();
+  const { settings, data, columnMapping, columnOrder, previewDevice, customPreviewWidth, activeTab, canvasBackgroundColor } = useEditorStore();
 
   const isCustomChart = settings.chartType.chartType === 'bar_stacked_custom';
 
@@ -40,8 +40,8 @@ export function ChartPreview() {
   }, [activeTab]); // re-attach when tab changes (component remounts)
 
   const { series, options, autoHeight, isAboveBars, categories } = useMemo(
-    () => buildChartData(data, columnMapping, settings),
-    [data, columnMapping, settings]
+    () => buildChartData(data, columnMapping, settings, columnOrder),
+    [data, columnMapping, settings, columnOrder]
   );
 
   // Force ApexCharts remount when formatter-dependent settings change
@@ -186,6 +186,7 @@ export function ChartPreview() {
                   settings={settings}
                   width={chartAreaWidth}
                   height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+                  columnOrder={columnOrder}
                 />
               ) : series.length > 0 ? (
                 isAboveBars ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -20,6 +20,7 @@ interface ColumnMapperProps {
 
 export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
   const { columnOrder, columnMapping, setColumnMapping } = useEditorStore();
+  const [valuesInput, setValuesInput] = useState('');
 
   const availableColumns = useMemo(() => columnOrder, [columnOrder]);
 
@@ -38,6 +39,43 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
       setColumnMapping({ ...columnMapping, values: [...current, col] });
     }
   };
+
+  // Parse values input (e.g., "B-D" or "B,C,D" or "B, C, D")
+  const handleValuesInputCommit = useCallback(() => {
+    const input = valuesInput.trim();
+    if (!input) return;
+
+    // Try range format like "B-D"
+    const rangeMatch = input.match(/^([A-Z]+)\s*-\s*([A-Z]+)$/i);
+    if (rangeMatch) {
+      const startLetter = rangeMatch[1].toUpperCase();
+      const endLetter = rangeMatch[2].toUpperCase();
+      const startIdx = availableColumns.findIndex((_, i) => colIndexToLetter(i) === startLetter);
+      const endIdx = availableColumns.findIndex((_, i) => colIndexToLetter(i) === endLetter);
+      if (startIdx >= 0 && endIdx >= 0 && startIdx <= endIdx) {
+        const selected = availableColumns.slice(startIdx, endIdx + 1).filter(
+          (col) => col !== columnMapping.labels
+        );
+        setColumnMapping({ ...columnMapping, values: selected });
+        setValuesInput('');
+        return;
+      }
+    }
+
+    // Try comma-separated column letters like "B, C, D"
+    const letters = input.split(/[,\s]+/).filter(Boolean).map((s) => s.toUpperCase());
+    const selected: string[] = [];
+    for (const letter of letters) {
+      const idx = availableColumns.findIndex((_, i) => colIndexToLetter(i) === letter);
+      if (idx >= 0 && availableColumns[idx] !== columnMapping.labels) {
+        selected.push(availableColumns[idx]);
+      }
+    }
+    if (selected.length > 0) {
+      setColumnMapping({ ...columnMapping, values: selected });
+    }
+    setValuesInput('');
+  }, [valuesInput, availableColumns, columnMapping, setColumnMapping]);
 
   const labelColors = COLUMN_ROLE_COLORS.label;
   const valueColors = COLUMN_ROLE_COLORS.value;
@@ -129,6 +167,23 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                   {valuesBadge}
                 </span>
               )}
+            </div>
+            {/* Values input */}
+            <div className="relative">
+              <input
+                type="text"
+                value={valuesInput}
+                onChange={(e) => setValuesInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleValuesInputCommit();
+                  }
+                }}
+                onBlur={handleValuesInputCommit}
+                placeholder={valuesBadge || 'e.g. B-D or B,C,D'}
+                className="w-full h-8 px-2.5 text-xs border border-gray-200 rounded-md bg-white placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:border-blue-400"
+              />
             </div>
             <div className="space-y-1">
               {availableColumns
