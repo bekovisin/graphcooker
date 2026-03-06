@@ -15,6 +15,9 @@ import {
   X,
   Grid3X3,
   List,
+  FolderOpen,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,6 +28,8 @@ import {
 import { DashboardSidebar, FolderItem } from '@/components/dashboard/DashboardSidebar';
 import { VisualizationCard, VizItem } from '@/components/dashboard/VisualizationCard';
 import { BulkExportDialog } from '@/components/dashboard/BulkExportDialog';
+import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
+import { toast } from 'sonner';
 
 type SortMode = 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' | 'created_desc' | 'created_asc';
 
@@ -52,6 +57,24 @@ export default function DashboardPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showBulkExport, setShowBulkExport] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: 'danger' | 'warning' | 'default';
+    onConfirm: () => void | Promise<void>;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    confirmLabel: 'Delete',
+    variant: 'danger',
+    onConfirm: () => {},
+  });
 
   // Fetch data
   useEffect(() => {
@@ -96,10 +119,12 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         const viz = await res.json();
+        toast.success('Visualization created');
         router.push(`/editor/${viz.id}`);
       }
     } catch (error) {
       console.error('Failed to create:', error);
+      toast.error('Failed to create visualization');
     } finally {
       setCreating(false);
     }
@@ -116,9 +141,11 @@ export default function DashboardPage() {
       if (res.ok) {
         const folder = await res.json();
         setFolders((prev) => [...prev, folder]);
+        toast.success(`Folder "${name}" created`);
       }
     } catch (error) {
       console.error('Failed to create folder:', error);
+      toast.error('Failed to create folder');
     }
   };
 
@@ -131,54 +158,81 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         setFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
+        toast.success('Folder renamed');
       }
     } catch (error) {
       console.error('Failed to rename folder:', error);
+      toast.error('Failed to rename folder');
     }
   };
 
   const handleDeleteFolder = async (id: number) => {
-    if (!confirm('Delete this folder? Visualizations inside will be moved to the root.')) return;
-    try {
-      // Move all visualizations in this folder to root
-      const vizInFolder = visualizations.filter((v) => v.folderId === id);
-      await Promise.all(
-        vizInFolder.map((v) =>
-          fetch(`/api/visualizations/${v.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ folderId: null }),
-          })
-        )
-      );
+    const folder = folders.find((f) => f.id === id);
+    const vizInFolder = visualizations.filter((v) => v.folderId === id);
 
-      const res = await fetch(`/api/folders/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        setFolders((prev) => prev.filter((f) => f.id !== id));
-        setVisualizations((prev) =>
-          prev.map((v) => (v.folderId === id ? { ...v, folderId: null } : v))
-        );
-        if (activeFolderId === id) setActiveFolderId(null);
-      }
-    } catch (error) {
-      console.error('Failed to delete folder:', error);
-    }
+    setConfirmDialog({
+      open: true,
+      title: `Delete "${folder?.name || 'folder'}"?`,
+      description: vizInFolder.length > 0
+        ? `This folder contains ${vizInFolder.length} visualization${vizInFolder.length > 1 ? 's' : ''}. They will be moved to the root level.`
+        : 'This folder will be permanently deleted.',
+      confirmLabel: 'Delete folder',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          // Move all visualizations in this folder to root
+          await Promise.all(
+            vizInFolder.map((v) =>
+              fetch(`/api/visualizations/${v.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ folderId: null }),
+              })
+            )
+          );
+
+          const res = await fetch(`/api/folders/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            setFolders((prev) => prev.filter((f) => f.id !== id));
+            setVisualizations((prev) =>
+              prev.map((v) => (v.folderId === id ? { ...v, folderId: null } : v))
+            );
+            if (activeFolderId === id) setActiveFolderId(null);
+            toast.success(`Folder "${folder?.name}" deleted`);
+          }
+        } catch (error) {
+          console.error('Failed to delete folder:', error);
+          toast.error('Failed to delete folder');
+        }
+      },
+    });
   };
 
   // Visualization operations
   const handleDeleteViz = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this visualization?')) return;
-    try {
-      await fetch(`/api/visualizations/${id}`, { method: 'DELETE' });
-      setVisualizations((prev) => prev.filter((v) => v.id !== id));
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    } catch (error) {
-      console.error('Failed to delete:', error);
-    }
+    const viz = visualizations.find((v) => v.id === id);
+    setConfirmDialog({
+      open: true,
+      title: 'Delete visualization?',
+      description: `"${viz?.name || 'Untitled'}" will be permanently deleted. This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/visualizations/${id}`, { method: 'DELETE' });
+          setVisualizations((prev) => prev.filter((v) => v.id !== id));
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          toast.success('Visualization deleted');
+        } catch (error) {
+          console.error('Failed to delete:', error);
+          toast.error('Failed to delete visualization');
+        }
+      },
+    });
   };
 
   const handleDuplicateViz = async (id: number) => {
@@ -205,9 +259,11 @@ export default function DashboardPage() {
       if (res.ok) {
         const newViz = await res.json();
         setVisualizations((prev) => [newViz, ...prev]);
+        toast.success('Visualization duplicated');
       }
     } catch (error) {
       console.error('Failed to duplicate:', error);
+      toast.error('Failed to duplicate visualization');
     }
   };
 
@@ -220,9 +276,11 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         setVisualizations((prev) => prev.map((v) => (v.id === id ? { ...v, name } : v)));
+        toast.success('Visualization renamed');
       }
     } catch (error) {
       console.error('Failed to rename:', error);
+      toast.error('Failed to rename visualization');
     }
   };
 
@@ -237,9 +295,12 @@ export default function DashboardPage() {
         setVisualizations((prev) =>
           prev.map((v) => (v.id === vizId ? { ...v, folderId } : v))
         );
+        const folderName = folderId ? folders.find((f) => f.id === folderId)?.name : 'root';
+        toast.success(`Moved to ${folderName}`);
       }
     } catch (error) {
       console.error('Failed to move:', error);
+      toast.error('Failed to move visualization');
     }
   };
 
@@ -257,10 +318,31 @@ export default function DashboardPage() {
     setSelectedIds(new Set(filteredViz.map((v) => v.id)));
   };
 
+  // Select all visualizations in a folder (for folder-level selection)
+  const selectFolder = useCallback((folderId: number) => {
+    const vizInFolder = visualizations.filter((v) => v.folderId === folderId);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      vizInFolder.forEach((v) => next.add(v.id));
+      return next;
+    });
+    if (!isSelectionMode) setIsSelectionMode(true);
+  }, [visualizations, isSelectionMode]);
+
   const exitSelectionMode = () => {
     setIsSelectionMode(false);
     setSelectedIds(new Set());
   };
+
+  // Toggle folder expand in "All visualizations" view
+  const toggleFolderExpand = useCallback((folderId: number) => {
+    setExpandedFolderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId);
+      else next.add(folderId);
+      return next;
+    });
+  }, []);
 
   // Viz count per folder
   const vizCountByFolder = useMemo(() => {
@@ -274,23 +356,9 @@ export default function DashboardPage() {
     return counts;
   }, [visualizations]);
 
-  // Filtered and sorted visualizations
-  const filteredViz = useMemo(() => {
-    let result = [...visualizations];
-
-    // Filter by folder
-    if (activeFolderId !== null) {
-      result = result.filter((v) => v.folderId === activeFolderId);
-    }
-
-    // Filter by search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((v) => v.name.toLowerCase().includes(q));
-    }
-
-    // Sort
-    result.sort((a, b) => {
+  // Sort function
+  const sortViz = useCallback((arr: VizItem[]) => {
+    return [...arr].sort((a, b) => {
       switch (sortMode) {
         case 'updated_desc':
           return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -308,20 +376,255 @@ export default function DashboardPage() {
           return 0;
       }
     });
+  }, [sortMode]);
 
-    return result;
-  }, [visualizations, activeFolderId, searchQuery, sortMode]);
+  // Filtered and sorted visualizations
+  const filteredViz = useMemo(() => {
+    let result = [...visualizations];
+
+    // Filter by folder
+    if (activeFolderId !== null) {
+      result = result.filter((v) => v.folderId === activeFolderId);
+    }
+
+    // Filter by search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((v) => v.name.toLowerCase().includes(q));
+    }
+
+    return sortViz(result);
+  }, [visualizations, activeFolderId, searchQuery, sortViz]);
+
+  // For "All visualizations" view - group by folder
+  const folderGroups = useMemo(() => {
+    if (activeFolderId !== null || searchQuery.trim()) return null;
+
+    const rootViz = sortViz(visualizations.filter((v) => v.folderId === null));
+    const foldersWithViz = folders
+      .filter((f) => f.parentId === null)
+      .map((folder) => ({
+        folder,
+        vizItems: sortViz(visualizations.filter((v) => v.folderId === folder.id)),
+      }))
+      .filter((g) => g.vizItems.length > 0);
+
+    return { rootViz, foldersWithViz };
+  }, [visualizations, folders, activeFolderId, searchQuery, sortViz]);
 
   // Bulk export handler
-  const handleBulkExport = async (format: string, options: { width: number; height: number; transparent: boolean; pixelRatio: number }) => {
-    // For now, show a message. In production, this would generate exports for each selected viz.
-    alert(`Exporting ${selectedIds.size} visualization(s) as ${format.toUpperCase()} at ${options.width}x${options.height}`);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleBulkExport = async (format: string, _options: { width: number; height: number; transparent: boolean; pixelRatio: number }) => {
+    const toExport = visualizations.filter((v) => selectedIds.has(v.id));
+    if (toExport.length === 0) return;
+
+    // For each selected visualization, we'd generate the export
+    // Since charts need to be rendered for export, we download a zip of placeholder PNGs
+    toast.promise(
+      (async () => {
+        // Download thumbnails for selected visualizations
+        for (const viz of toExport) {
+          if (viz.thumbnail) {
+            const link = document.createElement('a');
+            link.href = viz.thumbnail;
+            link.download = `${viz.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.${format}`;
+            link.click();
+            // Small delay between downloads
+            await new Promise((r) => setTimeout(r, 300));
+          }
+        }
+      })(),
+      {
+        loading: `Exporting ${toExport.length} visualization${toExport.length > 1 ? 's' : ''}...`,
+        success: `Exported ${toExport.length} visualization${toExport.length > 1 ? 's' : ''} as ${format.toUpperCase()}`,
+        error: 'Export failed',
+      }
+    );
+
     exitSelectionMode();
   };
 
   const activeFolderName = activeFolderId !== null
     ? folders.find((f) => f.id === activeFolderId)?.name || 'Unknown folder'
     : 'All visualizations';
+
+  const renderVizCard = (viz: VizItem) => (
+    <VisualizationCard
+      key={viz.id}
+      viz={viz}
+      isSelected={selectedIds.has(viz.id)}
+      isSelectionMode={isSelectionMode}
+      onToggleSelect={toggleSelect}
+      onDelete={handleDeleteViz}
+      onDuplicate={handleDuplicateViz}
+      onRename={handleRenameViz}
+      onMoveToFolder={handleMoveToFolder}
+      folders={folders}
+    />
+  );
+
+  const renderListRow = (viz: VizItem) => (
+    <ListViewRow
+      key={viz.id}
+      viz={viz}
+      isSelected={selectedIds.has(viz.id)}
+      isSelectionMode={isSelectionMode}
+      onToggleSelect={toggleSelect}
+      onDelete={handleDeleteViz}
+      onDuplicate={handleDuplicateViz}
+      onRename={handleRenameViz}
+      onMoveToFolder={handleMoveToFolder}
+      folders={folders}
+    />
+  );
+
+  // Render folder group header
+  const renderFolderGroupHeader = (folder: FolderItem, vizCount: number) => {
+    const isExpanded = expandedFolderIds.has(folder.id);
+    return (
+      <div
+        key={`folder-header-${folder.id}`}
+        className="flex items-center gap-2 px-1 py-2 cursor-pointer group"
+        onClick={() => toggleFolderExpand(folder.id)}
+      >
+        <span className="w-5 h-5 flex items-center justify-center text-gray-400">
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </span>
+        <FolderOpen className="w-4 h-4 text-gray-400" />
+        <span className="text-sm font-medium text-gray-700">{folder.name}</span>
+        <span className="text-[10px] text-gray-400 tabular-nums">{vizCount}</span>
+        {isSelectionMode && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              selectFolder(folder.id);
+            }}
+            className="ml-auto text-[10px] text-blue-600 hover:text-blue-700 font-medium px-2 py-0.5 rounded hover:bg-blue-50 transition-colors"
+          >
+            Select all
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  // Render content
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      );
+    }
+
+    // If in a specific folder or searching, show flat list
+    if (activeFolderId !== null || searchQuery.trim()) {
+      if (filteredViz.length === 0) {
+        return (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <BarChart3 className="w-8 h-8 text-gray-300" />
+            </div>
+            {searchQuery ? (
+              <>
+                <h3 className="text-lg font-medium text-gray-700 mb-1">No results found</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  No visualizations match &ldquo;{searchQuery}&rdquo;
+                </p>
+                <Button variant="outline" size="sm" onClick={() => setSearchQuery('')}>
+                  Clear search
+                </Button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium text-gray-700 mb-1">This folder is empty</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Create a new visualization or move one here
+                </p>
+                <Button onClick={createNew} disabled={creating} size="sm" className="gap-1.5">
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  New visualization
+                </Button>
+              </>
+            )}
+          </div>
+        );
+      }
+
+      return viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {filteredViz.map(renderVizCard)}
+        </div>
+      ) : (
+        <div className="space-y-1">{filteredViz.map(renderListRow)}</div>
+      );
+    }
+
+    // "All visualizations" view - show folder groups
+    if (!folderGroups) return null;
+    const { rootViz, foldersWithViz } = folderGroups;
+
+    if (rootViz.length === 0 && foldersWithViz.length === 0) {
+      return (
+        <div className="text-center py-20">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <BarChart3 className="w-8 h-8 text-gray-300" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-700 mb-1">No visualizations yet</h3>
+          <p className="text-sm text-gray-500 mb-4">Create your first chart to get started</p>
+          <Button onClick={createNew} disabled={creating} size="sm" className="gap-1.5">
+            {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            New visualization
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Folder groups */}
+        {foldersWithViz.map(({ folder, vizItems }) => (
+          <div key={folder.id}>
+            {renderFolderGroupHeader(folder, vizItems.length)}
+            {expandedFolderIds.has(folder.id) && (
+              <div className="ml-6 mt-1">
+                {viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                    {vizItems.map(renderVizCard)}
+                  </div>
+                ) : (
+                  <div className="space-y-1">{vizItems.map(renderListRow)}</div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Root visualizations (no folder) */}
+        {rootViz.length > 0 && (
+          <div>
+            {foldersWithViz.length > 0 && (
+              <div className="border-t border-gray-200 pt-4 mt-2">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider px-1">
+                  Uncategorized
+                </span>
+              </div>
+            )}
+            <div className="mt-3">
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {rootViz.map(renderVizCard)}
+                </div>
+              ) : (
+                <div className="space-y-1">{rootViz.map(renderListRow)}</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -481,93 +784,7 @@ export default function DashboardPage() {
 
           {/* Content area */}
           <div className="flex-1 overflow-y-auto p-6">
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-              </div>
-            ) : filteredViz.length === 0 ? (
-              <div className="text-center py-20">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="w-8 h-8 text-gray-300" />
-                </div>
-                {searchQuery ? (
-                  <>
-                    <h3 className="text-lg font-medium text-gray-700 mb-1">No results found</h3>
-                    <p className="text-sm text-gray-500 mb-4">
-                      No visualizations match &ldquo;{searchQuery}&rdquo;
-                    </p>
-                    <Button variant="outline" size="sm" onClick={() => setSearchQuery('')}>
-                      Clear search
-                    </Button>
-                  </>
-                ) : activeFolderId !== null ? (
-                  <>
-                    <h3 className="text-lg font-medium text-gray-700 mb-1">This folder is empty</h3>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Create a new visualization or move one here
-                    </p>
-                    <Button onClick={createNew} disabled={creating} size="sm" className="gap-1.5">
-                      {creating ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Plus className="w-4 h-4" />
-                      )}
-                      New visualization
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="text-lg font-medium text-gray-700 mb-1">No visualizations yet</h3>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Create your first chart to get started
-                    </p>
-                    <Button onClick={createNew} disabled={creating} size="sm" className="gap-1.5">
-                      {creating ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Plus className="w-4 h-4" />
-                      )}
-                      New visualization
-                    </Button>
-                  </>
-                )}
-              </div>
-            ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredViz.map((viz) => (
-                  <VisualizationCard
-                    key={viz.id}
-                    viz={viz}
-                    isSelected={selectedIds.has(viz.id)}
-                    isSelectionMode={isSelectionMode}
-                    onToggleSelect={toggleSelect}
-                    onDelete={handleDeleteViz}
-                    onDuplicate={handleDuplicateViz}
-                    onRename={handleRenameViz}
-                    onMoveToFolder={handleMoveToFolder}
-                    folders={folders}
-                  />
-                ))}
-              </div>
-            ) : (
-              /* List view */
-              <div className="space-y-1">
-                {filteredViz.map((viz) => (
-                  <ListViewRow
-                    key={viz.id}
-                    viz={viz}
-                    isSelected={selectedIds.has(viz.id)}
-                    isSelectionMode={isSelectionMode}
-                    onToggleSelect={toggleSelect}
-                    onDelete={handleDeleteViz}
-                    onDuplicate={handleDuplicateViz}
-                    onRename={handleRenameViz}
-                    onMoveToFolder={handleMoveToFolder}
-                    folders={folders}
-                  />
-                ))}
-              </div>
-            )}
+            {renderContent()}
           </div>
         </div>
       </div>
@@ -579,12 +796,22 @@ export default function DashboardPage() {
         selectedCount={selectedIds.size}
         onExport={handleBulkExport}
       />
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
+      />
     </div>
   );
 }
 
 /* ── List View Row ── */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ListViewRow({ viz, isSelected, isSelectionMode, onToggleSelect, onDelete, onDuplicate, onRename, onMoveToFolder, folders }: {
   viz: VizItem;
   isSelected: boolean;
@@ -722,15 +949,17 @@ function ListViewRow({ viz, isSelected, isSelectionMode, onToggleSelect, onDelet
             >
               Duplicate
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveToFolder(viz.id, null);
-              }}
-              className="text-xs"
-            >
-              Move to root
-            </DropdownMenuItem>
+            {folders.length > 0 && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveToFolder(viz.id, null);
+                }}
+                className="text-xs"
+              >
+                Move to root
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();

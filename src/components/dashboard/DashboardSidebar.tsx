@@ -203,8 +203,8 @@ export function DashboardSidebar({
   };
 
   return (
-    <div className="w-56 border-r bg-gray-50/50 flex flex-col shrink-0 h-full">
-      <div className="p-3 border-b flex items-center justify-between">
+    <div className="w-56 border-r border-gray-200 bg-gray-50/50 flex flex-col shrink-0 min-h-0" style={{ height: '100%' }}>
+      <div className="p-3 border-b border-gray-200 flex items-center justify-between">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Folders</span>
         <button
           onClick={() => {

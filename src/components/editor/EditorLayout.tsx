@@ -59,19 +59,82 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     fetchVisualization();
   }, [visualizationId, loadVisualization]);
 
+  // Capture thumbnail from chart container
+  const captureThumbnail = useCallback(async (): Promise<string | null> => {
+    try {
+      const container = document.getElementById('chart-container');
+      if (!container) return null;
+      const svgEl = container.querySelector('svg');
+      if (svgEl) {
+        // Use SVG-to-canvas approach for custom charts
+        const cloned = svgEl.cloneNode(true) as SVGSVGElement;
+        cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        const w = parseFloat(cloned.getAttribute('width') || '400');
+        const h = parseFloat(cloned.getAttribute('height') || '300');
+        if (!cloned.getAttribute('viewBox')) {
+          cloned.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        }
+        const thumbW = 400;
+        const thumbH = Math.round((h / w) * thumbW);
+        cloned.setAttribute('width', String(thumbW));
+        cloned.setAttribute('height', String(thumbH));
+        const svgStr = new XMLSerializer().serializeToString(cloned);
+        const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        return new Promise<string | null>((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = thumbW;
+            canvas.height = thumbH;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { resolve(null); return; }
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, thumbW, thumbH);
+            ctx.drawImage(img, 0, 0, thumbW, thumbH);
+            URL.revokeObjectURL(url);
+            resolve(canvas.toDataURL('image/png', 0.7));
+          };
+          img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+          img.src = url;
+        });
+      }
+      // Fallback: use html-to-image for ApexCharts
+      const { toPng } = await import('html-to-image');
+      const dataUrl = await toPng(container, {
+        quality: 0.7,
+        pixelRatio: 1,
+        width: 400,
+        height: 250,
+        style: { width: '400px', height: '250px' },
+      });
+      return dataUrl;
+    } catch {
+      return null;
+    }
+  }, []);
+
   // Auto-save
   const saveVisualization = useCallback(async () => {
     setIsSaving(true);
     try {
+      // Capture thumbnail in the background
+      const thumbnail = await captureThumbnail();
+
+      const body: Record<string, unknown> = {
+        name: visualizationName,
+        data,
+        settings,
+        columnMapping,
+      };
+      if (thumbnail) {
+        body.thumbnail = thumbnail;
+      }
+
       const res = await fetch(`/api/visualizations/${visualizationId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: visualizationName,
-          data,
-          settings,
-          columnMapping,
-        }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setIsDirty(false);
@@ -82,7 +145,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     } finally {
       setIsSaving(false);
     }
-  }, [visualizationId, visualizationName, data, settings, columnMapping, setIsSaving, setIsDirty, setLastSavedAt]);
+  }, [visualizationId, visualizationName, data, settings, columnMapping, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
 
   // Debounced auto-save
   useEffect(() => {

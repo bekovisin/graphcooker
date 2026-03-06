@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Roboto, Montserrat } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -33,6 +34,21 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${roboto.variable} ${montserrat.variable} font-sans antialiased`}>
         {children}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#18181b',
+              color: '#fafafa',
+              border: '1px solid #27272a',
+              borderRadius: '10px',
+              fontSize: '13px',
+              padding: '12px 16px',
+            },
+          }}
+          richColors
+          closeButton
+        />
       </body>
     </html>
   );
