@@ -28,6 +28,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   } = useEditorStore();
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const thumbnailCapturedRef = useRef(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'html' | 'pdf'>('png');
 
@@ -165,6 +166,38 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
       }
     };
   }, [isDirty, saveVisualization]);
+
+  // One-time thumbnail capture on initial load
+  // This ensures thumbnails exist for dashboard cards even if user doesn't edit anything
+  useEffect(() => {
+    if (thumbnailCapturedRef.current) return;
+    // Wait for the chart to render, then capture
+    const timer = setTimeout(async () => {
+      const container = document.getElementById('chart-container');
+      if (!container) return;
+      // Check if SVG or ApexCharts content exists
+      const hasSvg = container.querySelector('svg');
+      const hasCanvas = container.querySelector('canvas');
+      if (!hasSvg && !hasCanvas) return;
+
+      thumbnailCapturedRef.current = true;
+      const thumbnail = await captureThumbnail();
+      if (thumbnail) {
+        // Save thumbnail silently (don't trigger isDirty)
+        try {
+          await fetch(`/api/visualizations/${visualizationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ thumbnail }),
+          });
+        } catch {
+          // Silently fail - not critical
+        }
+      }
+    }, 2000); // Wait 2 seconds for chart to fully render
+
+    return () => clearTimeout(timer);
+  }, [visualizationId, captureThumbnail, activeTab]);
 
   // Open export dialog instead of exporting directly
   const handleExportRequest = (format: 'png' | 'svg' | 'html' | 'pdf') => {

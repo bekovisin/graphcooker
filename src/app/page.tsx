@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DashboardSidebar, FolderItem } from '@/components/dashboard/DashboardSidebar';
 import { VisualizationCard, VizItem } from '@/components/dashboard/VisualizationCard';
-import { BulkExportDialog } from '@/components/dashboard/BulkExportDialog';
+import { BulkExportDialog, BulkExportOptions } from '@/components/dashboard/BulkExportDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { toast } from 'sonner';
 
@@ -412,31 +412,61 @@ export default function DashboardPage() {
     return { rootViz, foldersWithViz };
   }, [visualizations, folders, activeFolderId, searchQuery, sortViz]);
 
+  // Convert data URL to downloadable blob URL
+  const dataUrlToBlob = (dataUrl: string): Blob => {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const binary = atob(parts[1]);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+    return new Blob([array], { type: mime });
+  };
+
   // Bulk export handler
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleBulkExport = async (format: string, _options: { width: number; height: number; transparent: boolean; pixelRatio: number }) => {
+  const handleBulkExport = async (format: string, _options?: BulkExportOptions) => {
     const toExport = visualizations.filter((v) => selectedIds.has(v.id));
     if (toExport.length === 0) return;
 
-    // For each selected visualization, we'd generate the export
-    // Since charts need to be rendered for export, we download a zip of placeholder PNGs
+    const withThumbnails = toExport.filter((v) => v.thumbnail);
+    if (withThumbnails.length === 0) {
+      toast.error('No thumbnails available. Open each visualization first to generate previews.');
+      exitSelectionMode();
+      return;
+    }
+
     toast.promise(
       (async () => {
-        // Download thumbnails for selected visualizations
-        for (const viz of toExport) {
+        let exported = 0;
+        for (const viz of withThumbnails) {
           if (viz.thumbnail) {
-            const link = document.createElement('a');
-            link.href = viz.thumbnail;
-            link.download = `${viz.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.${format}`;
-            link.click();
-            // Small delay between downloads
-            await new Promise((r) => setTimeout(r, 300));
+            try {
+              const blob = dataUrlToBlob(viz.thumbnail);
+              const blobUrl = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = blobUrl;
+              link.download = `${viz.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.${format === 'png' ? 'png' : format}`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(blobUrl);
+              exported++;
+              // Small delay between downloads to avoid browser blocking
+              if (exported < withThumbnails.length) {
+                await new Promise((r) => setTimeout(r, 500));
+              }
+            } catch (e) {
+              console.error(`Failed to export ${viz.name}:`, e);
+            }
           }
+        }
+        if (exported < toExport.length) {
+          toast.info(`${toExport.length - exported} visualization(s) had no thumbnail and were skipped.`);
         }
       })(),
       {
-        loading: `Exporting ${toExport.length} visualization${toExport.length > 1 ? 's' : ''}...`,
-        success: `Exported ${toExport.length} visualization${toExport.length > 1 ? 's' : ''} as ${format.toUpperCase()}`,
+        loading: `Exporting ${withThumbnails.length} visualization${withThumbnails.length > 1 ? 's' : ''}...`,
+        success: `Exported ${withThumbnails.length} file${withThumbnails.length > 1 ? 's' : ''} as ${format.toUpperCase()}`,
         error: 'Export failed',
       }
     );
@@ -627,7 +657,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
       <header className="bg-white border-b shrink-0 z-20">
         <div className="px-6 py-3 flex items-center justify-between">
