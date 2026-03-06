@@ -21,7 +21,12 @@ function resolveColors(settings: ChartSettings['colors'], seriesNames: string[])
   return seriesNames.map((name, i) => overrides[name] || colors[i % colors.length]);
 }
 
-function buildSeries(data: DataRow[], mapping: ColumnMapping, columnOrder?: string[]): ApexAxisChartSeries {
+function buildSeries(
+  data: DataRow[],
+  mapping: ColumnMapping,
+  columnOrder?: string[],
+  seriesNames?: Record<string, string>
+): ApexAxisChartSeries {
   if (!mapping.values || mapping.values.length === 0 || !mapping.labels) return [];
 
   // Order values by their position in columnOrder (spreadsheet column order)
@@ -31,7 +36,7 @@ function buildSeries(data: DataRow[], mapping: ColumnMapping, columnOrder?: stri
     : mapping.values;
 
   return orderedValues.map((seriesKey) => ({
-    name: seriesKey,
+    name: (seriesNames && seriesNames[seriesKey]) || seriesKey,
     data: data.map((row) => {
       const val = row[seriesKey];
       return typeof val === 'number' ? val : parseFloat(String(val)) || 0;
@@ -344,9 +349,10 @@ export function buildChartData(
   data: DataRow[],
   mapping: ColumnMapping,
   settings: ChartSettings,
-  columnOrder?: string[]
+  columnOrder?: string[],
+  seriesNames?: Record<string, string>
 ): { series: ApexAxisChartSeries; options: ApexCharts.ApexOptions; autoHeight: number; isAboveBars: boolean; categories: string[] } {
-  const series = buildSeries(data, mapping, columnOrder);
+  const series = buildSeries(data, mapping, columnOrder, seriesNames);
   const options = mapSettingsToApexOptions(settings, data, mapping);
   const isHorizontal = settings.chartType.chartType.startsWith('bar_');
   const isAboveBars = settings.labels.barLabelStyle === 'above_bars' && isHorizontal;

@@ -29,6 +29,7 @@ interface CustomBarChartProps {
   width: number;
   height?: number;
   columnOrder?: string[];
+  seriesNames?: Record<string, string>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -170,7 +171,7 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function CustomBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp }: CustomBarChartProps) {
+export function CustomBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp }: CustomBarChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', series: '', value: 0, color: '' });
   const [animProgress, setAnimProgress] = useState(settings.animations.enabled ? 0 : 1);
@@ -211,7 +212,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     let cats = data.map((row) => String(row[columnMapping.labels] || ''));
 
     let rawSeries: SeriesData[] = seriesNames.map((key, i) => ({
-      name: key,
+      name: (seriesNamesProp && seriesNamesProp[key]) || key,
       data: data.map((row) => {
         const val = row[key];
         return typeof val === 'number' ? val : parseFloat(String(val)) || 0;
@@ -267,7 +268,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
       maxVal: userMax !== undefined ? userMax : maxV,
       minVal: userMin !== undefined ? userMin : Math.min(0, minV),
     };
-  }, [data, columnMapping, columnOrderProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max]);
+  }, [data, columnMapping, columnOrderProp, seriesNamesProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max]);
 
   // ── Layout calculations ──
   const isAboveBars = settings.labels.barLabelStyle === 'above_bars';

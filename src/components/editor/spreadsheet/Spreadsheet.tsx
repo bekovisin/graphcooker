@@ -9,7 +9,7 @@ import { useSpreadsheetResize } from '@/hooks/useSpreadsheetResize';
 import { useSpreadsheetDragReorder } from '@/hooks/useSpreadsheetDragReorder';
 import { ContextMenuPosition, NormalizedRange } from './types';
 import { normalizeRange, generateUniqueColumnName } from './utils';
-import { SpreadsheetHeader } from './SpreadsheetHeader';
+import { SpreadsheetHeader, HEADER_HEIGHT } from './SpreadsheetHeader';
 import { SpreadsheetRow } from './SpreadsheetRow';
 import { SpreadsheetContextMenu } from './SpreadsheetContextMenu';
 import { useState } from 'react';
@@ -462,7 +462,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
       const scrollTop = container.scrollTop;
 
       const x = e.clientX - rect.left + scrollLeft - 48; // subtract row number width
-      const y = e.clientY - rect.top + scrollTop - 48; // subtract header height
+      const y = e.clientY - rect.top + scrollTop - HEADER_HEIGHT; // subtract header height (letter row + series name row)
 
       // Find column
       let cumX = 0;

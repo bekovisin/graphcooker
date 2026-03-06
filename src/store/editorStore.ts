@@ -26,6 +26,7 @@ interface EditorState {
   columnOrder: string[];
   columnMapping: ColumnMapping;
   columnTypes: Record<string, ColumnTypeConfig>;
+  seriesNames: Record<string, string>;
 
   // Settings
   settings: ChartSettings;
@@ -58,6 +59,7 @@ interface EditorState {
   reorderRow: (fromIndex: number, toIndex: number) => void;
   sortByColumn: (colName: string, direction: 'asc' | 'desc') => void;
   setColumnType: (colName: string, config: ColumnTypeConfig) => void;
+  setSeriesName: (colName: string, displayName: string) => void;
   updateSettings: <K extends keyof ChartSettings>(section: K, updates: Partial<ChartSettings[K]>) => void;
   setSettings: (settings: ChartSettings) => void;
   setIsDirty: (dirty: boolean) => void;
@@ -132,6 +134,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   columnOrder: deriveColumnOrder(defaultData),
   columnMapping: defaultColumnMapping,
   columnTypes: {},
+  seriesNames: {},
   settings: defaultChartSettings,
   isDirty: false,
   isSaving: false,
@@ -266,6 +269,12 @@ export const useEditorStore = create<EditorState>((set) => ({
       isDirty: true,
     })),
 
+  setSeriesName: (colName, displayName) =>
+    set((state) => ({
+      seriesNames: { ...state.seriesNames, [colName]: displayName },
+      isDirty: true,
+    })),
+
   updateSettings: (section, updates) =>
     set((state) => ({
       settings: {
@@ -295,6 +304,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       columnOrder: deriveColumnOrder(defaultData),
       columnMapping: defaultColumnMapping,
       columnTypes: {},
+      seriesNames: {},
       settings: defaultChartSettings,
       isDirty: false,
       isSaving: false,
