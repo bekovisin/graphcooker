@@ -229,13 +229,143 @@ function measureQuestionHeightDOM(
   return { totalHeight, textHeight };
 }
 
+/** Sanitize HTML for valid XHTML embedding (self-close void elements) */
+function sanitizeForXhtml(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<br\s*>/gi, '<br/>')
+    .replace(/<hr\s*>/gi, '<hr/>')
+    .replace(/<img\b([^>]*[^/])>/gi, '<img$1/>')
+    .replace(/<input\b([^>]*[^/])>/gi, '<input$1/>');
+}
+
 /**
- * Measure and prepare question block for SVG rendering.
- *
- * @param question   – question settings
- * @param questionW  – width to use for text wrapping & positioning (canvas width)
+ * Build XHTML for the question block, exactly matching ChartPreview's
+ * QuestionBlock component so the export is pixel-perfect.
  */
-function measureQuestionBlock(question: QuestionSettings, questionW: number): BlockMeasure | null {
+function buildQuestionXHTML(question: QuestionSettings): string {
+  const hasText_ = hasContent(question.text);
+  const hasSubtext_ = hasContent(question.subtext);
+  if (!hasText_ && !hasSubtext_) return '';
+
+  const td = question.textDefaults || { fontFamily: 'Inter, sans-serif', fontSize: 18, color: '#333333', lineHeight: 1.3 };
+  const sd = question.subtextDefaults || { fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#666666', lineHeight: 1.4 };
+  const accentLine = question.accentLine;
+  const showAccent = accentLine?.show;
+
+  // Use single quotes for font-family values inside style="" attributes
+  const tdFont = td.fontFamily.replace(/"/g, "'");
+  const sdFont = sd.fontFamily.replace(/"/g, "'");
+
+  let contentHtml = `<div style="text-align:${question.alignment || 'left'};flex:1;">`;
+
+  if (hasText_) {
+    contentHtml += `<div style="font-family:${tdFont};font-size:${td.fontSize}px;color:${td.color};line-height:${td.lineHeight};padding-top:${question.paddingTop || 0}px;padding-right:${question.paddingRight || 0}px;padding-bottom:${question.paddingBottom || 0}px;padding-left:${question.paddingLeft || 0}px;">`;
+    contentHtml += sanitizeForXhtml(question.text);
+    contentHtml += '</div>';
+  }
+
+  if (hasSubtext_) {
+    contentHtml += `<div style="font-family:${sdFont};font-size:${sd.fontSize}px;color:${sd.color};line-height:${sd.lineHeight};padding-top:${question.subtextPaddingTop || 0}px;padding-right:${question.subtextPaddingRight || 0}px;padding-bottom:${question.subtextPaddingBottom || 0}px;padding-left:${question.subtextPaddingLeft || 0}px;">`;
+    contentHtml += sanitizeForXhtml(question.subtext);
+    contentHtml += '</div>';
+  }
+
+  contentHtml += '</div>';
+
+  if (showAccent) {
+    return `<div style="display:flex;align-items:stretch;">` +
+      `<div style="width:${accentLine.width}px;min-width:${accentLine.width}px;background-color:${accentLine.color};border-radius:${accentLine.borderRadius || 0}px;margin-top:${accentLine.paddingTop || 0}px;margin-right:${accentLine.paddingRight || 0}px;margin-bottom:${accentLine.paddingBottom || 0}px;margin-left:${accentLine.paddingLeft || 0}px;flex-shrink:0;"></div>` +
+      contentHtml + '</div>';
+  }
+
+  return contentHtml;
+}
+
+/**
+ * Rasterize question block HTML to a PNG data URL.
+ * Uses the foreignObject-in-SVG-data-URI technique to render real HTML,
+ * matching the browser's text layout exactly.
+ */
+async function rasterizeQuestionBlock(
+  question: QuestionSettings,
+  containerWidth: number,
+  totalHeight: number,
+  scale = 2
+): Promise<string> {
+  const xhtml = buildQuestionXHTML(question);
+  if (!xhtml) throw new Error('No question content to rasterize');
+
+  const svgStr = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${containerWidth}" height="${totalHeight}">`,
+    `<foreignObject x="0" y="0" width="${containerWidth}" height="${totalHeight}">`,
+    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${containerWidth}px;margin:0;padding:0;">`,
+    xhtml,
+    '</div>',
+    '</foreignObject>',
+    '</svg>',
+  ].join('');
+
+  const dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
+
+  return new Promise<string>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(containerWidth * scale);
+      canvas.height = Math.ceil(totalHeight * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas 2D context unavailable')); return; }
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, containerWidth, totalHeight);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Failed to rasterize question block'));
+    img.src = dataUri;
+  });
+}
+
+/**
+ * Measure and prepare question block for export.
+ * Rasterizes the question as HTML → PNG image for pixel-perfect fidelity,
+ * matching ChartPreview's QuestionBlock exactly.
+ */
+async function measureQuestionBlock(question: QuestionSettings, questionW: number): Promise<BlockMeasure | null> {
+  const hasText = hasContent(question.text);
+  const hasSubtext = hasContent(question.subtext);
+  if (!hasText && !hasSubtext) return null;
+
+  // Use DOM measurement for accurate height (matches ChartPreview exactly)
+  const domMeasure = measureQuestionHeightDOM(question, questionW);
+  const totalH = domMeasure.totalHeight;
+  if (totalH <= 0) return null;
+
+  // Rasterize the question block to a PNG for embedding in the SVG
+  let dataUrl: string;
+  try {
+    dataUrl = await rasterizeQuestionBlock(question, questionW, totalH);
+  } catch (err) {
+    console.warn('Question rasterization failed, falling back to SVG text:', err);
+    return measureQuestionBlockSVGFallback(question, questionW);
+  }
+
+  return {
+    height: totalH,
+    render: (g, yStart) => {
+      const img = document.createElementNS(NS, 'image');
+      img.setAttribute('x', '0');
+      img.setAttribute('y', String(yStart));
+      img.setAttribute('width', String(questionW));
+      img.setAttribute('height', String(totalH));
+      img.setAttribute('href', dataUrl);
+      img.setAttribute('preserveAspectRatio', 'xMinYMin meet');
+      g.appendChild(img);
+    }
+  };
+}
+
+/** SVG text fallback for question block (used when rasterization fails) */
+function measureQuestionBlockSVGFallback(question: QuestionSettings, questionW: number): BlockMeasure | null {
   const hasText = hasContent(question.text);
   const hasSubtext = hasContent(question.subtext);
   if (!hasText && !hasSubtext) return null;
@@ -541,7 +671,7 @@ export async function renderChartOffscreen(
   const questionW = options.canvasWidth || width;
   let questionBlock: BlockMeasure | null = null;
   if (hasQuestion && isQuestionVertical) {
-    questionBlock = measureQuestionBlock(question, questionW);
+    questionBlock = await measureQuestionBlock(question, questionW);
   }
 
   const topExtra = (headerBlock?.height || 0) + (questionPosition === 'above' ? (questionBlock?.height || 0) : 0);
