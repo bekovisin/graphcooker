@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  transpilePackages: ['react-apexcharts', 'apexcharts'],
-};
+const nextConfig = {};
 
 export default nextConfig;

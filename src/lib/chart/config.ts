@@ -2,7 +2,7 @@ import { ChartSettings } from '@/types/chart';
 
 export const defaultChartSettings: ChartSettings = {
   chartType: {
-    chartType: 'bar_stacked',
+    chartType: 'bar_stacked_custom',
     stackSortMode: 'normal',
     gridMode: 'single',
     heightMode: 'auto',

@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked' | 'bar_grouped' | 'bar_stacked_100' | 'column_stacked' | 'column_grouped' | 'column_stacked_100' | 'bar_stacked_custom';
+export type ChartType = 'bar_stacked_custom';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';

@@ -105,13 +105,7 @@ export function VisualizationCard({
 
   const chartTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      bar_stacked: 'Stacked Bar',
-      bar_grouped: 'Grouped Bar',
-      bar_stacked_100: '100% Stacked Bar',
-      bar_stacked_custom: 'Custom Bar',
-      column_stacked: 'Stacked Column',
-      column_grouped: 'Grouped Column',
-      column_stacked_100: '100% Stacked Column',
+      bar_stacked_custom: 'Bar Chart (Stacked)',
     };
     return labels[type] || type;
   };

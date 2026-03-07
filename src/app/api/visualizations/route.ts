@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       .values({
         projectId: project.id,
         name,
-        chartType: body.chartType || 'bar_stacked',
+        chartType: body.chartType || 'bar_stacked_custom',
         data: body.data || defaultData,
         settings: body.settings || defaultChartSettings,
         columnMapping: body.columnMapping || defaultColumnMapping,

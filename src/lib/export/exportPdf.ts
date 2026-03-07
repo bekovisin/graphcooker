@@ -9,12 +9,11 @@ export async function exportPdf(
   try {
     const svgElement = element.querySelector('svg');
 
-    if (svgElement) {
-      await svgToVectorPdf(svgElement, filename, options);
-    } else {
-      // Fallback for non-SVG content: raster approach
-      await rasterPdfFallback(element, filename, options);
+    if (!svgElement) {
+      throw new Error('No SVG element found for PDF export');
     }
+
+    await svgToVectorPdf(svgElement, filename, options);
   } catch (error) {
     console.error('PDF export failed:', error);
     throw error;
@@ -66,7 +65,6 @@ async function svgToVectorPdf(
   });
 
   // Render SVG as vector graphics into the PDF
-  // The svg2pdf.js plugin adds a .svg() method to jsPDF
   await pdf.svg(clonedSvg, {
     x: 0,
     y: 0,
@@ -74,37 +72,5 @@ async function svgToVectorPdf(
     height: targetH,
   });
 
-  pdf.save(`${filename.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`);
-}
-
-/**
- * Raster fallback for non-SVG content (e.g. ApexCharts)
- */
-async function rasterPdfFallback(
-  element: HTMLElement,
-  filename: string,
-  options?: { width?: number; height?: number }
-) {
-  const { toPng } = await import('html-to-image');
-
-  const targetW = options?.width || element.offsetWidth;
-  const targetH = options?.height || element.offsetHeight;
-
-  const dataUrl = await toPng(element, {
-    quality: 1,
-    pixelRatio: 3,
-    backgroundColor: '#ffffff',
-    width: targetW,
-    height: targetH,
-  });
-
-  const isLandscape = targetW > targetH;
-  const pdf = new jsPDF({
-    orientation: isLandscape ? 'landscape' : 'portrait',
-    unit: 'px',
-    format: [targetW, targetH],
-  });
-
-  pdf.addImage(dataUrl, 'PNG', 0, 0, targetW, targetH);
   pdf.save(`${filename.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`);
 }

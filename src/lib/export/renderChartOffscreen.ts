@@ -1,17 +1,16 @@
 /**
  * Offscreen chart renderer for export (dashboard bulk + editor).
  *
- * Renders a chart into a hidden container at the requested export dimensions,
- * waits for it to fully paint, then returns the container so export/capture
- * functions can extract the rendered output.
+ * Renders a CustomBarChart into a hidden container at the requested export
+ * dimensions, waits for it to fully paint, then returns the container so
+ * export/capture functions can extract the rendered output.
  *
- * Uses opacity:0 (not visibility:hidden) so ApexCharts can correctly measure
- * text metrics for axis labels, legend, etc.
+ * Uses opacity:0 (not visibility:hidden) so the browser fully paints the
+ * element including text metrics.
  */
 
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { buildChartData } from '@/lib/chart/mapSettingsToApex';
 
 interface RenderResult {
   container: HTMLElement;
@@ -32,7 +31,6 @@ export async function renderChartOffscreen(
   columnOrder?: string[],
   seriesNames?: Record<string, string>
 ): Promise<RenderResult> {
-  const isCustomChart = settings.chartType.chartType === 'bar_stacked_custom';
   const width = options.width || 800;
   const height =
     options.height ||
@@ -43,7 +41,7 @@ export async function renderChartOffscreen(
 
   // Create off-screen wrapper — use opacity:0 so the browser fully paints
   // the element (including text metrics). visibility:hidden can cause
-  // ApexCharts to mis-measure y-axis label widths.
+  // mis-measurements.
   const wrapper = document.createElement('div');
   wrapper.style.cssText = `
     position: fixed;
@@ -160,19 +158,11 @@ export async function renderChartOffscreen(
   }
 
   // ── Chart area ──
-  const padT = isCustomChart ? 0 : settings.layout.paddingTop;
-  const padR = isCustomChart ? 0 : settings.layout.paddingRight;
-  const padB = isCustomChart ? 0 : settings.layout.paddingBottom;
-  const padL = isCustomChart ? 0 : settings.layout.paddingLeft;
-
   const chartArea = document.createElement('div');
   chartArea.style.cssText = `
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    padding: ${padT}px ${padR}px ${padB}px ${padL}px;
-    background-color: ${isCustomChart ? 'transparent' : settings.plotBackground.backgroundColor};
-    ${settings.plotBackground.border ? `border: ${settings.plotBackground.borderWidth}px solid ${settings.plotBackground.borderColor};` : ''}
     box-sizing: border-box;
   `;
   container.appendChild(chartArea);
@@ -183,106 +173,30 @@ export async function renderChartOffscreen(
   }
 
   // Compute exact pixel dimensions for the chart
-  const chartWidth = width - padL - padR;
-  const chartHeight = height - headerH - footerH - padT - padB;
+  const chartWidth = width;
+  const chartHeight = height - headerH - footerH;
 
-  // ── Render chart content ──
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let reactRoot: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let apexChart: any = null;
+  // ── Render CustomBarChart via React ──
+  const React = await import('react');
+  const { createRoot } = await import('react-dom/client');
+  const { CustomBarChart } = await import('@/components/chart/CustomBarChart');
 
-  if (isCustomChart) {
-    const React = await import('react');
-    const { createRoot } = await import('react-dom/client');
-    const { CustomBarChart } = await import('@/components/chart/CustomBarChart');
-
-    reactRoot = createRoot(chartArea);
-    reactRoot.render(
-      React.createElement(CustomBarChart, {
-        data,
-        columnMapping,
-        settings,
-        width: chartWidth > 0 ? chartWidth : width,
-        height: chartHeight > 0 ? chartHeight : undefined,
-        columnOrder,
-        seriesNames,
-      })
-    );
-    await new Promise((r) => setTimeout(r, 400));
-  } else {
-    const { series, options: chartOptions } = buildChartData(
-      data, columnMapping, settings, columnOrder, seriesNames
-    );
-
-    if (series.length > 0) {
-      const ApexChartsLib = (await import('apexcharts')).default;
-
-      const chartDiv = document.createElement('div');
-      chartDiv.style.cssText = `
-        width: ${chartWidth}px;
-        height: ${Math.max(100, chartHeight)}px;
-      `;
-      chartArea.appendChild(chartDiv);
-
-      const targetH = Math.max(100, chartHeight);
-
-      const mergedOptions: ApexCharts.ApexOptions = {
-        ...chartOptions,
-        series,
-        chart: {
-          ...chartOptions.chart,
-          type: 'bar',
-          height: targetH,
-          width: chartWidth,
-          animations: { enabled: false },
-          toolbar: { show: false },
-          redrawOnParentResize: false,
-          redrawOnWindowResize: false,
-        },
-      };
-
-      apexChart = new ApexChartsLib(chartDiv, mergedOptions);
-      await apexChart.render();
-
-      // Wait for initial render pass
-      await new Promise((r) => setTimeout(r, 300));
-
-      // Force ApexCharts to recalculate all internal dimensions (label widths,
-      // plot area, bar widths) by updating with the same width/height.
-      // This fixes the issue where the initial render may mis-compute
-      // text metrics in the offscreen container.
-      try {
-        await apexChart.updateOptions(
-          {
-            chart: {
-              width: chartWidth,
-              height: targetH,
-            },
-          },
-          false, // redrawPaths
-          false, // animate
-          false  // updateSyncedCharts
-        );
-      } catch {
-        // Some ApexCharts versions don't support 4th arg — retry with 3
-        try {
-          await apexChart.updateOptions(
-            { chart: { width: chartWidth, height: targetH } },
-            false,
-            false
-          );
-        } catch { /* ignore */ }
-      }
-
-      // Wait for the recalculated render to finish
-      await new Promise((r) => setTimeout(r, 500));
-    }
-  }
+  const reactRoot = createRoot(chartArea);
+  reactRoot.render(
+    React.createElement(CustomBarChart, {
+      data,
+      columnMapping,
+      settings,
+      width: chartWidth > 0 ? chartWidth : width,
+      height: chartHeight > 0 ? chartHeight : undefined,
+      columnOrder,
+      seriesNames,
+    })
+  );
+  await new Promise((r) => setTimeout(r, 400));
 
   const cleanup = () => {
-    try { if (apexChart) apexChart.destroy(); } catch { /* ignore */ }
-    try { if (reactRoot) reactRoot.unmount(); } catch { /* ignore */ }
+    try { reactRoot.unmount(); } catch { /* ignore */ }
     try { wrapper.remove(); } catch { /* ignore */ }
   };
 

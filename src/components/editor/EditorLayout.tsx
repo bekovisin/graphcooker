@@ -48,7 +48,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           loadVisualization({
             id: viz.id,
             name: viz.name,
-            chartType: viz.chartType || 'bar_stacked',
+            chartType: viz.chartType || 'bar_stacked_custom',
             data: hasData ? viz.data : defaultData,
             settings: hasSettings ? { ...defaultChartSettings, ...viz.settings } : defaultChartSettings,
             columnMapping: hasMapping ? viz.columnMapping : defaultColumnMapping,
@@ -102,16 +102,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           img.src = url;
         });
       }
-      // Fallback: use html-to-image for ApexCharts
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(container, {
-        quality: 0.7,
-        pixelRatio: 1,
-        width: 400,
-        height: 250,
-        style: { width: '400px', height: '250px' },
-      });
-      return dataUrl;
+      return null;
     } catch {
       return null;
     }
@@ -182,10 +173,9 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     const timer = setTimeout(async () => {
       const container = document.getElementById('chart-container');
       if (!container) return;
-      // Check if SVG or ApexCharts content exists
+      // Check if SVG content exists
       const hasSvg = container.querySelector('svg');
-      const hasCanvas = container.querySelector('canvas');
-      if (!hasSvg && !hasCanvas) return;
+      if (!hasSvg) return;
 
       thumbnailCapturedRef.current = true;
       const thumbnail = await captureThumbnail();
@@ -213,9 +203,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   };
 
   // Actual export with options — uses offscreen rendering so the chart is
-  // rendered at exactly the requested dimensions without touching the live
-  // preview. This fixes auto-height charts where changing the container's CSS
-  // height doesn't trigger a React re-render of the ApexCharts component.
+  // rendered at exactly the requested dimensions without touching the live preview.
   const handleExport = async (format: 'png' | 'svg' | 'html' | 'pdf', options: ExportOptions) => {
     // HTML export doesn't need DOM manipulation — it builds standalone HTML
     if (format === 'html') {

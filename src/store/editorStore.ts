@@ -123,7 +123,7 @@ function deriveColumnOrder(data: DataRow[]): string[] {
 export const useEditorStore = create<EditorState>((set) => ({
   visualizationId: null,
   visualizationName: 'Untitled visualization',
-  chartType: 'bar_stacked',
+  chartType: 'bar_stacked_custom',
   activeTab: 'preview',
   previewDevice: 'desktop',
   customPreviewWidth: 800,
@@ -293,7 +293,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     set({
       visualizationId: null,
       visualizationName: 'Untitled visualization',
-      chartType: 'bar_stacked',
+      chartType: 'bar_stacked_custom',
       activeTab: 'preview',
       previewDevice: 'desktop',
       customPreviewWidth: 800,
