@@ -3,9 +3,12 @@
  *
  * Renders a CustomBarChart into a hidden container, then injects
  * header / question / footer content directly into the SVG as native
- * SVG elements (text, rect). This means export functions can extract
- * a single SVG that contains everything — no foreignObject needed,
- * so PNG / SVG / PDF pipelines all work.
+ * SVG elements (text, rect, tspan). This means export functions can
+ * extract a single SVG that contains everything — no foreignObject
+ * needed, so PNG / SVG / PDF pipelines all work.
+ *
+ * Question text uses DOM-based line wrapping (browser-accurate) and
+ * preserves inline formatting (bold, italic) via SVG <tspan> elements.
  */
 
 import { ChartSettings, ColumnMapping, QuestionSettings } from '@/types/chart';
@@ -30,26 +33,6 @@ interface RenderOptions {
 function hasContent(html: string): boolean {
   if (!html) return false;
   return html.replace(/<[^>]*>/g, '').trim().length > 0;
-}
-
-/** Strip HTML tags → plain text, preserving paragraph breaks as \n */
-function stripHtml(html: string): string {
-  if (!html) return '';
-  // Insert newlines before block-level closing tags so paragraphs are preserved
-  let text = html
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<\/li>/gi, '\n');
-  // Strip remaining HTML tags
-  text = text.replace(/<[^>]*>/g, '');
-  // Decode HTML entities
-  const div = document.createElement('div');
-  div.innerHTML = text;
-  text = div.textContent || div.innerText || text;
-  // Collapse 3+ consecutive newlines → 2, and trim trailing whitespace
-  text = text.replace(/\n{3,}/g, '\n\n').trim();
-  return text;
 }
 
 /** Measure text width using a canvas context */
@@ -229,143 +212,244 @@ function measureQuestionHeightDOM(
   return { totalHeight, textHeight };
 }
 
-/** Sanitize HTML for valid XHTML embedding (self-close void elements) */
-function sanitizeForXhtml(html: string): string {
-  if (!html) return '';
-  return html
-    .replace(/<br\s*>/gi, '<br/>')
-    .replace(/<hr\s*>/gi, '<hr/>')
-    .replace(/<img\b([^>]*[^/])>/gi, '<img$1/>')
-    .replace(/<input\b([^>]*[^/])>/gi, '<input$1/>');
+/* ── Formatted text types & helpers for question block ── */
+
+interface TextSegment {
+  text: string;
+  fontWeight: number | string;
+  fontStyle: string; // 'normal' | 'italic'
+}
+
+interface WrappedLine {
+  segments: TextSegment[];
+}
+
+/** Parse HTML into separate paragraph HTML strings (inner content of each <p>) */
+function parseHtmlParagraphs(html: string): string[] {
+  if (!html) return [];
+
+  // Match <p>...</p> blocks
+  const pMatches = html.match(/<p[^>]*>[\s\S]*?<\/p>/gi);
+  if (pMatches && pMatches.length > 0) {
+    return pMatches
+      .map(p => p.replace(/^<p[^>]*>/i, '').replace(/<\/p>$/i, ''))
+      .filter(p => p.replace(/<[^>]*>/g, '').trim().length > 0);
+  }
+
+  // No <p> tags — split by <br> or treat as single block
+  const parts = html.split(/<br\s*\/?>/gi);
+  return parts.filter(p => p.replace(/<[^>]*>/g, '').trim().length > 0);
 }
 
 /**
- * Build XHTML for the question block, exactly matching ChartPreview's
- * QuestionBlock component so the export is pixel-perfect.
+ * DOM-based line wrapping that preserves inline formatting (bold, italic).
+ *
+ * Renders HTML in a hidden div at the exact width with the exact font settings,
+ * then walks text nodes character-by-character using Range.getClientRects() to
+ * determine where the browser breaks lines.  The result is an array of
+ * WrappedLine objects, each containing TextSegments with formatting metadata.
+ *
+ * This matches the browser's text layout exactly — unlike canvas.measureText(),
+ * which uses different kerning and shaping rules.
  */
-function buildQuestionXHTML(question: QuestionSettings): string {
-  const hasText_ = hasContent(question.text);
-  const hasSubtext_ = hasContent(question.subtext);
-  if (!hasText_ && !hasSubtext_) return '';
+function wrapHtmlToFormattedLines(
+  html: string,
+  maxWidth: number,
+  fontSize: number,
+  fontFamily: string,
+  lineHeight: number | string,
+  baseFontWeight: number | string = 400
+): WrappedLine[] {
+  if (!html || !html.replace(/<[^>]*>/g, '').trim()) return [];
 
-  const td = question.textDefaults || { fontFamily: 'Inter, sans-serif', fontSize: 18, color: '#333333', lineHeight: 1.3 };
-  const sd = question.subtextDefaults || { fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#666666', lineHeight: 1.4 };
-  const accentLine = question.accentLine;
-  const showAccent = accentLine?.show;
+  const container = document.createElement('div');
+  container.style.cssText = [
+    'position:fixed', 'left:-9999px', 'top:0', 'opacity:0', 'pointer-events:none',
+    `width:${maxWidth}px`,
+    `font-family:${fontFamily}`,
+    `font-size:${fontSize}px`,
+    `font-weight:${baseFontWeight}`,
+    `line-height:${lineHeight}`,
+    'white-space:normal',
+    'word-wrap:break-word',
+    'overflow-wrap:break-word',
+  ].join(';');
+  container.innerHTML = html;
+  document.body.appendChild(container);
 
-  // Use single quotes for font-family values inside style="" attributes
-  const tdFont = td.fontFamily.replace(/"/g, "'");
-  const sdFont = sd.fontFamily.replace(/"/g, "'");
+  // Collect all text nodes with their formatting context
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
 
-  let contentHtml = `<div style="text-align:${question.alignment || 'left'};flex:1;">`;
-
-  if (hasText_) {
-    contentHtml += `<div style="font-family:${tdFont};font-size:${td.fontSize}px;color:${td.color};line-height:${td.lineHeight};padding-top:${question.paddingTop || 0}px;padding-right:${question.paddingRight || 0}px;padding-bottom:${question.paddingBottom || 0}px;padding-left:${question.paddingLeft || 0}px;">`;
-    contentHtml += sanitizeForXhtml(question.text);
-    contentHtml += '</div>';
+  interface CharData {
+    node: Text;
+    offset: number;
+    bold: boolean;
+    italic: boolean;
   }
 
-  if (hasSubtext_) {
-    contentHtml += `<div style="font-family:${sdFont};font-size:${sd.fontSize}px;color:${sd.color};line-height:${sd.lineHeight};padding-top:${question.subtextPaddingTop || 0}px;padding-right:${question.subtextPaddingRight || 0}px;padding-bottom:${question.subtextPaddingBottom || 0}px;padding-left:${question.subtextPaddingLeft || 0}px;">`;
-    contentHtml += sanitizeForXhtml(question.subtext);
-    contentHtml += '</div>';
-  }
+  const chars: CharData[] = [];
+  let textNode: Text | null;
 
-  contentHtml += '</div>';
+  while ((textNode = walker.nextNode() as Text | null)) {
+    const text = textNode.textContent;
+    if (!text) continue;
 
-  if (showAccent) {
-    return `<div style="display:flex;align-items:stretch;">` +
-      `<div style="width:${accentLine.width}px;min-width:${accentLine.width}px;background-color:${accentLine.color};border-radius:${accentLine.borderRadius || 0}px;margin-top:${accentLine.paddingTop || 0}px;margin-right:${accentLine.paddingRight || 0}px;margin-bottom:${accentLine.paddingBottom || 0}px;margin-left:${accentLine.paddingLeft || 0}px;flex-shrink:0;"></div>` +
-      contentHtml + '</div>';
-  }
-
-  return contentHtml;
-}
-
-/**
- * Rasterize question block HTML to a PNG data URL.
- * Uses the foreignObject-in-SVG-data-URI technique to render real HTML,
- * matching the browser's text layout exactly.
- */
-async function rasterizeQuestionBlock(
-  question: QuestionSettings,
-  containerWidth: number,
-  totalHeight: number,
-  scale = 2
-): Promise<string> {
-  const xhtml = buildQuestionXHTML(question);
-  if (!xhtml) throw new Error('No question content to rasterize');
-
-  const svgStr = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${containerWidth}" height="${totalHeight}">`,
-    `<foreignObject x="0" y="0" width="${containerWidth}" height="${totalHeight}">`,
-    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${containerWidth}px;margin:0;padding:0;">`,
-    xhtml,
-    '</div>',
-    '</foreignObject>',
-    '</svg>',
-  ].join('');
-
-  const dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgStr);
-
-  return new Promise<string>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.ceil(containerWidth * scale);
-      canvas.height = Math.ceil(totalHeight * scale);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) { reject(new Error('Canvas 2D context unavailable')); return; }
-      ctx.scale(scale, scale);
-      ctx.drawImage(img, 0, 0, containerWidth, totalHeight);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    img.onerror = () => reject(new Error('Failed to rasterize question block'));
-    img.src = dataUri;
-  });
-}
-
-/**
- * Measure and prepare question block for export.
- * Rasterizes the question as HTML → PNG image for pixel-perfect fidelity,
- * matching ChartPreview's QuestionBlock exactly.
- */
-async function measureQuestionBlock(question: QuestionSettings, questionW: number): Promise<BlockMeasure | null> {
-  const hasText = hasContent(question.text);
-  const hasSubtext = hasContent(question.subtext);
-  if (!hasText && !hasSubtext) return null;
-
-  // Use DOM measurement for accurate height (matches ChartPreview exactly)
-  const domMeasure = measureQuestionHeightDOM(question, questionW);
-  const totalH = domMeasure.totalHeight;
-  if (totalH <= 0) return null;
-
-  // Rasterize the question block to a PNG for embedding in the SVG
-  let dataUrl: string;
-  try {
-    dataUrl = await rasterizeQuestionBlock(question, questionW, totalH);
-  } catch (err) {
-    console.warn('Question rasterization failed, falling back to SVG text:', err);
-    return measureQuestionBlockSVGFallback(question, questionW);
-  }
-
-  return {
-    height: totalH,
-    render: (g, yStart) => {
-      const img = document.createElementNS(NS, 'image');
-      img.setAttribute('x', '0');
-      img.setAttribute('y', String(yStart));
-      img.setAttribute('width', String(questionW));
-      img.setAttribute('height', String(totalH));
-      img.setAttribute('href', dataUrl);
-      img.setAttribute('preserveAspectRatio', 'xMinYMin meet');
-      g.appendChild(img);
+    // Determine formatting from ancestor elements
+    let bold = false;
+    let italic = false;
+    let parent: Node | null = textNode.parentNode;
+    while (parent && parent !== container) {
+      if (parent instanceof HTMLElement) {
+        const tag = parent.tagName.toLowerCase();
+        if (tag === 'strong' || tag === 'b') bold = true;
+        if (tag === 'em' || tag === 'i') italic = true;
+      }
+      parent = parent.parentNode;
     }
-  };
+
+    for (let i = 0; i < text.length; i++) {
+      chars.push({ node: textNode, offset: i, bold, italic });
+    }
+  }
+
+  if (chars.length === 0) {
+    document.body.removeChild(container);
+    return [];
+  }
+
+  const range = document.createRange();
+  const lines: WrappedLine[] = [];
+  let currentY: number | null = null;
+  let segText = '';
+  let segBold = chars[0].bold;
+  let segItalic = chars[0].italic;
+  let lineSegments: TextSegment[] = [];
+
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
+    const nodeText = c.node.textContent || '';
+    range.setStart(c.node, c.offset);
+    range.setEnd(c.node, Math.min(c.offset + 1, nodeText.length));
+    const rects = range.getClientRects();
+
+    if (rects.length === 0) {
+      // Collapsed whitespace — keep in current segment
+      segText += nodeText[c.offset];
+      continue;
+    }
+
+    const y = Math.round(rects[0].top);
+    if (currentY === null) currentY = y;
+
+    // Line break when Y position changes significantly
+    if (Math.abs(y - currentY) > 2) {
+      if (segText) {
+        lineSegments.push({
+          text: segText,
+          fontWeight: segBold ? 700 : 400,
+          fontStyle: segItalic ? 'italic' : 'normal',
+        });
+      }
+      if (lineSegments.length > 0) {
+        lines.push({ segments: trimLineSegments(lineSegments) });
+      }
+      lineSegments = [];
+      segText = '';
+      currentY = y;
+      segBold = c.bold;
+      segItalic = c.italic;
+    }
+
+    // Formatting change within the same line
+    if (c.bold !== segBold || c.italic !== segItalic) {
+      if (segText) {
+        lineSegments.push({
+          text: segText,
+          fontWeight: segBold ? 700 : 400,
+          fontStyle: segItalic ? 'italic' : 'normal',
+        });
+      }
+      segText = '';
+      segBold = c.bold;
+      segItalic = c.italic;
+    }
+
+    segText += nodeText[c.offset];
+  }
+
+  // Flush remaining segment and line
+  if (segText) {
+    lineSegments.push({
+      text: segText,
+      fontWeight: segBold ? 700 : 400,
+      fontStyle: segItalic ? 'italic' : 'normal',
+    });
+  }
+  if (lineSegments.length > 0) {
+    lines.push({ segments: trimLineSegments(lineSegments) });
+  }
+
+  document.body.removeChild(container);
+  return lines;
 }
 
-/** SVG text fallback for question block (used when rasterization fails) */
-function measureQuestionBlockSVGFallback(question: QuestionSettings, questionW: number): BlockMeasure | null {
+/** Trim leading/trailing whitespace from a line's segments */
+function trimLineSegments(segments: TextSegment[]): TextSegment[] {
+  if (segments.length === 0) return segments;
+  const out = segments.map(s => ({ ...s }));
+  out[0].text = out[0].text.replace(/^\s+/, '');
+  out[out.length - 1].text = out[out.length - 1].text.replace(/\s+$/, '');
+  return out.filter(s => s.text.length > 0);
+}
+
+/** Create SVG <text> element with formatted <tspan> children for bold/italic */
+function createFormattedSvgText(
+  line: WrappedLine,
+  x: number,
+  y: number,
+  opts: { fontSize: number; fontFamily: string; color: string; textAnchor?: string }
+): SVGTextElement {
+  const el = document.createElementNS(NS, 'text');
+  el.setAttribute('x', String(x));
+  el.setAttribute('y', String(y));
+  el.setAttribute('font-size', String(opts.fontSize));
+  el.setAttribute('font-family', opts.fontFamily);
+  el.setAttribute('fill', opts.color);
+  if (opts.textAnchor) el.setAttribute('text-anchor', opts.textAnchor);
+  el.setAttribute('dominant-baseline', 'hanging');
+
+  for (const seg of line.segments) {
+    const needsTspan =
+      (seg.fontWeight && seg.fontWeight !== 400) ||
+      (seg.fontStyle && seg.fontStyle !== 'normal');
+
+    if (needsTspan) {
+      const tspan = document.createElementNS(NS, 'tspan');
+      if (seg.fontWeight && seg.fontWeight !== 400) {
+        tspan.setAttribute('font-weight', String(seg.fontWeight));
+      }
+      if (seg.fontStyle && seg.fontStyle !== 'normal') {
+        tspan.setAttribute('font-style', seg.fontStyle);
+      }
+      tspan.textContent = seg.text;
+      el.appendChild(tspan);
+    } else {
+      el.appendChild(document.createTextNode(seg.text));
+    }
+  }
+
+  return el;
+}
+
+/**
+ * Measure and prepare question block for SVG export.
+ *
+ * Uses DOM-based line wrapping (browser-accurate) and preserves inline
+ * formatting (bold, italic) via SVG <tspan> elements.  Height is measured
+ * by rendering the question as real HTML in a hidden div — identical to
+ * ChartPreview's QuestionBlock — so the export layout matches the canvas.
+ */
+function measureQuestionBlock(question: QuestionSettings, questionW: number): BlockMeasure | null {
   const hasText = hasContent(question.text);
   const hasSubtext = hasContent(question.subtext);
   if (!hasText && !hasSubtext) return null;
@@ -384,15 +468,15 @@ function measureQuestionBlockSVGFallback(question: QuestionSettings, questionW: 
   const padB = question.paddingBottom || 0;
   const padL = question.paddingLeft || 0;
 
-  // Wrap text into paragraph groups (each paragraph wrapped independently)
-  const textParagraphs: string[][] = [];
+  // DOM-based line wrapping with formatting support
+  const textLines: WrappedLine[][] = []; // array of paragraphs, each is array of WrappedLines
   if (hasText) {
-    const plainText = stripHtml(question.text);
+    const paragraphs = parseHtmlParagraphs(question.text);
     const availW = contentW - padL - padR;
     const wrapW = availW > 0 ? availW : questionW;
-    for (const para of plainText.split('\n')) {
-      const trimmed = para.trim();
-      if (trimmed) textParagraphs.push(wrapTextToLines(trimmed, wrapW, td.fontSize, td.fontFamily));
+    for (const paraHtml of paragraphs) {
+      const lines = wrapHtmlToFormattedLines(paraHtml, wrapW, td.fontSize, td.fontFamily, td.lineHeight);
+      if (lines.length > 0) textLines.push(lines);
     }
   }
 
@@ -401,36 +485,39 @@ function measureQuestionBlockSVGFallback(question: QuestionSettings, questionW: 
   const spadB = question.subtextPaddingBottom || 0;
   const spadL = question.subtextPaddingLeft || 0;
 
-  const subtextParagraphs: string[][] = [];
+  const subtextLines: WrappedLine[][] = [];
   if (hasSubtext) {
-    const plainSubtext = stripHtml(question.subtext);
+    const paragraphs = parseHtmlParagraphs(question.subtext);
     const availW = contentW - spadL - spadR;
     const wrapW = availW > 0 ? availW : questionW;
-    for (const para of plainSubtext.split('\n')) {
-      const trimmed = para.trim();
-      if (trimmed) subtextParagraphs.push(wrapTextToLines(trimmed, wrapW, sd.fontSize, sd.fontFamily));
+    for (const paraHtml of paragraphs) {
+      const lines = wrapHtmlToFormattedLines(paraHtml, wrapW, sd.fontSize, sd.fontFamily, sd.lineHeight);
+      if (lines.length > 0) subtextLines.push(lines);
     }
   }
 
-  // Use DOM measurement for accurate height (matches ChartPreview exactly)
+  // Accurate height from DOM measurement (matches ChartPreview exactly)
   const domMeasure = measureQuestionHeightDOM(question, questionW);
   const totalH = domMeasure.totalHeight;
+  if (totalH <= 0) return null;
 
-  // Calculate paragraph gap for SVG text by comparing DOM height vs flat line height.
-  // The browser adds ~1em of collapsed margin between <p> tags which SVG doesn't have.
-  const textLineCount = textParagraphs.reduce((sum, p) => sum + p.length, 0);
-  const totalTextLineLH = textLineCount * (td.fontSize * td.lineHeight);
+  // Calculate paragraph gap: DOM height vs. sum-of-line-heights tells us how
+  // much extra space the browser adds between <p> blocks.
+  const tdLH = typeof td.lineHeight === 'number' ? td.lineHeight : parseFloat(String(td.lineHeight));
+  const textLineCount = textLines.reduce((sum, p) => sum + p.length, 0);
+  const totalTextLineLH = textLineCount * (td.fontSize * tdLH);
   const domTextContentH = Math.max(0, domMeasure.textHeight - padT - padB);
-  const textParaGap = textParagraphs.length > 1 && domTextContentH > totalTextLineLH
-    ? (domTextContentH - totalTextLineLH) / (textParagraphs.length - 1)
+  const textParaGap = textLines.length > 1 && domTextContentH > totalTextLineLH
+    ? (domTextContentH - totalTextLineLH) / (textLines.length - 1)
     : 0;
 
-  const subtextLineCount = subtextParagraphs.reduce((sum, p) => sum + p.length, 0);
-  const totalSubtextLineLH = subtextLineCount * (sd.fontSize * sd.lineHeight);
+  const sdLH = typeof sd.lineHeight === 'number' ? sd.lineHeight : parseFloat(String(sd.lineHeight));
+  const subtextLineCount = subtextLines.reduce((sum, p) => sum + p.length, 0);
+  const totalSubtextLineLH = subtextLineCount * (sd.fontSize * sdLH);
   const domSubtextH = Math.max(0, totalH - domMeasure.textHeight);
   const domSubtextContentH = Math.max(0, domSubtextH - spadT - spadB);
-  const subtextParaGap = subtextParagraphs.length > 1 && domSubtextContentH > totalSubtextLineLH
-    ? (domSubtextContentH - totalSubtextLineLH) / (subtextParagraphs.length - 1)
+  const subtextParaGap = subtextLines.length > 1 && domSubtextContentH > totalSubtextLineLH
+    ? (domSubtextContentH - totalSubtextLineLH) / (subtextLines.length - 1)
     : 0;
 
   return {
@@ -452,42 +539,40 @@ function measureQuestionBlockSVGFallback(question: QuestionSettings, questionW: 
         ));
       }
 
-      // Text
-      if (hasText && textParagraphs.length > 0) {
+      // Main text
+      if (hasText && textLines.length > 0) {
         const anchor = alignToAnchor(align);
         const baseX = contentX + alignToX(align, contentW, padL, padR);
         let cy = yStart + padT;
-        for (let pi = 0; pi < textParagraphs.length; pi++) {
+        for (let pi = 0; pi < textLines.length; pi++) {
           if (pi > 0) cy += textParaGap;
-          for (const line of textParagraphs[pi]) {
-            g.appendChild(createSvgText(line, baseX, cy, {
+          for (const line of textLines[pi]) {
+            g.appendChild(createFormattedSvgText(line, baseX, cy, {
               fontSize: td.fontSize,
               fontFamily: td.fontFamily,
-              fontWeight: 400,
               color: td.color,
               textAnchor: anchor,
             }));
-            cy += td.fontSize * td.lineHeight;
+            cy += td.fontSize * tdLH;
           }
         }
       }
 
       // Subtext — positioned after the DOM-measured text height
-      if (hasSubtext && subtextParagraphs.length > 0) {
+      if (hasSubtext && subtextLines.length > 0) {
         const anchor = alignToAnchor(align);
         const baseX = contentX + alignToX(align, contentW, spadL, spadR);
         let cy = yStart + domMeasure.textHeight + spadT;
-        for (let pi = 0; pi < subtextParagraphs.length; pi++) {
+        for (let pi = 0; pi < subtextLines.length; pi++) {
           if (pi > 0) cy += subtextParaGap;
-          for (const line of subtextParagraphs[pi]) {
-            g.appendChild(createSvgText(line, baseX, cy, {
+          for (const line of subtextLines[pi]) {
+            g.appendChild(createFormattedSvgText(line, baseX, cy, {
               fontSize: sd.fontSize,
               fontFamily: sd.fontFamily,
-              fontWeight: 400,
               color: sd.color,
               textAnchor: anchor,
             }));
-            cy += sd.fontSize * sd.lineHeight;
+            cy += sd.fontSize * sdLH;
           }
         }
       }
@@ -671,7 +756,7 @@ export async function renderChartOffscreen(
   const questionW = options.canvasWidth || width;
   let questionBlock: BlockMeasure | null = null;
   if (hasQuestion && isQuestionVertical) {
-    questionBlock = await measureQuestionBlock(question, questionW);
+    questionBlock = measureQuestionBlock(question, questionW);
   }
 
   const topExtra = (headerBlock?.height || 0) + (questionPosition === 'above' ? (questionBlock?.height || 0) : 0);
