@@ -413,15 +413,21 @@ export default function DashboardPage() {
     return { rootViz, foldersWithViz };
   }, [visualizations, folders, activeFolderId, searchQuery, sortViz]);
 
-  // Bulk export handler — supports all formats via offscreen rendering
+  // Bulk export handler — renders charts offscreen, captures as blobs, bundles into a ZIP
   const handleBulkExport = async (exportOptions: BulkExportOptions) => {
     const toExport = visualizations.filter((v) => selectedIds.has(v.id));
     if (toExport.length === 0) return;
 
     const { format, width, height, transparent, pixelRatio } = exportOptions;
 
+    const extMap: Record<string, string> = { png: '.png', svg: '.svg', pdf: '.pdf', html: '.html' };
+    const ext = extMap[format] || `.${format}`;
+
     toast.promise(
       (async () => {
+        const JSZip = (await import('jszip')).default;
+        const zip = new JSZip();
+
         let exported = 0;
         let failed = 0;
 
@@ -450,16 +456,20 @@ export default function DashboardPage() {
               fullViz.columnMapping && Object.keys(fullViz.columnMapping).length > 0
                 ? fullViz.columnMapping
                 : defaultColumnMapping;
-            const vizName = viz.name || 'chart';
+            const vizName = (viz.name || 'chart').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim();
+
+            // Build a safe filename (deduplicate if needed)
+            const fileName = `${vizName}${ext}`;
 
             if (format === 'html') {
-              // HTML export doesn't need offscreen rendering
-              const { exportHtml } = await import('@/lib/export/exportHtml');
-              exportHtml(vizSettings, vizData, vizMapping, vizName, {
+              // HTML export doesn't need offscreen rendering — build HTML blob directly
+              const { captureAsHtmlBlob } = await import('@/lib/export/captureChart');
+              const blob = await captureAsHtmlBlob(vizSettings, vizData, vizMapping, {
                 width,
                 height,
                 transparent,
               });
+              zip.file(fileName, blob);
             } else {
               // Render chart offscreen at the requested dimensions
               const { renderChartOffscreen } = await import(
@@ -473,39 +483,51 @@ export default function DashboardPage() {
               );
 
               try {
+                const { captureAsPngBlob, captureAsSvgBlob, captureAsPdfBlob } = await import(
+                  '@/lib/export/captureChart'
+                );
+
+                let blob: Blob;
                 switch (format) {
-                  case 'png': {
-                    const { exportPng } = await import('@/lib/export/exportPng');
-                    await exportPng(container, vizName, { transparent, pixelRatio });
+                  case 'png':
+                    blob = await captureAsPngBlob(container, { transparent, pixelRatio });
                     break;
-                  }
-                  case 'svg': {
-                    const { exportSvg } = await import('@/lib/export/exportSvg');
-                    await exportSvg(container, vizName, { transparent });
+                  case 'svg':
+                    blob = await captureAsSvgBlob(container, { transparent });
                     break;
-                  }
-                  case 'pdf': {
-                    const { exportPdf } = await import('@/lib/export/exportPdf');
-                    await exportPdf(container, vizName, { transparent });
+                  case 'pdf':
+                    blob = await captureAsPdfBlob(container, { transparent });
                     break;
-                  }
+                  default:
+                    blob = await captureAsPngBlob(container, { transparent, pixelRatio });
                 }
+                zip.file(fileName, blob);
               } finally {
                 cleanup();
               }
             }
 
             exported++;
-
-            // Small delay between downloads to avoid browser throttling
-            if (exported < toExport.length) {
-              await new Promise((r) => setTimeout(r, 600));
-            }
           } catch (e) {
             console.error(`Failed to export ${viz.name}:`, e);
             failed++;
           }
         }
+
+        if (exported === 0) {
+          throw new Error('No visualizations could be exported');
+        }
+
+        // Generate and download the ZIP
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `visualizations-${format}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
 
         if (failed > 0) {
           toast.info(`${failed} visualization(s) could not be exported.`);
@@ -513,7 +535,7 @@ export default function DashboardPage() {
       })(),
       {
         loading: `Exporting ${toExport.length} visualization${toExport.length > 1 ? 's' : ''} as ${format.toUpperCase()}...`,
-        success: `Exported ${toExport.length} file${toExport.length > 1 ? 's' : ''} as ${format.toUpperCase()}`,
+        success: `Exported ${toExport.length} file${toExport.length > 1 ? 's' : ''} as ${format.toUpperCase()} (ZIP)`,
         error: 'Export failed',
       }
     );

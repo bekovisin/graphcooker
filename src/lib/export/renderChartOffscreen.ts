@@ -1,10 +1,9 @@
 /**
  * Offscreen chart renderer for dashboard bulk export.
  *
- * Renders a chart into a hidden off-screen container at the requested
- * export dimensions, waits for it to fully paint, and then returns the
- * container element so that the export functions (exportPng, exportSvg, etc.)
- * can capture the rendered output.
+ * Renders a chart into a hidden container at the requested export dimensions,
+ * waits for it to fully paint, then returns the container so export/capture
+ * functions can extract the rendered output.
  */
 
 import { ChartSettings, ColumnMapping } from '@/types/chart';
@@ -12,9 +11,7 @@ import { DataRow } from '@/types/data';
 import { buildChartData } from '@/lib/chart/mapSettingsToApex';
 
 interface RenderResult {
-  /** The off-screen container DOM node (contains the full chart with header/footer). */
   container: HTMLElement;
-  /** Call this after you're done capturing to clean up the DOM + React root. */
   cleanup: () => void;
 }
 
@@ -24,10 +21,6 @@ interface RenderOptions {
   transparent?: boolean;
 }
 
-/**
- * Render a chart into a hidden container at the requested dimensions.
- * Works for both ApexCharts and CustomBarChart (SVG).
- */
 export async function renderChartOffscreen(
   settings: ChartSettings,
   data: DataRow[],
@@ -45,19 +38,23 @@ export async function renderChartOffscreen(
       : settings.chartType.standardHeight) ||
     500;
 
-  // Create off-screen wrapper
+  // Create off-screen wrapper — use visibility:hidden so the browser still
+  // computes full layout (unlike left:-9999px which some engines skip)
   const wrapper = document.createElement('div');
   wrapper.style.cssText = `
     position: fixed;
-    left: -20000px;
+    left: 0;
     top: 0;
+    width: ${width}px;
+    height: ${height}px;
+    visibility: hidden;
     z-index: -9999;
     pointer-events: none;
-    opacity: 1;
+    overflow: hidden;
   `;
   document.body.appendChild(wrapper);
 
-  // Create chart container (mirrors ChartPreview's #chart-container structure)
+  // Create chart container (mirrors ChartPreview's #chart-container)
   const container = document.createElement('div');
   container.id = 'offscreen-chart-container';
   const bgColor = options.transparent ? 'transparent' : (settings.layout.backgroundColor || '#ffffff');
@@ -69,10 +66,12 @@ export async function renderChartOffscreen(
     flex-direction: column;
     overflow: hidden;
     font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    box-sizing: border-box;
   `;
   wrapper.appendChild(container);
 
   // ── Header ──
+  let headerH = 0;
   if (settings.header.title || settings.header.subtitle || settings.header.text) {
     const header = document.createElement('div');
     header.style.cssText = `
@@ -122,26 +121,16 @@ export async function renderChartOffscreen(
       header.appendChild(p);
     }
     container.appendChild(header);
+    // Force layout so we can measure header height
+    headerH = header.offsetHeight;
   }
 
-  // ── Chart area ──
-  const chartArea = document.createElement('div');
-  chartArea.style.cssText = `
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    ${isCustomChart ? '' : `
-      padding: ${settings.layout.paddingTop}px ${settings.layout.paddingRight}px ${settings.layout.paddingBottom}px ${settings.layout.paddingLeft}px;
-      background-color: ${isCustomChart ? 'transparent' : settings.plotBackground.backgroundColor};
-    `}
-    ${settings.plotBackground.border ? `border: ${settings.plotBackground.borderWidth}px solid ${settings.plotBackground.borderColor};` : ''}
-  `;
-  container.appendChild(chartArea);
-
-  // ── Footer ──
+  // ── Footer (build early to measure height) ──
+  let footerH = 0;
+  let footerEl: HTMLElement | null = null;
   if (settings.footer.sourceName || settings.footer.notePrimary) {
-    const footer = document.createElement('div');
-    footer.style.cssText = `
+    footerEl = document.createElement('div');
+    footerEl.style.cssText = `
       padding: 8px 24px 16px;
       text-align: ${settings.footer.alignment};
       flex-shrink: 0;
@@ -152,67 +141,84 @@ export async function renderChartOffscreen(
       const p = document.createElement('p');
       p.textContent = `${settings.footer.sourceLabel}: ${settings.footer.sourceName}`;
       p.style.cssText = `font-size: ${settings.footer.size}px; color: ${settings.footer.color}; margin: 0;`;
-      footer.appendChild(p);
+      footerEl.appendChild(p);
     }
     if (settings.footer.notePrimary) {
       const p = document.createElement('p');
       p.textContent = settings.footer.notePrimary;
       p.style.cssText = `font-size: ${settings.footer.size - 1}px; color: ${settings.footer.color}; opacity: 0.8; margin: 4px 0 0 0;`;
-      footer.appendChild(p);
+      footerEl.appendChild(p);
     }
-    container.appendChild(footer);
+    // Temporarily append to measure, then reorder
+    container.appendChild(footerEl);
+    footerH = footerEl.offsetHeight;
+    container.removeChild(footerEl);
   }
+
+  // ── Chart area ──
+  const padT = isCustomChart ? 0 : settings.layout.paddingTop;
+  const padR = isCustomChart ? 0 : settings.layout.paddingRight;
+  const padB = isCustomChart ? 0 : settings.layout.paddingBottom;
+  const padL = isCustomChart ? 0 : settings.layout.paddingLeft;
+
+  const chartArea = document.createElement('div');
+  chartArea.style.cssText = `
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: ${padT}px ${padR}px ${padB}px ${padL}px;
+    background-color: ${isCustomChart ? 'transparent' : settings.plotBackground.backgroundColor};
+    ${settings.plotBackground.border ? `border: ${settings.plotBackground.borderWidth}px solid ${settings.plotBackground.borderColor};` : ''}
+    box-sizing: border-box;
+  `;
+  container.appendChild(chartArea);
+
+  // Re-append footer after chart area
+  if (footerEl) {
+    container.appendChild(footerEl);
+  }
+
+  // Compute exact pixel dimensions for the chart
+  const chartWidth = width - padL - padR;
+  const chartHeight = height - headerH - footerH - padT - padB;
 
   // ── Render chart content ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let reactRoot: any = null;
 
   if (isCustomChart) {
-    // CustomBarChart is a React component — render it into the chart area
     const React = await import('react');
     const { createRoot } = await import('react-dom/client');
     const { CustomBarChart } = await import('@/components/chart/CustomBarChart');
 
-    const chartAreaHeight = chartArea.clientHeight || (height - 80);
     reactRoot = createRoot(chartArea);
     reactRoot.render(
       React.createElement(CustomBarChart, {
         data,
         columnMapping,
         settings,
-        width,
-        height: chartAreaHeight > 0 ? chartAreaHeight : undefined,
+        width: chartWidth > 0 ? chartWidth : width,
+        height: chartHeight > 0 ? chartHeight : undefined,
         columnOrder,
         seriesNames,
       })
     );
-
-    // Wait for React to paint
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 400));
   } else {
-    // ApexCharts — use the library directly (not the React wrapper)
     const { series, options: chartOptions } = buildChartData(
-      data,
-      columnMapping,
-      settings,
-      columnOrder,
-      seriesNames
+      data, columnMapping, settings, columnOrder, seriesNames
     );
 
     if (series.length > 0) {
       const ApexChartsLib = (await import('apexcharts')).default;
 
       const chartDiv = document.createElement('div');
-      chartDiv.style.cssText = 'width: 100%; height: 100%;';
+      // Use explicit pixel sizes (not %) — ApexCharts reads these to size itself
+      chartDiv.style.cssText = `
+        width: ${chartWidth}px;
+        height: ${Math.max(100, chartHeight)}px;
+      `;
       chartArea.appendChild(chartDiv);
-
-      // Compute chart height: use the remaining space after header/footer
-      const headerH = container.querySelector('h2')?.parentElement?.offsetHeight || 0;
-      const footerH = container.querySelector('div:last-child') !== chartArea
-        ? (container.lastElementChild as HTMLElement)?.offsetHeight || 0
-        : 0;
-      const availableHeight = height - headerH - footerH -
-        settings.layout.paddingTop - settings.layout.paddingBottom;
 
       const mergedOptions: ApexCharts.ApexOptions = {
         ...chartOptions,
@@ -220,32 +226,26 @@ export async function renderChartOffscreen(
         chart: {
           ...chartOptions.chart,
           type: 'bar',
-          height: Math.max(100, availableHeight),
-          width: width - settings.layout.paddingLeft - settings.layout.paddingRight,
+          height: Math.max(100, chartHeight),
+          width: chartWidth,
           animations: { enabled: false },
           toolbar: { show: false },
+          redrawOnParentResize: false,
+          redrawOnWindowResize: false,
         },
       };
 
       const chart = new ApexChartsLib(chartDiv, mergedOptions);
       await chart.render();
 
-      // Wait for ApexCharts to fully render
-      await new Promise((r) => setTimeout(r, 800));
+      // Wait for ApexCharts to finish its internal render cycle
+      await new Promise((r) => setTimeout(r, 1000));
     }
   }
 
   const cleanup = () => {
-    try {
-      if (reactRoot) reactRoot.unmount();
-    } catch {
-      // ignore
-    }
-    try {
-      wrapper.remove();
-    } catch {
-      // ignore
-    }
+    try { if (reactRoot) reactRoot.unmount(); } catch { /* ignore */ }
+    try { wrapper.remove(); } catch { /* ignore */ }
   };
 
   return { container, cleanup };

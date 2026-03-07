@@ -231,15 +231,22 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     const origMaxWidth = container.style.maxWidth;
     const origHeight = container.style.height;
     const origTransition = container.style.transition;
+    const origBorder = container.style.border;
+    const origBorderRadius = container.style.borderRadius;
 
     const needsResize =
       (options.width && options.width !== container.offsetWidth) ||
       (options.height && options.height !== container.offsetHeight);
 
     try {
+      // Remove border to avoid 2px offset (Tailwind's `border` = 1px each side)
+      container.style.border = 'none';
+      container.style.borderRadius = '0';
+
+      // Disable transition so resize is instant
+      container.style.transition = 'none';
+
       if (needsResize) {
-        // Disable transition so resize is instant
-        container.style.transition = 'none';
         if (options.width) {
           container.style.width = `${options.width}px`;
           container.style.maxWidth = `${options.width}px`;
@@ -247,13 +254,13 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
         if (options.height) {
           container.style.height = `${options.height}px`;
         }
-
-        // Force ApexCharts + ResizeObserver to pick up the new dimensions
-        window.dispatchEvent(new Event('resize'));
-
-        // Wait for re-layout and chart re-render
-        await new Promise((r) => setTimeout(r, 700));
       }
+
+      // Force ApexCharts + ResizeObserver to pick up the new dimensions
+      window.dispatchEvent(new Event('resize'));
+
+      // Wait for re-layout and chart re-render
+      await new Promise((r) => setTimeout(r, 700));
 
       // Capture at the container's current (resized) dimensions — do NOT pass width/height
       // to the export functions, since the container IS already the target size
@@ -274,18 +281,21 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           break;
       }
     } finally {
-      // Restore original dimensions
+      // Restore original dimensions and border
+      container.style.border = origBorder;
+      container.style.borderRadius = origBorderRadius;
+
       if (needsResize) {
         container.style.width = origWidth;
         container.style.maxWidth = origMaxWidth;
         container.style.height = origHeight;
-
-        // Re-enable transitions after a tick
-        requestAnimationFrame(() => {
-          container.style.transition = origTransition;
-          window.dispatchEvent(new Event('resize'));
-        });
       }
+
+      // Re-enable transitions after a tick
+      requestAnimationFrame(() => {
+        container.style.transition = origTransition;
+        window.dispatchEvent(new Event('resize'));
+      });
     }
   };
 
