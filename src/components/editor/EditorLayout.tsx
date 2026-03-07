@@ -19,6 +19,8 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     settings,
     data,
     columnMapping,
+    columnOrder,
+    seriesNames,
     visualizationName,
     isDirty,
     loadVisualization,
@@ -210,7 +212,10 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     setExportDialogOpen(true);
   };
 
-  // Actual export with options — resizes chart container to export dimensions first
+  // Actual export with options — uses offscreen rendering so the chart is
+  // rendered at exactly the requested dimensions without touching the live
+  // preview. This fixes auto-height charts where changing the container's CSS
+  // height doesn't trigger a React re-render of the ApexCharts component.
   const handleExport = async (format: 'png' | 'svg' | 'html' | 'pdf', options: ExportOptions) => {
     // HTML export doesn't need DOM manipulation — it builds standalone HTML
     if (format === 'html') {
@@ -222,48 +227,26 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     const { exportPng } = await import('@/lib/export/exportPng');
     const { exportSvg } = await import('@/lib/export/exportSvg');
     const { exportPdf } = await import('@/lib/export/exportPdf');
+    const { renderChartOffscreen } = await import('@/lib/export/renderChartOffscreen');
 
-    const container = document.getElementById('chart-container');
-    if (!container) return;
+    const liveContainer = document.getElementById('chart-container');
+    const currentW = liveContainer?.offsetWidth || 800;
+    const currentH = liveContainer?.offsetHeight || 600;
 
-    // Save original inline styles so we can restore after export
-    const origWidth = container.style.width;
-    const origMaxWidth = container.style.maxWidth;
-    const origHeight = container.style.height;
-    const origTransition = container.style.transition;
-    const origBorder = container.style.border;
-    const origBorderRadius = container.style.borderRadius;
+    const exportWidth = options.width || currentW;
+    const exportHeight = options.height || currentH;
 
-    const needsResize =
-      (options.width && options.width !== container.offsetWidth) ||
-      (options.height && options.height !== container.offsetHeight);
+    // Render a fresh chart at the exact target dimensions in an offscreen container
+    const { container, cleanup } = await renderChartOffscreen(
+      settings,
+      data,
+      columnMapping,
+      { width: exportWidth, height: exportHeight, transparent: options.transparent },
+      columnOrder,
+      seriesNames,
+    );
 
     try {
-      // Remove border to avoid 2px offset (Tailwind's `border` = 1px each side)
-      container.style.border = 'none';
-      container.style.borderRadius = '0';
-
-      // Disable transition so resize is instant
-      container.style.transition = 'none';
-
-      if (needsResize) {
-        if (options.width) {
-          container.style.width = `${options.width}px`;
-          container.style.maxWidth = `${options.width}px`;
-        }
-        if (options.height) {
-          container.style.height = `${options.height}px`;
-        }
-      }
-
-      // Force ApexCharts + ResizeObserver to pick up the new dimensions
-      window.dispatchEvent(new Event('resize'));
-
-      // Wait for re-layout and chart re-render
-      await new Promise((r) => setTimeout(r, 700));
-
-      // Capture at the container's current (resized) dimensions — do NOT pass width/height
-      // to the export functions, since the container IS already the target size
       const captureOpts = {
         transparent: options.transparent,
         pixelRatio: options.pixelRatio,
@@ -281,21 +264,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           break;
       }
     } finally {
-      // Restore original dimensions and border
-      container.style.border = origBorder;
-      container.style.borderRadius = origBorderRadius;
-
-      if (needsResize) {
-        container.style.width = origWidth;
-        container.style.maxWidth = origMaxWidth;
-        container.style.height = origHeight;
-      }
-
-      // Re-enable transitions after a tick
-      requestAnimationFrame(() => {
-        container.style.transition = origTransition;
-        window.dispatchEvent(new Event('resize'));
-      });
+      cleanup();
     }
   };
 

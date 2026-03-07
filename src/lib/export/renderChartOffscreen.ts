@@ -1,9 +1,12 @@
 /**
- * Offscreen chart renderer for dashboard bulk export.
+ * Offscreen chart renderer for export (dashboard bulk + editor).
  *
  * Renders a chart into a hidden container at the requested export dimensions,
  * waits for it to fully paint, then returns the container so export/capture
  * functions can extract the rendered output.
+ *
+ * Uses opacity:0 (not visibility:hidden) so ApexCharts can correctly measure
+ * text metrics for axis labels, legend, etc.
  */
 
 import { ChartSettings, ColumnMapping } from '@/types/chart';
@@ -38,8 +41,9 @@ export async function renderChartOffscreen(
       : settings.chartType.standardHeight) ||
     500;
 
-  // Create off-screen wrapper — use visibility:hidden so the browser still
-  // computes full layout (unlike left:-9999px which some engines skip)
+  // Create off-screen wrapper — use opacity:0 so the browser fully paints
+  // the element (including text metrics). visibility:hidden can cause
+  // ApexCharts to mis-measure y-axis label widths.
   const wrapper = document.createElement('div');
   wrapper.style.cssText = `
     position: fixed;
@@ -47,7 +51,7 @@ export async function renderChartOffscreen(
     top: 0;
     width: ${width}px;
     height: ${height}px;
-    visibility: hidden;
+    opacity: 0;
     z-index: -9999;
     pointer-events: none;
     overflow: hidden;
@@ -185,6 +189,8 @@ export async function renderChartOffscreen(
   // ── Render chart content ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let reactRoot: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let apexChart: any = null;
 
   if (isCustomChart) {
     const React = await import('react');
@@ -213,12 +219,13 @@ export async function renderChartOffscreen(
       const ApexChartsLib = (await import('apexcharts')).default;
 
       const chartDiv = document.createElement('div');
-      // Use explicit pixel sizes (not %) — ApexCharts reads these to size itself
       chartDiv.style.cssText = `
         width: ${chartWidth}px;
         height: ${Math.max(100, chartHeight)}px;
       `;
       chartArea.appendChild(chartDiv);
+
+      const targetH = Math.max(100, chartHeight);
 
       const mergedOptions: ApexCharts.ApexOptions = {
         ...chartOptions,
@@ -226,7 +233,7 @@ export async function renderChartOffscreen(
         chart: {
           ...chartOptions.chart,
           type: 'bar',
-          height: Math.max(100, chartHeight),
+          height: targetH,
           width: chartWidth,
           animations: { enabled: false },
           toolbar: { show: false },
@@ -235,15 +242,46 @@ export async function renderChartOffscreen(
         },
       };
 
-      const chart = new ApexChartsLib(chartDiv, mergedOptions);
-      await chart.render();
+      apexChart = new ApexChartsLib(chartDiv, mergedOptions);
+      await apexChart.render();
 
-      // Wait for ApexCharts to finish its internal render cycle
-      await new Promise((r) => setTimeout(r, 1000));
+      // Wait for initial render pass
+      await new Promise((r) => setTimeout(r, 300));
+
+      // Force ApexCharts to recalculate all internal dimensions (label widths,
+      // plot area, bar widths) by updating with the same width/height.
+      // This fixes the issue where the initial render may mis-compute
+      // text metrics in the offscreen container.
+      try {
+        await apexChart.updateOptions(
+          {
+            chart: {
+              width: chartWidth,
+              height: targetH,
+            },
+          },
+          false, // redrawPaths
+          false, // animate
+          false  // updateSyncedCharts
+        );
+      } catch {
+        // Some ApexCharts versions don't support 4th arg — retry with 3
+        try {
+          await apexChart.updateOptions(
+            { chart: { width: chartWidth, height: targetH } },
+            false,
+            false
+          );
+        } catch { /* ignore */ }
+      }
+
+      // Wait for the recalculated render to finish
+      await new Promise((r) => setTimeout(r, 500));
     }
   }
 
   const cleanup = () => {
+    try { if (apexChart) apexChart.destroy(); } catch { /* ignore */ }
     try { if (reactRoot) reactRoot.unmount(); } catch { /* ignore */ }
     try { wrapper.remove(); } catch { /* ignore */ }
   };
