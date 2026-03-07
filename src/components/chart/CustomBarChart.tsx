@@ -30,6 +30,8 @@ interface CustomBarChartProps {
   height?: number;
   columnOrder?: string[];
   seriesNames?: Record<string, string>;
+  /** Skip animation and render at full values immediately (used for export) */
+  skipAnimation?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
@@ -171,13 +173,17 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function CustomBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp }: CustomBarChartProps) {
+export function CustomBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation }: CustomBarChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', series: '', value: 0, color: '' });
-  const [animProgress, setAnimProgress] = useState(settings.animations.enabled ? 0 : 1);
+  const [animProgress, setAnimProgress] = useState(skipAnimation || !settings.animations.enabled ? 1 : 0);
 
-  // Animation
+  // Animation — skipped entirely for export (skipAnimation=true)
   useEffect(() => {
+    if (skipAnimation) {
+      setAnimProgress(1);
+      return;
+    }
     if (!settings.animations.enabled) {
       setAnimProgress(1);
       return;
@@ -194,7 +200,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     };
     raf = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(raf);
-  }, [settings.animations.enabled, settings.animations.duration, data, columnMapping]);
+  }, [skipAnimation, settings.animations.enabled, settings.animations.duration, data, columnMapping]);
 
   // ── Build series & categories ──
   const { series, categories, maxVal, minVal } = useMemo(() => {

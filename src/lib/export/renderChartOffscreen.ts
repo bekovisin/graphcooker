@@ -191,9 +191,11 @@ export async function renderChartOffscreen(
       height: chartHeight > 0 ? chartHeight : undefined,
       columnOrder,
       seriesNames,
+      skipAnimation: true,
     })
   );
-  await new Promise((r) => setTimeout(r, 400));
+  // Wait for React to flush render — no animation needed since skipAnimation=true
+  await new Promise((r) => setTimeout(r, 200));
 
   const cleanup = () => {
     try { reactRoot.unmount(); } catch { /* ignore */ }
