@@ -422,7 +422,23 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
   const spacingMain = settings.bars.spacingMain;
   const emptyRowSpacing = settings.bars.emptyRowSpacing;
   const bottomBarPadding = settings.bars.bottomBarPadding;
-  const labelRowHeight = isAboveBars ? yTickStyle.fontSize + 8 : 0;
+  // Above-bars label row height: account for wrapping when space mode is fixed
+  const labelRowHeight = useMemo(() => {
+    if (!isAboveBars) return 0;
+    const baseHeight = yTickStyle.fontSize + 8;
+    if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) return baseHeight;
+    // Check if any category needs wrapping — if so, add extra line height
+    const maxW = settings.yAxis.spaceModeValue;
+    let maxLines = 1;
+    for (const cat of categories) {
+      const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+      if (fullW > maxW && cat.includes(' ')) {
+        const lines = wrapText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+        maxLines = Math.max(maxLines, lines.length);
+      }
+    }
+    return maxLines > 1 ? yTickStyle.fontSize * 1.2 * maxLines + 4 : baseHeight;
+  }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, categories]);
 
   // Determine which categories are "empty" (blank label AND all series values are 0/null)
   const isEmptyCategory = useMemo(() =>
@@ -1038,10 +1054,61 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                   ? padding.left + xScale(0)
                   : padding.left;
                 const abPad = settings.labels;
+                const aboveX = aboveLabelX + (abPad.aboveBarPaddingLeft || 0) - (abPad.aboveBarPaddingRight || 0);
+                const aboveY = catY + yTickStyle.fontSize + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0);
+
+                // When space mode is fixed, wrap/truncate above-bars labels
+                const useAboveFixedWidth = settings.yAxis.spaceMode === 'fixed';
+                const aboveMaxW = useAboveFixedWidth ? settings.yAxis.spaceModeValue : 0;
+
+                if (useAboveFixedWidth && aboveMaxW > 0) {
+                  const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                  const needsWrap = fullW > aboveMaxW;
+                  if (needsWrap && cat.includes(' ')) {
+                    const lines = wrapText(cat, aboveMaxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                    const lineHeight = yTickStyle.fontSize * 1.2;
+                    return lines.map((line, li) => (
+                      <text
+                        key={`above-${ci}-${li}`}
+                        x={aboveX}
+                        y={aboveY + li * lineHeight}
+                        textAnchor="start"
+                        style={{
+                          fontSize: yTickStyle.fontSize,
+                          fontFamily: yTickStyle.fontFamily,
+                          fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
+                          fontStyle: yTickStyle.fontStyle || 'normal',
+                          fill: yTickStyle.color,
+                        }}
+                      >
+                        {line}
+                      </text>
+                    ));
+                  } else if (needsWrap) {
+                    const displayText = truncateText(cat, aboveMaxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                    return (
+                      <text
+                        x={aboveX}
+                        y={aboveY}
+                        textAnchor="start"
+                        style={{
+                          fontSize: yTickStyle.fontSize,
+                          fontFamily: yTickStyle.fontFamily,
+                          fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
+                          fontStyle: yTickStyle.fontStyle || 'normal',
+                          fill: yTickStyle.color,
+                        }}
+                      >
+                        {displayText}
+                      </text>
+                    );
+                  }
+                }
+
                 return (
                   <text
-                    x={aboveLabelX + (abPad.aboveBarPaddingLeft || 0) - (abPad.aboveBarPaddingRight || 0)}
-                    y={catY + yTickStyle.fontSize + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0)}
+                    x={aboveX}
+                    y={aboveY}
                     textAnchor="start"
                     style={{
                       fontSize: yTickStyle.fontSize,

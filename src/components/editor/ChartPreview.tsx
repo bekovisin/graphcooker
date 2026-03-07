@@ -13,47 +13,78 @@ const deviceWidths: Record<string, string> = {
   fullscreen: '100%',
 };
 
-function QuestionBlock({ question }: { question: QuestionSettings }) {
-  if (!question.text && !question.subtext) return null;
+/** Check if HTML content has meaningful text (not just empty tags) */
+function hasContent(html: string): boolean {
+  if (!html) return false;
+  // Strip HTML tags and check for non-whitespace content
+  const stripped = html.replace(/<[^>]*>/g, '').trim();
+  return stripped.length > 0;
+}
 
-  return (
-    <div style={{ textAlign: question.alignment }}>
-      {question.text && (
+function QuestionBlock({ question }: { question: QuestionSettings }) {
+  const hasText = hasContent(question.text);
+  const hasSubtext = hasContent(question.subtext);
+  if (!hasText && !hasSubtext) return null;
+
+  const textDefaults = question.textDefaults || { fontFamily: 'Inter, sans-serif', fontSize: 18, color: '#333333', lineHeight: 1.3 };
+  const subtextDefaults = question.subtextDefaults || { fontFamily: 'Inter, sans-serif', fontSize: 14, color: '#666666', lineHeight: 1.4 };
+  const accentLine = question.accentLine;
+  const showAccent = accentLine?.show;
+
+  const content = (
+    <div style={{ textAlign: question.alignment, flex: 1 }}>
+      {hasText && (
         <div
           style={{
-            fontFamily: question.textStyling.fontFamily,
-            fontSize: question.textStyling.fontSize,
-            fontWeight: question.textStyling.fontWeight === 'bold' ? 700 : 400,
-            color: question.textStyling.color,
-            lineHeight: question.textStyling.lineHeight,
+            fontFamily: textDefaults.fontFamily,
+            fontSize: textDefaults.fontSize,
+            color: textDefaults.color,
+            lineHeight: textDefaults.lineHeight,
             paddingTop: question.paddingTop,
             paddingRight: question.paddingRight,
             paddingBottom: question.paddingBottom,
             paddingLeft: question.paddingLeft,
-            whiteSpace: 'pre-wrap',
           }}
-        >
-          {question.text}
-        </div>
+          dangerouslySetInnerHTML={{ __html: question.text }}
+        />
       )}
-      {question.subtext && (
+      {hasSubtext && (
         <div
           style={{
-            fontFamily: question.subtextStyling.fontFamily,
-            fontSize: question.subtextStyling.fontSize,
-            fontWeight: question.subtextStyling.fontWeight === 'bold' ? 700 : 400,
-            color: question.subtextStyling.color,
-            lineHeight: question.subtextStyling.lineHeight,
+            fontFamily: subtextDefaults.fontFamily,
+            fontSize: subtextDefaults.fontSize,
+            color: subtextDefaults.color,
+            lineHeight: subtextDefaults.lineHeight,
             paddingTop: question.subtextPaddingTop,
             paddingRight: question.subtextPaddingRight,
             paddingBottom: question.subtextPaddingBottom,
             paddingLeft: question.subtextPaddingLeft,
-            whiteSpace: 'pre-wrap',
           }}
-        >
-          {question.subtext}
-        </div>
+          dangerouslySetInnerHTML={{ __html: question.subtext }}
+        />
       )}
+    </div>
+  );
+
+  if (!showAccent) return content;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'stretch' }}>
+      {/* Accent Line */}
+      <div
+        style={{
+          width: accentLine.width,
+          minWidth: accentLine.width,
+          backgroundColor: accentLine.color,
+          borderRadius: accentLine.borderRadius,
+          marginTop: accentLine.paddingTop,
+          marginRight: accentLine.paddingRight,
+          marginBottom: accentLine.paddingBottom,
+          marginLeft: accentLine.paddingLeft,
+          flexShrink: 0,
+        }}
+      />
+      {content}
     </div>
   );
 }
@@ -84,7 +115,7 @@ export function ChartPreview() {
 
   if (activeTab !== 'preview') return null;
 
-  const hasQuestion = !!(settings.question?.text || settings.question?.subtext);
+  const hasQuestion = hasContent(settings.question?.text || '') || hasContent(settings.question?.subtext || '');
   const questionPosition = settings.question?.position || 'above';
   const isQuestionHorizontal = questionPosition === 'left' || questionPosition === 'right';
 

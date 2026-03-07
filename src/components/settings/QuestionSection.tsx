@@ -4,9 +4,9 @@ import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { ColorPicker } from '@/components/shared/ColorPicker';
 import { SettingRow } from '@/components/shared/SettingRow';
+import { RichTextEditor } from '@/components/shared/RichTextEditor';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectTrigger,
@@ -14,7 +14,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import type { TextAlignment, TextStyling, QuestionPosition, QuestionSettings } from '@/types/chart';
+import type { TextAlignment, QuestionPosition, QuestionSettings, QuestionTextDefaults, QuestionAccentLine } from '@/types/chart';
 
 // ── Reusable TabMenu ──
 function TabMenu<T extends string>({ value, onChange, options }: {
@@ -60,15 +60,15 @@ const fontFamilyOptions = [
   'system-ui',
 ];
 
-function StylingPanel({ styling, onChange }: {
-  styling: TextStyling;
-  onChange: (updates: Partial<TextStyling>) => void;
+function DefaultsPanel({ defaults, onChange }: {
+  defaults: QuestionTextDefaults;
+  onChange: (updates: Partial<QuestionTextDefaults>) => void;
 }) {
   return (
     <div className="space-y-2 pl-2 border-l-2 border-gray-100">
       {/* Font Family (full width) */}
       <Select
-        value={styling.fontFamily}
+        value={defaults.fontFamily}
         onValueChange={(v) => onChange({ fontFamily: v })}
       >
         <SelectTrigger className="h-8 text-xs w-full">
@@ -83,20 +83,13 @@ function StylingPanel({ styling, onChange }: {
         </SelectContent>
       </Select>
 
-      {/* Color */}
-      <ColorPicker
-        label="Color"
-        value={styling.color}
-        onChange={(color) => onChange({ color })}
-      />
-
-      {/* Font size + Font weight + Line height — 3-column row */}
+      {/* Font size + Line height + Default color — 3-column row */}
       <div className="grid grid-cols-3 gap-1.5">
         <div>
           <label className="text-[10px] text-gray-400 mb-0.5 block">Size</label>
           <Input
             type="number"
-            value={styling.fontSize}
+            value={defaults.fontSize}
             onChange={(e) => onChange({ fontSize: parseInt(e.target.value) || 14 })}
             className="h-7 text-xs w-full"
             min={1}
@@ -104,30 +97,22 @@ function StylingPanel({ styling, onChange }: {
           />
         </div>
         <div>
-          <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
-          <Select
-            value={styling.fontWeight}
-            onValueChange={(v) => onChange({ fontWeight: v as 'normal' | 'bold' })}
-          >
-            <SelectTrigger className="h-7 text-xs w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-              <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
           <label className="text-[10px] text-gray-400 mb-0.5 block">Line H</label>
           <Input
             type="number"
-            value={styling.lineHeight}
+            value={defaults.lineHeight}
             onChange={(e) => onChange({ lineHeight: parseFloat(e.target.value) || 1.4 })}
             className="h-7 text-xs w-full"
             min={0.5}
             max={5}
             step={0.1}
+          />
+        </div>
+        <div>
+          <ColorPicker
+            label="Color"
+            value={defaults.color}
+            onChange={(color) => onChange({ color })}
           />
         </div>
       </div>
@@ -200,12 +185,16 @@ export function QuestionSection() {
     updateSettings('question', updates);
   };
 
-  const updateTextStyling = (updates: Partial<TextStyling>) => {
-    update({ textStyling: { ...settings.textStyling, ...updates } });
+  const updateTextDefaults = (updates: Partial<QuestionTextDefaults>) => {
+    update({ textDefaults: { ...settings.textDefaults, ...updates } });
   };
 
-  const updateSubtextStyling = (updates: Partial<TextStyling>) => {
-    update({ subtextStyling: { ...settings.subtextStyling, ...updates } });
+  const updateSubtextDefaults = (updates: Partial<QuestionTextDefaults>) => {
+    update({ subtextDefaults: { ...settings.subtextDefaults, ...updates } });
+  };
+
+  const updateAccentLine = (updates: Partial<QuestionAccentLine>) => {
+    update({ accentLine: { ...settings.accentLine, ...updates } });
   };
 
   return (
@@ -237,28 +226,84 @@ export function QuestionSection() {
         />
       </SettingRow>
 
-      {/* QUESTION TEXT */}
-      <SubHeader>Question Text</SubHeader>
-
-      <Textarea
-        value={settings.text}
-        onChange={(e) => update({ text: e.target.value })}
-        placeholder="Enter your question..."
-        className="text-xs min-h-[80px] resize-y"
-      />
-
-      <SettingRow label="Styling" variant="inline">
+      {/* ACCENT LINE */}
+      <SubHeader>Accent Line</SubHeader>
+      <SettingRow label="Show accent line" variant="inline">
         <Switch
-          checked={settings.showTextStyling}
-          onCheckedChange={(checked) => update({ showTextStyling: checked })}
+          checked={settings.accentLine?.show ?? false}
+          onCheckedChange={(checked) => updateAccentLine({ show: checked })}
         />
       </SettingRow>
 
-      {settings.showTextStyling && (
-        <StylingPanel styling={settings.textStyling} onChange={updateTextStyling} />
+      {settings.accentLine?.show && (
+        <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+          <ColorPicker
+            label="Color"
+            value={settings.accentLine.color}
+            onChange={(color) => updateAccentLine({ color })}
+          />
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+              <Input
+                type="number"
+                value={settings.accentLine.width}
+                onChange={(e) => updateAccentLine({ width: parseInt(e.target.value) || 4 })}
+                className="h-7 text-xs w-full"
+                min={1}
+                max={20}
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Radius</label>
+              <Input
+                type="number"
+                value={settings.accentLine.borderRadius}
+                onChange={(e) => updateAccentLine({ borderRadius: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={0}
+                max={20}
+              />
+            </div>
+          </div>
+          <SubHeader>Accent Padding</SubHeader>
+          <PaddingControls
+            top={settings.accentLine.paddingTop}
+            right={settings.accentLine.paddingRight}
+            bottom={settings.accentLine.paddingBottom}
+            left={settings.accentLine.paddingLeft}
+            onChange={(updates) => {
+              const u: Partial<QuestionAccentLine> = {};
+              if (updates.top !== undefined) u.paddingTop = updates.top;
+              if (updates.right !== undefined) u.paddingRight = updates.right;
+              if (updates.bottom !== undefined) u.paddingBottom = updates.bottom;
+              if (updates.left !== undefined) u.paddingLeft = updates.left;
+              updateAccentLine(u);
+            }}
+          />
+        </div>
       )}
 
-      {/* Padding */}
+      {/* QUESTION TEXT */}
+      <SubHeader>Question Text</SubHeader>
+
+      <RichTextEditor
+        value={settings.text}
+        onChange={(html) => update({ text: html })}
+        placeholder="Enter your question..."
+        minHeight="60px"
+        defaultColor={settings.textDefaults?.color || '#333333'}
+      />
+
+      <SettingRow label="Text Defaults" variant="inline">
+        <Switch
+          checked={true}
+          onCheckedChange={() => {}}
+        />
+      </SettingRow>
+      <DefaultsPanel defaults={settings.textDefaults} onChange={updateTextDefaults} />
+
+      {/* Question Padding */}
       <SubHeader>Question Padding</SubHeader>
       <PaddingControls
         top={settings.paddingTop}
@@ -278,23 +323,21 @@ export function QuestionSection() {
       {/* SUBTEXT */}
       <SubHeader>Subtext</SubHeader>
 
-      <Textarea
+      <RichTextEditor
         value={settings.subtext}
-        onChange={(e) => update({ subtext: e.target.value })}
+        onChange={(html) => update({ subtext: html })}
         placeholder="Enter subtext..."
-        className="text-xs min-h-[60px] resize-y"
+        minHeight="50px"
+        defaultColor={settings.subtextDefaults?.color || '#666666'}
       />
 
-      <SettingRow label="Styling" variant="inline">
+      <SettingRow label="Text Defaults" variant="inline">
         <Switch
-          checked={settings.showSubtextStyling}
-          onCheckedChange={(checked) => update({ showSubtextStyling: checked })}
+          checked={true}
+          onCheckedChange={() => {}}
         />
       </SettingRow>
-
-      {settings.showSubtextStyling && (
-        <StylingPanel styling={settings.subtextStyling} onChange={updateSubtextStyling} />
-      )}
+      <DefaultsPanel defaults={settings.subtextDefaults} onChange={updateSubtextDefaults} />
 
       {/* Subtext Padding */}
       <SubHeader>Subtext Padding</SubHeader>

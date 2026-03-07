@@ -262,8 +262,8 @@ export function YAxisSection() {
         </>
       )}
 
-      {/* TICKS & LABELS — identical layout to X axis */}
-      <SubHeader>Ticks &amp; Labels</SubHeader>
+      {/* LABELS — styling moved here */}
+      <SubHeader>Labels</SubHeader>
 
       {/* Tick position (3-tab) + Label padding — single row */}
       <div className="flex items-center gap-2">
@@ -291,32 +291,34 @@ export function YAxisSection() {
       </div>
 
       {/* Space mode (2-tab) + Label width — single row */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <TabMenu
-            value={settings.spaceMode}
-            onChange={(v) => update({ spaceMode: v as YAxisSpaceMode })}
-            options={[
-              { value: 'auto', label: 'Auto' },
-              { value: 'fixed', label: 'Fixed' },
-            ]}
-          />
-        </div>
-        {settings.spaceMode === 'fixed' && (
-          <div className="w-[72px] shrink-0">
-            <Input
-              type="number"
-              value={settings.spaceModeValue}
-              onChange={(e) => update({ spaceModeValue: parseInt(e.target.value) || 80 })}
-              className="h-8 text-xs w-full"
-              min={20}
-              max={400}
+      <SettingRow label="Space mode">
+        <div className="flex items-center gap-2 w-full">
+          <div className="flex-1">
+            <TabMenu
+              value={settings.spaceMode}
+              onChange={(v) => update({ spaceMode: v as YAxisSpaceMode })}
+              options={[
+                { value: 'auto', label: 'Auto' },
+                { value: 'fixed', label: 'Fixed' },
+              ]}
             />
           </div>
-        )}
-      </div>
+          {settings.spaceMode === 'fixed' && (
+            <div className="w-[72px] shrink-0">
+              <Input
+                type="number"
+                value={settings.spaceModeValue}
+                onChange={(e) => update({ spaceModeValue: parseInt(e.target.value) || 80 })}
+                className="h-8 text-xs w-full"
+                min={20}
+                max={400}
+              />
+            </div>
+          )}
+        </div>
+      </SettingRow>
 
-      {/* Styling toggle */}
+      {/* Styling toggle — under Labels */}
       <SettingRow label="Styling" variant="inline">
         <Switch
           checked={settings.showTickStyling}

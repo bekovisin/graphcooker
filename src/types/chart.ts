@@ -341,13 +341,29 @@ export interface AccessibilitySettings {
 // Question
 export type QuestionPosition = 'above' | 'below' | 'left' | 'right';
 
+export interface QuestionAccentLine {
+  show: boolean;
+  width: number;
+  color: string;
+  borderRadius: number;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+}
+
+export interface QuestionTextDefaults {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  lineHeight: number;
+}
+
 export interface QuestionSettings {
-  text: string;
-  textStyling: TextStyling;
-  showTextStyling: boolean;
-  subtext: string;
-  subtextStyling: TextStyling;
-  showSubtextStyling: boolean;
+  text: string; // HTML from rich text editor
+  textDefaults: QuestionTextDefaults;
+  subtext: string; // HTML from rich text editor
+  subtextDefaults: QuestionTextDefaults;
   position: QuestionPosition;
   alignment: TextAlignment;
   paddingTop: number;
@@ -358,6 +374,12 @@ export interface QuestionSettings {
   subtextPaddingRight: number;
   subtextPaddingBottom: number;
   subtextPaddingLeft: number;
+  accentLine: QuestionAccentLine;
+  // Legacy fields kept for backward compatibility with deepMerge
+  textStyling?: TextStyling;
+  showTextStyling?: boolean;
+  subtextStyling?: TextStyling;
+  showSubtextStyling?: boolean;
 }
 
 // ===== MASTER SETTINGS OBJECT =====
