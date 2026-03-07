@@ -92,6 +92,12 @@ export interface LabelsSettings {
   dataPointPaddingRight: number;
   dataPointPaddingBottom: number;
   dataPointPaddingLeft: number;
+  outsideLabelPadding: number;
+  showPercentPrefix: boolean;
+  percentPrefixFontSize: number;
+  percentPrefixFontWeight: FontWeight;
+  percentPrefixColor: string;
+  percentPrefixPadding: number;
   stackLabelMode: StackLabelMode;
 }
 
@@ -160,6 +166,8 @@ export interface XAxisSettings {
   tickMarks: TickMarksSettings;
   axisLine: AxisLineSettings;
   zeroLine: AxisLineSettings;
+  zeroLineExtendTop: number;
+  zeroLineExtendBottom: number;
   gridlines: boolean;
   showZeroGridline: boolean;
   gridlineStyling: { color: string; width: number; dashArray: number };

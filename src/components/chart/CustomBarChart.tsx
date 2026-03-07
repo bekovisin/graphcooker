@@ -693,9 +693,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
         {hasZeroInRange && settings.xAxis.zeroLine?.show === true && zeroX >= 0 && zeroX <= plotWidth && (
           <line
             x1={padding.left + zeroX}
-            y1={chartTop}
+            y1={chartTop - (settings.xAxis.zeroLineExtendTop || 0)}
             x2={padding.left + zeroX}
-            y2={chartTop + totalBarsHeight}
+            y2={chartTop + totalBarsHeight + (settings.xAxis.zeroLineExtendBottom || 0)}
             stroke={settings.xAxis.zeroLine?.color || '#666666'}
             strokeWidth={settings.xAxis.zeroLine?.width || 1}
           />

@@ -404,20 +404,36 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
   const yAxisTitleWidth = settings.yAxis.titleType === 'custom' && settings.yAxis.titleText ? settings.yAxis.titleStyling.fontSize + 10 : 0;
   const tickPadding = settings.yAxis.tickPadding || 0;
 
+  // Compute the max width of outside-right labels so padding is tight (no excess space)
+  const outsideRightLabelWidth = useMemo(() => {
+    if (!settings.labels.showDataPointLabels || settings.labels.dataPointPosition !== 'outside_right') return 0;
+    const fs = settings.labels.dataPointFontSize;
+    const ff = settings.labels.dataPointFontFamily;
+    const fw = String(fontWeightToCSS(settings.labels.dataPointFontWeight));
+    const pad = settings.labels.outsideLabelPadding ?? 6;
+    let maxW = 0;
+    for (const s of series) {
+      for (let ci = 0; ci < categories.length; ci++) {
+        const v = s.data[ci];
+        if (v === 0) continue;
+        let text = formatNumber(v, settings.numberFormatting);
+        if (settings.labels.showPercentPrefix) text += '%';
+        const w = measureTextWidth(text, fs, ff, fw);
+        if (w > maxW) maxW = w;
+      }
+    }
+    return maxW + pad + 4;
+  }, [series, categories, settings.labels.showDataPointLabels, settings.labels.dataPointPosition, settings.labels.dataPointFontSize, settings.labels.dataPointFontFamily, settings.labels.dataPointFontWeight, settings.labels.outsideLabelPadding, settings.labels.showPercentPrefix, settings.numberFormatting]);
+
   const padding = useMemo(() => {
     const yLabelSpace = yAxisLabelWidth + tickPadding + yAxisTitleWidth;
-    // Reserve space for outside_right data-point labels so they don't get clipped
-    const outsideRightPad =
-      settings.labels.showDataPointLabels && settings.labels.dataPointPosition === 'outside_right'
-        ? Math.max(settings.labels.dataPointFontSize * 3.5, 40)
-        : 0;
     return {
       top: settings.layout.paddingTop + (xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
-      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.right + outsideRightPad,
+      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.right + outsideRightLabelWidth,
       bottom: settings.layout.paddingBottom + (!xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
       left: settings.layout.paddingLeft + (!yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.left,
     };
-  }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, xTickEdgePadding, settings.labels.showDataPointLabels, settings.labels.dataPointPosition, settings.labels.dataPointFontSize]);
+  }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, xTickEdgePadding, outsideRightLabelWidth]);
 
   // Early legend height calculation (needed for 'above' positioning)
   const legendIsOverlay = settings.legend.position === 'overlay';
@@ -708,9 +724,9 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
         {hasZeroInRange && settings.xAxis.zeroLine?.show === true && zeroX >= 0 && zeroX <= plotWidth && (
           <line
             x1={padding.left + zeroX}
-            y1={chartTop}
+            y1={chartTop - (settings.xAxis.zeroLineExtendTop || 0)}
             x2={padding.left + zeroX}
-            y2={chartTop + totalBarsHeight}
+            y2={chartTop + totalBarsHeight + (settings.xAxis.zeroLineExtendBottom || 0)}
             stroke={settings.xAxis.zeroLine?.color || '#666666'}
             strokeWidth={settings.xAxis.zeroLine?.width || 1}
           />
@@ -895,7 +911,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                 labelX = padding.left + barX + renderedW - 4;
                 anchor = 'end';
               } else if (labelPos === 'outside_right') {
-                labelX = padding.left + barX + renderedW + 6;
+                labelX = padding.left + barX + renderedW + (settings.labels.outsideLabelPadding ?? 6);
                 anchor = 'start';
               } else {
                 labelX = padding.left + barX + renderedW / 2;
@@ -914,6 +930,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                 ? settings.labels.dataPointPaddingTop - settings.labels.dataPointPaddingBottom
                 : 0;
 
+              const showPercent = settings.labels.showPercentPrefix;
               labelElements.push(
                 <text
                   key={`label-${ci}-${si}`}
@@ -931,6 +948,16 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                   }}
                 >
                   {labelText}
+                  {showPercent && (
+                    <tspan
+                      dx={settings.labels.percentPrefixPadding ?? 0}
+                      style={{
+                        fontSize: settings.labels.percentPrefixFontSize ?? settings.labels.dataPointFontSize,
+                        fontWeight: fontWeightToCSS(settings.labels.percentPrefixFontWeight ?? 'normal'),
+                        fill: settings.labels.percentPrefixColor ?? labelColor,
+                      }}
+                    >%</tspan>
+                  )}
                 </text>
               );
             }

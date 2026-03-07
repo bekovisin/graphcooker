@@ -677,24 +677,46 @@ export function XAxisSection() {
       </SettingRow>
 
       {settings.zeroLine?.show !== false && (
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
-            <Input
-              type="number"
-              value={settings.zeroLine?.width || 1}
-              onChange={(e) => updateZeroLine({ width: parseFloat(e.target.value) || 1 })}
-              className="h-7 text-xs w-full"
-              min={0.5}
-              max={5}
-              step={0.5}
-            />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+              <Input
+                type="number"
+                value={settings.zeroLine?.width || 1}
+                onChange={(e) => updateZeroLine({ width: parseFloat(e.target.value) || 1 })}
+                className="h-7 text-xs w-full"
+                min={0.5}
+                max={5}
+                step={0.5}
+              />
+            </div>
+            <div className="shrink-0">
+              <ColorPicker
+                label="Color"
+                value={settings.zeroLine?.color || '#666666'}
+                onChange={(color) => updateZeroLine({ color })}
+              />
+            </div>
           </div>
-          <div className="shrink-0">
-            <ColorPicker
-              label="Color"
-              value={settings.zeroLine?.color || '#666666'}
-              onChange={(color) => updateZeroLine({ color })}
+          <div className="grid grid-cols-2 gap-1.5">
+            <NumberInput
+              label="Extend top"
+              value={settings.zeroLineExtendTop || 0}
+              onChange={(v) => update({ zeroLineExtendTop: v })}
+              min={-50}
+              max={100}
+              step={1}
+              suffix="px"
+            />
+            <NumberInput
+              label="Extend bottom"
+              value={settings.zeroLineExtendBottom || 0}
+              onChange={(v) => update({ zeroLineExtendBottom: v })}
+              min={-50}
+              max={100}
+              step={1}
+              suffix="px"
             />
           </div>
         </div>

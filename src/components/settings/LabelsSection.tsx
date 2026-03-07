@@ -13,6 +13,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import type {
   BarLabelStyle,
   DataPointLabelPosition,
@@ -221,6 +222,19 @@ export function LabelsSection() {
             </div>
           )}
 
+          {/* Outside label padding (distance from bar) */}
+          {settings.dataPointPosition === 'outside_right' && (
+            <NumberInput
+              label="Outside label padding"
+              value={settings.outsideLabelPadding ?? 6}
+              onChange={(v) => update({ outsideLabelPadding: v })}
+              min={-50}
+              max={100}
+              step={1}
+              suffix="px"
+            />
+          )}
+
           <SettingRow label="Font family">
             <Select
               value={settings.dataPointFontFamily}
@@ -242,7 +256,7 @@ export function LabelsSection() {
           {/* Font weight + Font style + Font size - single row */}
           <div className="space-y-1.5">
             <span className="text-xs text-gray-600 font-medium">Font styling</span>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5 items-end">
               {/* Font weight */}
               <Select
                 value={settings.dataPointFontWeight}
@@ -252,9 +266,13 @@ export function LabelsSection() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                  <SelectItem value="300" className="text-xs">Light</SelectItem>
                   <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
                   <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
                   <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                  <SelectItem value="900" className="text-xs">Black</SelectItem>
                 </SelectContent>
               </Select>
               {/* Font style */}
@@ -271,15 +289,21 @@ export function LabelsSection() {
                 </SelectContent>
               </Select>
               {/* Font size */}
-              <NumberInput
-                label=""
-                value={settings.dataPointFontSize}
-                onChange={(v) => update({ dataPointFontSize: v })}
-                min={6}
-                max={48}
-                step={1}
-                suffix="px"
-              />
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  value={settings.dataPointFontSize}
+                  onChange={(e) => {
+                    const num = parseFloat(e.target.value);
+                    if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(48, num)) });
+                  }}
+                  min={6}
+                  max={48}
+                  step={1}
+                  className="h-8 text-xs w-full"
+                />
+                <span className="text-xs text-gray-400 shrink-0">px</span>
+              </div>
             </div>
           </div>
 
@@ -326,6 +350,69 @@ export function LabelsSection() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* PERCENT PREFIX */}
+          <SettingRow label="Show % prefix" variant="inline">
+            <Switch
+              checked={settings.showPercentPrefix ?? false}
+              onCheckedChange={(checked) => update({ showPercentPrefix: checked })}
+            />
+          </SettingRow>
+
+          {settings.showPercentPrefix && (
+            <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+              <div className="space-y-1.5">
+                <span className="text-xs text-gray-600 font-medium">% styling</span>
+                <div className="grid grid-cols-3 gap-1.5 items-end">
+                  <Select
+                    value={settings.percentPrefixFontWeight ?? 'normal'}
+                    onValueChange={(v) => update({ percentPrefixFontWeight: v as FontWeight })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                      <SelectItem value="300" className="text-xs">Light</SelectItem>
+                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                      <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                      <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                      <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                      <SelectItem value="900" className="text-xs">Black</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={settings.percentPrefixFontSize ?? 12}
+                      onChange={(e) => {
+                        const num = parseFloat(e.target.value);
+                        if (!isNaN(num)) update({ percentPrefixFontSize: Math.max(6, Math.min(48, num)) });
+                      }}
+                      min={6}
+                      max={48}
+                      step={1}
+                      className="h-8 text-xs w-full"
+                    />
+                    <span className="text-xs text-gray-400 shrink-0">px</span>
+                  </div>
+                  <ColorPicker
+                    value={settings.percentPrefixColor ?? '#333333'}
+                    onChange={(color) => update({ percentPrefixColor: color })}
+                  />
+                </div>
+              </div>
+              <NumberInput
+                label="% padding"
+                value={settings.percentPrefixPadding ?? 0}
+                onChange={(v) => update({ percentPrefixPadding: v })}
+                min={-20}
+                max={50}
+                step={1}
+                suffix="px"
+              />
             </div>
           )}
         </div>
