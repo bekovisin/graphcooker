@@ -225,7 +225,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
       name: (seriesNamesProp && seriesNamesProp[key]) || key,
       data: data.map((row) => {
         const val = row[key];
-        return typeof val === 'number' ? val : parseFloat(String(val)) || 0;
+        return typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.')) || 0;
       }),
       color: colors[i],
     }));
@@ -970,7 +970,8 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
               if (showPercent) {
                 const labelW = measureTextWidth(labelText, settings.labels.dataPointFontSize, settings.labels.dataPointFontFamily, String(fontWeightToCSS(settings.labels.dataPointFontWeight)));
                 const prefixText = '%';
-                const prefixW = measureTextWidth(prefixText, prefixStyle.fontSize as number, settings.labels.dataPointFontFamily, String(prefixStyle.fontWeight));
+                const prefixFs = prefixStyle.fontSize as number;
+                const prefixW = measureTextWidth(prefixText, prefixFs, settings.labels.dataPointFontFamily, String(prefixStyle.fontWeight));
                 let prefixX: number;
 
                 if (prefixPos === 'left') {
@@ -991,12 +992,27 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                   }
                 }
 
+                // Vertical alignment: bottom (baseline-align with label), center, or top
+                const labelFontSize = settings.labels.dataPointFontSize;
+                const vAlign = settings.labels.percentPrefixVerticalAlign ?? 'bottom';
+                let prefixDy: string;
+                if (vAlign === 'center') {
+                  prefixDy = '0.35em';
+                } else if (vAlign === 'top') {
+                  const sizeDiff = labelFontSize - prefixFs;
+                  prefixDy = `${0.35 - sizeDiff / (2 * prefixFs)}em`;
+                } else {
+                  // bottom: align prefix baseline with label baseline
+                  const sizeDiff = labelFontSize - prefixFs;
+                  prefixDy = `${0.35 + sizeDiff / (2 * prefixFs)}em`;
+                }
+
                 labelElements.push(
                   <text
                     key={`prefix-${ci}-${si}`}
                     x={prefixX}
                     y={groupedBarY + actualBarH / 2 + offsetY}
-                    dy="0.35em"
+                    dy={prefixDy}
                     textAnchor="start"
                     style={{
                       ...prefixStyle,
@@ -1077,7 +1093,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                   x={labelX}
                   y={startY + lineHeight * li + lineHeight / 2}
                   textAnchor={anchor}
-                  dominantBaseline="central"
+                  dy="0.35em"
                   style={{
                     fontSize: yTickStyle.fontSize,
                     fontFamily: yTickStyle.fontFamily,
@@ -1100,7 +1116,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                   x={labelX}
                   y={barY + barHeight / 2}
                   textAnchor={anchor}
-                  dominantBaseline="central"
+                  dy="0.35em"
                   style={{
                     fontSize: yTickStyle.fontSize,
                     fontFamily: yTickStyle.fontFamily,

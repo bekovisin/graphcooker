@@ -99,6 +99,7 @@ export interface LabelsSettings {
   percentPrefixColor: string;
   percentPrefixPadding: number;
   percentPrefixPosition: 'left' | 'right';
+  percentPrefixVerticalAlign: 'bottom' | 'center' | 'top';
   stackLabelMode: StackLabelMode;
 }
 

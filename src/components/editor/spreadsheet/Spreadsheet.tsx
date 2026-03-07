@@ -182,7 +182,11 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     (row: number, col: number, value: string) => {
       pushHistory();
       const colName = columnOrder[col];
-      const num = Number(value);
+      // Try parsing as number; fall back to comma→dot for locales using comma as decimal
+      let num = Number(value);
+      if (isNaN(num) && value.includes(',')) {
+        num = Number(value.replace(',', '.'));
+      }
       const parsedValue = value !== '' && !isNaN(num) ? num : value;
       updateCell(row, colName, parsedValue);
       selection.stopEditing();
@@ -503,9 +507,9 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
   // Column auto-fit
   const handleColumnDoubleClickResize = useCallback(
     (colIndex: number) => {
-      resize.autoFitColumn(colIndex, data, columnOrder);
+      resize.resetColumnWidth(colIndex);
     },
-    [resize, data, columnOrder]
+    [resize]
   );
 
   return (

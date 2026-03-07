@@ -222,7 +222,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
       name: (seriesNamesProp && seriesNamesProp[key]) || key,
       data: data.map((row) => {
         const val = row[key];
-        return typeof val === 'number' ? val : parseFloat(String(val)) || 0;
+        return typeof val === 'number' ? val : parseFloat(String(val).replace(',', '.')) || 0;
       }),
       color: colors[i],
     }));
@@ -902,16 +902,19 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                 fill: prefixColor,
               };
 
+              const labelFontSize = settings.labels.dataPointFontSize;
+              const labelCenterY = barY + actualBarH / 2 + offsetY;
+
               // Render label text (without prefix)
               labelElements.push(
                 <text
                   key={`label-${ci}-${si}`}
                   x={labelX + offsetX}
-                  y={barY + actualBarH / 2 + offsetY}
+                  y={labelCenterY}
                   dy="0.35em"
                   textAnchor={anchor}
                   style={{
-                    fontSize: settings.labels.dataPointFontSize,
+                    fontSize: labelFontSize,
                     fontFamily: settings.labels.dataPointFontFamily,
                     fontWeight: fontWeightToCSS(settings.labels.dataPointFontWeight),
                     fontStyle: settings.labels.dataPointFontStyle || 'normal',
@@ -925,13 +928,13 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
               // Render prefix as separate text element for independent positioning
               if (showPercent) {
-                const labelW = measureTextWidth(labelText, settings.labels.dataPointFontSize, settings.labels.dataPointFontFamily, String(fontWeightToCSS(settings.labels.dataPointFontWeight)));
+                const labelW = measureTextWidth(labelText, labelFontSize, settings.labels.dataPointFontFamily, String(fontWeightToCSS(settings.labels.dataPointFontWeight)));
                 const prefixText = '%';
-                const prefixW = measureTextWidth(prefixText, prefixStyle.fontSize as number, settings.labels.dataPointFontFamily, String(prefixStyle.fontWeight));
+                const prefixFs = prefixStyle.fontSize as number;
+                const prefixW = measureTextWidth(prefixText, prefixFs, settings.labels.dataPointFontFamily, String(prefixStyle.fontWeight));
                 let prefixX: number;
 
                 if (prefixPos === 'left') {
-                  // Position prefix before the label with padding gap
                   if (anchor === 'start') {
                     prefixX = labelX + offsetX - prefixPad - prefixW;
                   } else if (anchor === 'end') {
@@ -940,7 +943,6 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                     prefixX = labelX + offsetX - labelW / 2 - prefixPad - prefixW;
                   }
                 } else {
-                  // Position prefix after the label with padding gap
                   if (anchor === 'start') {
                     prefixX = labelX + offsetX + labelW + prefixPad;
                   } else if (anchor === 'end') {
@@ -950,12 +952,27 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                   }
                 }
 
+                // Vertical alignment: bottom (baseline-align with label), center, or top
+                const vAlign = settings.labels.percentPrefixVerticalAlign ?? 'bottom';
+                let prefixDy: string;
+                if (vAlign === 'center') {
+                  prefixDy = '0.35em';
+                } else if (vAlign === 'top') {
+                  // Align prefix top with label top
+                  const sizeDiff = labelFontSize - prefixFs;
+                  prefixDy = `${0.35 - sizeDiff / (2 * prefixFs)}em`;
+                } else {
+                  // bottom: align prefix baseline with label baseline
+                  const sizeDiff = labelFontSize - prefixFs;
+                  prefixDy = `${0.35 + sizeDiff / (2 * prefixFs)}em`;
+                }
+
                 labelElements.push(
                   <text
                     key={`prefix-${ci}-${si}`}
                     x={prefixX}
-                    y={barY + actualBarH / 2 + offsetY}
-                    dy="0.35em"
+                    y={labelCenterY}
+                    dy={prefixDy}
                     textAnchor="start"
                     style={{
                       ...prefixStyle,
@@ -1036,8 +1053,8 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                   key={`ylabel-${ci}-${li}`}
                   x={labelX}
                   y={startY + lineHeight * li + lineHeight / 2}
+                  dy="0.35em"
                   textAnchor={anchor}
-                  dominantBaseline="central"
                   style={{
                     fontSize: yTickStyle.fontSize,
                     fontFamily: yTickStyle.fontFamily,
@@ -1059,8 +1076,8 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                 <text
                   x={labelX}
                   y={barY + barHeight / 2}
+                  dy="0.35em"
                   textAnchor={anchor}
-                  dominantBaseline="central"
                   style={{
                     fontSize: yTickStyle.fontSize,
                     fontFamily: yTickStyle.fontFamily,

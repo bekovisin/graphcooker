@@ -139,8 +139,11 @@ export function useSpreadsheetClipboard({
           if (targetRow < newData.length && targetCol < newColumnOrder.length) {
             const colName = newColumnOrder[targetCol];
             const val = dataRows[r][c];
-            // Try to parse as number
-            const num = Number(val);
+            // Try to parse as number; fall back to comma→dot for decimal separator
+            let num = Number(val);
+            if (isNaN(num) && val.includes(',')) {
+              num = Number(val.replace(',', '.'));
+            }
             newData[targetRow][colName] = val !== '' && !isNaN(num) ? num : val;
           }
         }

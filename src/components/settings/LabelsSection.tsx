@@ -415,6 +415,18 @@ export function LabelsSection() {
                   />
                 </div>
               </div>
+              {/* Prefix vertical alignment */}
+              <SettingRow label="Vertical align">
+                <TabMenu
+                  value={settings.percentPrefixVerticalAlign ?? 'bottom'}
+                  onChange={(v) => update({ percentPrefixVerticalAlign: v as 'bottom' | 'center' | 'top' })}
+                  options={[
+                    { value: 'bottom', label: 'Bottom' },
+                    { value: 'center', label: 'Center' },
+                    { value: 'top', label: 'Top' },
+                  ]}
+                />
+              </SettingRow>
               <NumberInput
                 label="% padding"
                 value={settings.percentPrefixPadding ?? 0}

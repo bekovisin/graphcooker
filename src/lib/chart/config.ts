@@ -68,6 +68,7 @@ export const defaultChartSettings: ChartSettings = {
     percentPrefixColor: '#333333',
     percentPrefixPadding: 0,
     percentPrefixPosition: 'right',
+    percentPrefixVerticalAlign: 'bottom',
     stackLabelMode: 'none',
   },
   xAxis: {
