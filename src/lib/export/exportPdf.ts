@@ -34,6 +34,9 @@ async function svgToVectorPdf(
   clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 
+  // Ensure overflow is hidden so content beyond the viewBox is clipped
+  clonedSvg.setAttribute('overflow', 'hidden');
+
   const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
   const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
   const targetW = options?.width || svgWidth;
@@ -48,11 +51,29 @@ async function svgToVectorPdf(
 
   // Handle transparent background
   if (options?.transparent) {
-    const bgRect = clonedSvg.querySelector('rect:first-child');
-    if (bgRect) {
-      bgRect.setAttribute('fill', 'none');
-      bgRect.setAttribute('fill-opacity', '0');
-      bgRect.removeAttribute('opacity');
+    const clearBgRect = (rect: Element) => {
+      rect.setAttribute('fill', 'none');
+      rect.setAttribute('fill-opacity', '0');
+      rect.removeAttribute('opacity');
+    };
+
+    // Direct children of <svg>
+    clonedSvg.querySelectorAll(':scope > rect').forEach(clearBgRect);
+
+    // First rect(s) inside the chart wrapper <g>
+    const gWrap = clonedSvg.querySelector('g[transform]');
+    if (gWrap) {
+      for (const child of Array.from(gWrap.children)) {
+        if (child.tagName !== 'rect') break;
+        const rx = parseFloat(child.getAttribute('x') || '0');
+        const ry = parseFloat(child.getAttribute('y') || '0');
+        const rw = parseFloat(child.getAttribute('width') || '0');
+        if (rx === 0 && ry === 0 && rw >= svgWidth * 0.9) {
+          clearBgRect(child);
+        } else {
+          break;
+        }
+      }
     }
   }
 

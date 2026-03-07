@@ -17,14 +17,36 @@ export async function exportSvg(
     clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 
+    // Ensure overflow is hidden so content beyond the viewBox is clipped
+    clonedSvg.setAttribute('overflow', 'hidden');
+
     // If transparent requested, remove all background rects (layout bg + plot bg)
     if (options?.transparent) {
-      const bgRects = clonedSvg.querySelectorAll(':scope > rect');
-      bgRects.forEach((rect) => {
+      const clearBgRect = (rect: Element) => {
         rect.setAttribute('fill', 'none');
         rect.setAttribute('fill-opacity', '0');
         rect.removeAttribute('opacity');
-      });
+      };
+
+      // Direct children of <svg>
+      clonedSvg.querySelectorAll(':scope > rect').forEach(clearBgRect);
+
+      // First rect(s) inside the chart wrapper <g>
+      const gWrap = clonedSvg.querySelector('g[transform]');
+      if (gWrap) {
+        for (const child of Array.from(gWrap.children)) {
+          if (child.tagName !== 'rect') break;
+          const rx = parseFloat(child.getAttribute('x') || '0');
+          const ry = parseFloat(child.getAttribute('y') || '0');
+          const rw = parseFloat(child.getAttribute('width') || '0');
+          const svgW = parseFloat(clonedSvg.getAttribute('width') || '800');
+          if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
+            clearBgRect(child);
+          } else {
+            break;
+          }
+        }
+      }
     }
 
     // Apply custom dimensions if provided

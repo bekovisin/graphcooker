@@ -431,6 +431,15 @@ export async function renderChartOffscreen(
   `;
   wrapper.appendChild(container);
 
+  // When transparent, force all backgrounds off so the chart renders without any bg rects
+  const renderSettings = options.transparent
+    ? {
+        ...settings,
+        layout: { ...settings.layout, backgroundColor: 'transparent', backgroundOpacity: 0 },
+        plotBackground: { ...settings.plotBackground, backgroundColor: 'transparent', backgroundOpacity: 0 },
+      }
+    : settings;
+
   // Render CustomBarChart via React
   const React = await import('react');
   const { createRoot } = await import('react-dom/client');
@@ -441,7 +450,7 @@ export async function renderChartOffscreen(
     React.createElement(CustomBarChart, {
       data,
       columnMapping,
-      settings,
+      settings: renderSettings,
       width: width > 0 ? width : 800,
       height: chartHeight > 0 ? chartHeight : undefined,
       columnOrder,
@@ -453,6 +462,13 @@ export async function renderChartOffscreen(
 
   // ── Inject header / question / footer into the SVG ──
   const svgEl = container.querySelector('svg');
+
+  // Explicitly set overflow hidden so serialised SVG clips content outside
+  // the viewport (e.g. x-axis ticks that extend beyond the chart area).
+  if (svgEl) {
+    svgEl.setAttribute('overflow', 'hidden');
+  }
+
   if (svgEl && (topExtra > 0 || bottomExtra > 0)) {
     const svgW = parseFloat(svgEl.getAttribute('width') || String(width));
     const svgH = parseFloat(svgEl.getAttribute('height') || String(chartHeight));
@@ -468,6 +484,16 @@ export async function renderChartOffscreen(
     gWrap.setAttribute('transform', `translate(0, ${topExtra})`);
     while (svgEl.firstChild) gWrap.appendChild(svgEl.firstChild);
     svgEl.appendChild(gWrap);
+
+    // Clip the chart group so nothing spills outside its allocated rectangle
+    const clipId = 'chart-clip-' + Date.now();
+    const clipPath = document.createElementNS(NS, 'clipPath');
+    clipPath.setAttribute('id', clipId);
+    clipPath.appendChild(createSvgRect(0, 0, svgW, svgH, 'black'));
+    const defs = document.createElementNS(NS, 'defs');
+    defs.appendChild(clipPath);
+    svgEl.insertBefore(defs, svgEl.firstChild);
+    gWrap.setAttribute('clip-path', `url(#${clipId})`);
 
     // Add background rect at full size (behind everything)
     if (!options.transparent) {
@@ -501,6 +527,41 @@ export async function renderChartOffscreen(
     }
 
     svgEl.insertBefore(overlayG, gWrap);
+  }
+
+  // When transparent, ensure no background rects remain anywhere in the SVG.
+  // The renderSettings already forces transparent bg on the React chart, but
+  // as a safety net we also clear any full-size rects at the root or in the
+  // first-level wrapper group (these are layout/plot backgrounds, not data bars).
+  if (svgEl && options.transparent) {
+    const svgW = parseFloat(svgEl.getAttribute('width') || String(width));
+
+    const clearBackgroundRect = (rect: Element) => {
+      rect.setAttribute('fill', 'none');
+      rect.setAttribute('fill-opacity', '0');
+      rect.removeAttribute('opacity');
+    };
+
+    // Clear any direct-child rects of the SVG root
+    svgEl.querySelectorAll(':scope > rect').forEach(clearBackgroundRect);
+
+    // Clear full-size rects at the top of the chart wrapper group (bg rects
+    // are always the first children at x=0/y=0 covering the chart area)
+    const gWrap = svgEl.querySelector('g[transform]');
+    if (gWrap) {
+      for (const child of Array.from(gWrap.children)) {
+        if (child.tagName !== 'rect') break; // stop at first non-rect
+        const rx = parseFloat(child.getAttribute('x') || '0');
+        const ry = parseFloat(child.getAttribute('y') || '0');
+        const rw = parseFloat(child.getAttribute('width') || '0');
+        // Only clear if it's a full-width background rect (not a data bar)
+        if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
+          clearBackgroundRect(child);
+        } else {
+          break; // stop once we pass the background rects
+        }
+      }
+    }
   }
 
   const cleanup = () => {
