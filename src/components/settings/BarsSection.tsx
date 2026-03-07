@@ -9,6 +9,14 @@ import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select';
+import type { EmptyRowLineStyle } from '@/types/chart';
 
 interface SliderWithInputProps {
   label: string;
@@ -118,6 +126,59 @@ export function BarsSection() {
         step={1}
         suffix="px"
       />
+
+      {/* Empty row separator line */}
+      <SettingRow label="Empty row line" variant="inline">
+        <Switch
+          checked={settings.emptyRowLine?.show ?? false}
+          onCheckedChange={(checked) => update({ emptyRowLine: { ...(settings.emptyRowLine || { show: false, color: '#cccccc', width: 1, style: 'solid' as EmptyRowLineStyle, dashLength: 4 }), show: checked } })}
+        />
+      </SettingRow>
+
+      {settings.emptyRowLine?.show && (
+        <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+          <ColorPicker
+            label="Line color"
+            value={settings.emptyRowLine.color}
+            onChange={(color) => update({ emptyRowLine: { ...settings.emptyRowLine, color } })}
+          />
+          <NumberInput
+            label="Line width"
+            value={settings.emptyRowLine.width}
+            onChange={(v) => update({ emptyRowLine: { ...settings.emptyRowLine, width: v } })}
+            min={0.5}
+            max={5}
+            step={0.5}
+            suffix="px"
+          />
+          <SettingRow label="Line style">
+            <Select
+              value={settings.emptyRowLine.style}
+              onValueChange={(v) => update({ emptyRowLine: { ...settings.emptyRowLine, style: v as EmptyRowLineStyle } })}
+            >
+              <SelectTrigger className="h-8 text-xs w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="solid" className="text-xs">Solid</SelectItem>
+                <SelectItem value="dashed" className="text-xs">Dashed</SelectItem>
+                <SelectItem value="dotted" className="text-xs">Dotted</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+          {settings.emptyRowLine.style === 'dashed' && (
+            <NumberInput
+              label="Dash length"
+              value={settings.emptyRowLine.dashLength}
+              onChange={(v) => update({ emptyRowLine: { ...settings.emptyRowLine, dashLength: v } })}
+              min={1}
+              max={20}
+              step={1}
+              suffix="px"
+            />
+          )}
+        </div>
+      )}
 
       {/* Bar Opacity */}
       <SliderWithInput

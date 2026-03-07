@@ -589,10 +589,34 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
           />
         )}
 
+        {/* ── Empty row separator lines ── */}
+        {settings.bars.emptyRowLine.show && categories.map((_, ci) => {
+          if (!isEmptyCategory[ci]) return null;
+          const lineY = chartTop + catYOffsets[ci] + emptyRowSpacing / 2;
+          const lineStyle = settings.bars.emptyRowLine.style;
+          const lineDash = lineStyle === 'dashed'
+            ? `${settings.bars.emptyRowLine.dashLength} ${settings.bars.emptyRowLine.dashLength}`
+            : lineStyle === 'dotted'
+              ? `${settings.bars.emptyRowLine.width} ${settings.bars.emptyRowLine.width * 2}`
+              : undefined;
+          return (
+            <line
+              key={`empty-line-${ci}`}
+              x1={padding.left}
+              y1={lineY}
+              x2={padding.left + plotWidth}
+              y2={lineY}
+              stroke={settings.bars.emptyRowLine.color}
+              strokeWidth={settings.bars.emptyRowLine.width}
+              strokeDasharray={lineDash}
+            />
+          );
+        })}
+
         {/* ── Gridlines ── */}
         {settings.xAxis.gridlines && xTicksAll.map((tick) => {
-          // Skip the zero-position gridline only when zero line is explicitly shown
-          if (tick === 0 && hasZeroInRange && settings.xAxis.zeroLine?.show === true) return null;
+          // Skip the zero-position gridline based on showZeroGridline toggle (independent of zero line)
+          if (tick === 0 && hasZeroInRange && settings.xAxis.showZeroGridline === false) return null;
           const x = padding.left + xScale(tick);
           return (
             <line

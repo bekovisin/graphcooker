@@ -620,6 +620,15 @@ export function XAxisSection() {
         )}
       </div>
 
+      {settings.gridlines && (
+        <SettingRow label="Zero gridline" variant="inline">
+          <Switch
+            checked={settings.showZeroGridline !== false}
+            onCheckedChange={(checked) => update({ showZeroGridline: checked })}
+          />
+        </SettingRow>
+      )}
+
       {settings.gridlines && settings.showGridlineStyling && (
         <div className="flex items-center gap-1.5">
           <div className="flex-1">

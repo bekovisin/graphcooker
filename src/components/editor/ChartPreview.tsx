@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { ResponsiveToolbar } from './ResponsiveToolbar';
 import { CustomBarChart } from '@/components/chart/CustomBarChart';
+import type { QuestionSettings } from '@/types/chart';
 
 const deviceWidths: Record<string, string> = {
   desktop: '100%',
@@ -11,6 +12,51 @@ const deviceWidths: Record<string, string> = {
   mobile: '375px',
   fullscreen: '100%',
 };
+
+function QuestionBlock({ question }: { question: QuestionSettings }) {
+  if (!question.text && !question.subtext) return null;
+
+  return (
+    <div style={{ textAlign: question.alignment }}>
+      {question.text && (
+        <div
+          style={{
+            fontFamily: question.textStyling.fontFamily,
+            fontSize: question.textStyling.fontSize,
+            fontWeight: question.textStyling.fontWeight === 'bold' ? 700 : 400,
+            color: question.textStyling.color,
+            lineHeight: question.textStyling.lineHeight,
+            paddingTop: question.paddingTop,
+            paddingRight: question.paddingRight,
+            paddingBottom: question.paddingBottom,
+            paddingLeft: question.paddingLeft,
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {question.text}
+        </div>
+      )}
+      {question.subtext && (
+        <div
+          style={{
+            fontFamily: question.subtextStyling.fontFamily,
+            fontSize: question.subtextStyling.fontSize,
+            fontWeight: question.subtextStyling.fontWeight === 'bold' ? 700 : 400,
+            color: question.subtextStyling.color,
+            lineHeight: question.subtextStyling.lineHeight,
+            paddingTop: question.subtextPaddingTop,
+            paddingRight: question.subtextPaddingRight,
+            paddingBottom: question.subtextPaddingBottom,
+            paddingLeft: question.subtextPaddingLeft,
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {question.subtext}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ChartPreview() {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -37,6 +83,48 @@ export function ChartPreview() {
   const hasFixedHeight = !isAutoHeight && previewDevice === 'custom';
 
   if (activeTab !== 'preview') return null;
+
+  const hasQuestion = !!(settings.question?.text || settings.question?.subtext);
+  const questionPosition = settings.question?.position || 'above';
+  const isQuestionHorizontal = questionPosition === 'left' || questionPosition === 'right';
+
+  const chartContent = (
+    <div
+      ref={chartAreaRef}
+      className={hasFixedHeight ? 'flex-1 min-h-0' : ''}
+      style={{
+        overflow: 'hidden',
+        flex: isQuestionHorizontal ? '1 1 0%' : undefined,
+        minWidth: 0,
+      }}
+    >
+      <div style={{ width: '100%', height: hasFixedHeight ? '100%' : undefined }}>
+        {data.length > 0 ? (
+          <CustomBarChart
+            data={data}
+            columnMapping={columnMapping}
+            settings={settings}
+            width={chartAreaWidth}
+            height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+            columnOrder={columnOrder}
+            seriesNames={seriesNames}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+            <div className="text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3 opacity-40">
+                <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+                <path d="M18 17V9" />
+                <path d="M13 17V5" />
+                <path d="M8 17v-3" />
+              </svg>
+              <p>Add data in the Data tab to see your chart</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: canvasBackgroundColor }}>
@@ -134,40 +222,38 @@ export function ChartPreview() {
             </div>
           )}
 
-          {/* Chart area */}
-          <div
-            ref={chartAreaRef}
-            className={hasFixedHeight ? 'flex-1 min-h-0' : ''}
-            style={{
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ width: '100%', height: hasFixedHeight ? '100%' : undefined }}>
-              {data.length > 0 ? (
-                <CustomBarChart
-                  data={data}
-                  columnMapping={columnMapping}
-                  settings={settings}
-                  width={chartAreaWidth}
-                  height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
-                  columnOrder={columnOrder}
-                  seriesNames={seriesNames}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
-                  <div className="text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3 opacity-40">
-                      <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-                      <path d="M18 17V9" />
-                      <path d="M13 17V5" />
-                      <path d="M8 17v-3" />
-                    </svg>
-                    <p>Add data in the Data tab to see your chart</p>
-                  </div>
+          {/* Question — above */}
+          {hasQuestion && questionPosition === 'above' && (
+            <div className="shrink-0">
+              <QuestionBlock question={settings.question} />
+            </div>
+          )}
+
+          {/* Chart area — with optional left/right question */}
+          {isQuestionHorizontal && hasQuestion ? (
+            <div style={{ display: 'flex', flexDirection: 'row', flex: hasFixedHeight ? '1 1 0%' : undefined, minHeight: 0 }}>
+              {questionPosition === 'left' && (
+                <div className="shrink-0" style={{ maxWidth: '40%' }}>
+                  <QuestionBlock question={settings.question} />
+                </div>
+              )}
+              {chartContent}
+              {questionPosition === 'right' && (
+                <div className="shrink-0" style={{ maxWidth: '40%' }}>
+                  <QuestionBlock question={settings.question} />
                 </div>
               )}
             </div>
-          </div>
+          ) : (
+            chartContent
+          )}
+
+          {/* Question — below */}
+          {hasQuestion && questionPosition === 'below' && (
+            <div className="shrink-0">
+              <QuestionBlock question={settings.question} />
+            </div>
+          )}
 
           {/* Footer */}
           {(settings.footer.sourceName || settings.footer.notePrimary) && (

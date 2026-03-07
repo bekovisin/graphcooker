@@ -43,6 +43,16 @@ export interface ColorsSettings {
 }
 
 // Bars
+export type EmptyRowLineStyle = 'solid' | 'dashed' | 'dotted';
+
+export interface EmptyRowLineSettings {
+  show: boolean;
+  color: string;
+  width: number;
+  style: EmptyRowLineStyle;
+  dashLength: number;
+}
+
 export interface BarsSettings {
   barHeight: number;
   barOpacity: number;
@@ -50,6 +60,7 @@ export interface BarsSettings {
   spacingInStack: number;
   emptyRowSpacing: number;
   bottomBarPadding: number;
+  emptyRowLine: EmptyRowLineSettings;
   outline: boolean;
   outlineColor: string;
   outlineWidth: number;
@@ -150,6 +161,7 @@ export interface XAxisSettings {
   axisLine: AxisLineSettings;
   zeroLine: AxisLineSettings;
   gridlines: boolean;
+  showZeroGridline: boolean;
   gridlineStyling: { color: string; width: number; dashArray: number };
   showGridlineStyling: boolean;
 }
@@ -326,6 +338,28 @@ export interface AccessibilitySettings {
   altText: string;
 }
 
+// Question
+export type QuestionPosition = 'above' | 'below' | 'left' | 'right';
+
+export interface QuestionSettings {
+  text: string;
+  textStyling: TextStyling;
+  showTextStyling: boolean;
+  subtext: string;
+  subtextStyling: TextStyling;
+  showSubtextStyling: boolean;
+  position: QuestionPosition;
+  alignment: TextAlignment;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  subtextPaddingTop: number;
+  subtextPaddingRight: number;
+  subtextPaddingBottom: number;
+  subtextPaddingLeft: number;
+}
+
 // ===== MASTER SETTINGS OBJECT =====
 export interface ChartSettings {
   chartType: ChartTypeSettings;
@@ -342,6 +376,7 @@ export interface ChartSettings {
   annotations: AnnotationsSettings;
   animations: AnimationsSettings;
   layout: LayoutSettings;
+  question: QuestionSettings;
   header: HeaderSettings;
   footer: FooterSettings;
   accessibility: AccessibilitySettings;

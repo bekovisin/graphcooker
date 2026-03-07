@@ -20,6 +20,7 @@ import { PopupsPanelsSection } from '@/components/settings/PopupsPanelsSection';
 import { AnnotationsSection } from '@/components/settings/AnnotationsSection';
 import { AnimationsSection } from '@/components/settings/AnimationsSection';
 import { LayoutSection } from '@/components/settings/LayoutSection';
+import { QuestionSection } from '@/components/settings/QuestionSection';
 import { HeaderSection } from '@/components/settings/HeaderSection';
 import { FooterSection } from '@/components/settings/FooterSection';
 import { AccessibilitySection } from '@/components/settings/AccessibilitySection';
@@ -39,6 +40,7 @@ const sections = [
   { id: 'annotations', title: 'Annotations', Component: AnnotationsSection },
   { id: 'animations', title: 'Animations', Component: AnimationsSection },
   { id: 'layout', title: 'Layout', Component: LayoutSection },
+  { id: 'question', title: 'Question', Component: QuestionSection },
   { id: 'header', title: 'Header', Component: HeaderSection },
   { id: 'footer', title: 'Footer', Component: FooterSection },
   { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
