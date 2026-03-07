@@ -22,7 +22,7 @@ interface TooltipState {
   color: string;
 }
 
-interface CustomBarChartProps {
+interface GroupedBarChartProps {
   data: DataRow[];
   columnMapping: ColumnMapping;
   settings: ChartSettings;
@@ -176,7 +176,7 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function CustomBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation }: CustomBarChartProps) {
+export function GroupedBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation }: GroupedBarChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', series: '', value: 0, color: '' });
   const [animProgress, setAnimProgress] = useState(skipAnimation || !settings.animations.enabled ? 1 : 0);
@@ -206,9 +206,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
   }, [skipAnimation, settings.animations.enabled, settings.animations.duration, data, columnMapping]);
 
   // ── Build series & categories ──
-  const { series, categories, maxVal, minVal } = useMemo(() => {
+  const { series, categories, categoryColors, maxVal, minVal } = useMemo(() => {
     if (!columnMapping.values || columnMapping.values.length === 0 || !columnMapping.labels) {
-      return { series: [] as SeriesData[], categories: [] as string[], maxVal: 0, minVal: 0 };
+      return { series: [] as SeriesData[], categories: [] as string[], categoryColors: [] as string[], maxVal: 0, minVal: 0 };
     }
 
     // Order values by their position in columnOrder (spreadsheet column order)
@@ -219,6 +219,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     const colors = resolveColors(settings.colors, seriesNames);
 
     let cats = data.map((row) => String(row[columnMapping.labels] || ''));
+
+    // Resolve per-category colors for by_row mode
+    let catColors = resolveColors(settings.colors, cats);
 
     let rawSeries: SeriesData[] = seriesNames.map((key, i) => ({
       name: (seriesNamesProp && seriesNamesProp[key]) || key,
@@ -240,6 +243,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
         data: indices.map((i) => s.data[i]),
       }));
       cats = indices.map((i) => cats[i]);
+      catColors = indices.map((i) => catColors[i]);
     }
 
     // Stack sort
@@ -274,10 +278,14 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     return {
       series: rawSeries,
       categories: cats,
+      categoryColors: catColors,
       maxVal: userMax !== undefined ? userMax : maxV,
       minVal: userMin !== undefined ? userMin : Math.min(0, minV),
     };
   }, [data, columnMapping, columnOrderProp, seriesNamesProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max]);
+
+  // ── Color mode ──
+  const colorByRow = settings.colors.colorMode === 'by_row';
 
   // ── Layout calculations ──
   const isAboveBars = settings.labels.barLabelStyle === 'above_bars';
@@ -398,13 +406,18 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
   const padding = useMemo(() => {
     const yLabelSpace = yAxisLabelWidth + tickPadding + yAxisTitleWidth;
+    // Reserve space for outside_right data-point labels so they don't get clipped
+    const outsideRightPad =
+      settings.labels.showDataPointLabels && settings.labels.dataPointPosition === 'outside_right'
+        ? Math.max(settings.labels.dataPointFontSize * 3.5, 40)
+        : 0;
     return {
       top: settings.layout.paddingTop + (xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
-      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.right,
+      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.right + outsideRightPad,
       bottom: settings.layout.paddingBottom + (!xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
       left: settings.layout.paddingLeft + (!yAxisRight && !yAxisHidden ? yLabelSpace : 0) + xTickEdgePadding.left,
     };
-  }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, xTickEdgePadding]);
+  }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, xTickEdgePadding, settings.labels.showDataPointLabels, settings.labels.dataPointPosition, settings.labels.dataPointFontSize]);
 
   // Early legend height calculation (needed for 'above' positioning)
   const legendIsOverlay = settings.legend.position === 'overlay';
@@ -548,7 +561,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
   const tickMarkPosition = settings.xAxis.tickMarks.position;
 
   // Legend data
-  const legendItems = series.map((s) => ({ name: s.name, color: s.color }));
+  const legendItems = colorByRow
+    ? categories.map((cat, i) => ({ name: cat, color: categoryColors[i] }))
+    : series.map((s) => ({ name: s.name, color: s.color }));
 
   // Y axis title
   const yAxisTitle = settings.yAxis.titleType === 'custom' ? settings.yAxis.titleText : '';
@@ -826,35 +841,43 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
           const catY = chartTop + catYOffsets[ci];
           const barY = catY + (isAboveBars ? labelRowHeights[ci] : 0);
 
-          // Stacked bars
-          let stackX = xScale(Math.max(0, minVal));
+          // Grouped bars — each series bar starts from zero, stacked vertically
+          const zeroX = xScale(Math.max(0, minVal));
           const barElements: React.ReactNode[] = [];
           const labelElements: React.ReactNode[] = [];
+
+          const numSeries = series.length;
+          const groupSpacing = settings.bars.spacingInStack;
+          const subBarH = numSeries > 1
+            ? Math.max(2, (barHeight - groupSpacing * (numSeries - 1)) / numSeries)
+            : barHeight;
 
           series.forEach((s, si) => {
             const rawValue = s.data[ci] || 0;
             const value = rawValue * animProgress;
             const barW = Math.abs(xScale(Math.max(0, minVal) + Math.abs(value)) - xScale(Math.max(0, minVal)));
 
-            const barX = value >= 0 ? stackX : stackX - barW;
+            const barX = value >= 0 ? zeroX : zeroX - barW;
 
             const inStackSpacing = settings.bars.spacingInStack;
-            const actualBarH = barHeight;
+            const actualBarH = numSeries > 1 ? subBarH : barHeight;
 
-            const renderedW = Math.max(0, barW - (inStackSpacing > 0 && !settings.bars.outline ? inStackSpacing : 0));
+            const renderedW = Math.max(0, barW);
+            const barFill = colorByRow ? categoryColors[ci] : s.color;
+            const groupedBarY = numSeries > 1 ? barY + si * (subBarH + groupSpacing) : barY;
             barElements.push(
               <rect
                 key={`bar-${ci}-${si}`}
                 x={padding.left + barX}
-                y={barY}
+                y={groupedBarY}
                 width={renderedW}
                 height={actualBarH}
-                fill={s.color}
+                fill={barFill}
                 fillOpacity={settings.bars.barOpacity}
                 stroke={settings.bars.outline ? settings.bars.outlineColor : 'none'}
                 strokeWidth={settings.bars.outline ? settings.bars.outlineWidth : 0}
                 style={{ cursor: 'pointer', transition: 'fill-opacity 0.15s' }}
-                onMouseMove={(e) => handleBarHover(e, cat, s.name, rawValue, s.color)}
+                onMouseMove={(e) => handleBarHover(e, cat, s.name, rawValue, barFill)}
                 onMouseLeave={handleBarLeave}
               />
             );
@@ -872,13 +895,17 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
               } else if (labelPos === 'right') {
                 labelX = padding.left + barX + renderedW - 4;
                 anchor = 'end';
+              } else if (labelPos === 'outside_right') {
+                labelX = padding.left + barX + renderedW + 6;
+                anchor = 'start';
               } else {
                 labelX = padding.left + barX + renderedW / 2;
                 anchor = 'middle';
               }
 
+              const barColorForLabel = colorByRow ? categoryColors[ci] : s.color;
               const labelColor = settings.labels.dataPointColorMode === 'auto'
-                ? getContrastColor(s.color)
+                ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(barColorForLabel))
                 : (settings.labels.dataPointSeriesColors[s.name] || settings.labels.dataPointColor);
 
               const offsetX = settings.labels.dataPointCustomPadding
@@ -892,7 +919,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                 <text
                   key={`label-${ci}-${si}`}
                   x={labelX + offsetX}
-                  y={barY + actualBarH / 2 + offsetY}
+                  y={groupedBarY + actualBarH / 2 + offsetY}
                   dy="0.35em"
                   textAnchor={anchor}
                   style={{
@@ -909,8 +936,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
               );
             }
 
-            if (value >= 0) stackX += barW;
-            else stackX -= barW;
+            // Grouped: no stacking — each bar starts from zero
           });
 
           // Stack labels

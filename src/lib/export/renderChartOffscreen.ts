@@ -802,14 +802,18 @@ export async function renderChartOffscreen(
       }
     : settings;
 
-  // Render CustomBarChart via React
+  // Render chart via React — pick component based on chart type
   const React = await import('react');
   const { createRoot } = await import('react-dom/client');
-  const { CustomBarChart } = await import('@/components/chart/CustomBarChart');
+
+  const isGrouped = renderSettings.chartType.chartType === 'bar_grouped';
+  const ChartComponent = isGrouped
+    ? (await import('@/components/chart/GroupedBarChart')).GroupedBarChart
+    : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
 
   const reactRoot = createRoot(container);
   reactRoot.render(
-    React.createElement(CustomBarChart, {
+    React.createElement(ChartComponent, {
       data,
       columnMapping,
       settings: renderSettings,

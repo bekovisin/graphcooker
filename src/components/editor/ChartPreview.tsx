@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { ResponsiveToolbar } from './ResponsiveToolbar';
 import { CustomBarChart } from '@/components/chart/CustomBarChart';
+import { GroupedBarChart } from '@/components/chart/GroupedBarChart';
 import type { QuestionSettings } from '@/types/chart';
 
 const deviceWidths: Record<string, string> = {
@@ -131,15 +132,27 @@ export function ChartPreview() {
     >
       <div style={{ width: '100%', height: hasFixedHeight ? '100%' : undefined }}>
         {data.length > 0 ? (
-          <CustomBarChart
-            data={data}
-            columnMapping={columnMapping}
-            settings={settings}
-            width={chartAreaWidth}
-            height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
-            columnOrder={columnOrder}
-            seriesNames={seriesNames}
-          />
+          settings.chartType.chartType === 'bar_grouped' ? (
+            <GroupedBarChart
+              data={data}
+              columnMapping={columnMapping}
+              settings={settings}
+              width={chartAreaWidth}
+              height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+              columnOrder={columnOrder}
+              seriesNames={seriesNames}
+            />
+          ) : (
+            <CustomBarChart
+              data={data}
+              columnMapping={columnMapping}
+              settings={settings}
+              width={chartAreaWidth}
+              height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+              columnOrder={columnOrder}
+              seriesNames={seriesNames}
+            />
+          )
         ) : (
           <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
             <div className="text-center">

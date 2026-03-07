@@ -22,6 +22,7 @@ import type {
 
 const chartTypeOptions: { value: ChartType; label: string }[] = [
   { value: 'bar_stacked_custom', label: 'Bar chart stacked (custom)' },
+  { value: 'bar_grouped', label: 'Bar chart grouped' },
 ];
 
 function TabMenu<T extends string>({
