@@ -859,7 +859,6 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
 
             const barX = value >= 0 ? zeroX : zeroX - barW;
 
-            const inStackSpacing = settings.bars.spacingInStack;
             const actualBarH = numSeries > 1 ? subBarH : barHeight;
 
             const renderedW = Math.max(0, barW);
