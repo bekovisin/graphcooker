@@ -98,6 +98,8 @@ export interface LabelsSettings {
   percentPrefixFontWeight: FontWeight;
   percentPrefixColor: string;
   percentPrefixPadding: number;
+  percentPrefixPaddingTop: number;
+  percentPrefixPaddingBottom: number;
   percentPrefixPosition: 'left' | 'right';
   percentPrefixVerticalAlign: 'bottom' | 'center' | 'top';
   stackLabelMode: StackLabelMode;

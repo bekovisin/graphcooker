@@ -1025,11 +1025,13 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                   prefixDy = `${0.35 + sizeDiff / (2 * prefixFs)}em`;
                 }
 
+                const prefixVerticalOffset = (settings.labels.percentPrefixPaddingBottom ?? 0) - (settings.labels.percentPrefixPaddingTop ?? 0);
+
                 labelElements.push(
                   <text
                     key={`prefix-${ci}-${si}`}
                     x={prefixX}
-                    y={groupedBarY + actualBarH / 2 + offsetY}
+                    y={groupedBarY + actualBarH / 2 + offsetY + prefixVerticalOffset}
                     dy={prefixDy}
                     textAnchor="start"
                     style={{

@@ -985,11 +985,13 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                   prefixDy = `${0.35 + sizeDiff / (2 * prefixFs)}em`;
                 }
 
+                const prefixVerticalOffset = (settings.labels.percentPrefixPaddingBottom ?? 0) - (settings.labels.percentPrefixPaddingTop ?? 0);
+
                 labelElements.push(
                   <text
                     key={`prefix-${ci}-${si}`}
                     x={prefixX}
-                    y={labelCenterY}
+                    y={labelCenterY + prefixVerticalOffset}
                     dy={prefixDy}
                     textAnchor="start"
                     style={{

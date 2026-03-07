@@ -67,6 +67,8 @@ export const defaultChartSettings: ChartSettings = {
     percentPrefixFontWeight: 'normal',
     percentPrefixColor: '#333333',
     percentPrefixPadding: 0,
+    percentPrefixPaddingTop: 0,
+    percentPrefixPaddingBottom: 0,
     percentPrefixPosition: 'right',
     percentPrefixVerticalAlign: 'bottom',
     stackLabelMode: 'none',

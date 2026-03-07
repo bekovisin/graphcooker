@@ -212,6 +212,48 @@ export default function DashboardPage() {
     });
   };
 
+  const handleDuplicateFolder = async (id: number) => {
+    const original = folders.find((f) => f.id === id);
+    if (!original) return;
+    try {
+      const res = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${original.name} (copy)`, parentId: original.parentId || null }),
+      });
+      if (res.ok) {
+        const newFolder = await res.json();
+        setFolders((prev) => [...prev, newFolder]);
+        toast.success(`Folder duplicated as "${newFolder.name}"`);
+      }
+    } catch (error) {
+      console.error('Failed to duplicate folder:', error);
+      toast.error('Failed to duplicate folder');
+    }
+  };
+
+  const handleMoveFolderTo = async (folderId: number, targetParentId: number | null) => {
+    try {
+      const res = await fetch(`/api/folders/${folderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: targetParentId }),
+      });
+      if (res.ok) {
+        setFolders((prev) =>
+          prev.map((f) => (f.id === folderId ? { ...f, parentId: targetParentId } : f))
+        );
+        const targetName = targetParentId
+          ? folders.find((f) => f.id === targetParentId)?.name || 'folder'
+          : 'root';
+        toast.success(`Folder moved to ${targetName}`);
+      }
+    } catch (error) {
+      console.error('Failed to move folder:', error);
+      toast.error('Failed to move folder');
+    }
+  };
+
   // Visualization operations
   const handleDeleteViz = async (id: number) => {
     const viz = visualizations.find((v) => v.id === id);
@@ -703,8 +745,13 @@ export default function DashboardPage() {
               key={`folder-${sf.id}`}
               folder={sf}
               vizCount={vizCountByFolder[String(sf.id)] || 0}
+              allFolders={folders}
               onClick={() => setActiveFolderId(sf.id)}
               onDrop={(vizId) => handleMoveToFolder(vizId, sf.id)}
+              onRename={handleRenameFolder}
+              onDuplicate={handleDuplicateFolder}
+              onMove={handleMoveFolderTo}
+              onDelete={handleDeleteFolder}
             />
           ))}
           {filteredViz.map(renderVizCard)}
@@ -744,8 +791,13 @@ export default function DashboardPage() {
                 key={`folder-${folder.id}`}
                 folder={folder}
                 vizCount={vizCountByFolder[String(folder.id)] || 0}
+                allFolders={folders}
                 onClick={() => setActiveFolderId(folder.id)}
                 onDrop={(vizId) => handleMoveToFolder(vizId, folder.id)}
+                onRename={handleRenameFolder}
+                onDuplicate={handleDuplicateFolder}
+                onMove={handleMoveFolderTo}
+                onDelete={handleDeleteFolder}
               />
             ))}
             {rootViz.map(renderVizCard)}

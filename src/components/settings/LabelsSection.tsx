@@ -436,6 +436,26 @@ export function LabelsSection() {
                 step={1}
                 suffix="px"
               />
+              <div className="grid grid-cols-2 gap-1.5">
+                <NumberInput
+                  label="Padding top"
+                  value={settings.percentPrefixPaddingTop ?? 0}
+                  onChange={(v) => update({ percentPrefixPaddingTop: v })}
+                  min={-30}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+                <NumberInput
+                  label="Padding bottom"
+                  value={settings.percentPrefixPaddingBottom ?? 0}
+                  onChange={(v) => update({ percentPrefixPaddingBottom: v })}
+                  min={-30}
+                  max={30}
+                  step={1}
+                  suffix="px"
+                />
+              </div>
             </div>
           )}
         </div>
