@@ -98,6 +98,7 @@ export interface LabelsSettings {
   percentPrefixFontWeight: FontWeight;
   percentPrefixColor: string;
   percentPrefixPadding: number;
+  percentPrefixPosition: 'left' | 'right';
   stackLabelMode: StackLabelMode;
 }
 
@@ -191,6 +192,8 @@ export interface YAxisSettings {
   tickPadding: number;
   spaceMode: YAxisSpaceMode;
   spaceModeValue: number;
+  fixedMaxLines: number;
+  fixedEllipsis: boolean;
   axisLine: AxisLineSettings;
   gridlines: boolean;
   gridlineStyling: { color: string; width: number; dashArray: number };
@@ -216,6 +219,7 @@ export interface NumberFormattingSettings {
   decimalSeparator: DecimalSeparator;
   prefix: string;
   suffix: string;
+  showTrailingZeros: boolean;
 }
 
 // Legend

@@ -363,6 +363,17 @@ export function LabelsSection() {
 
           {settings.showPercentPrefix && (
             <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+              {/* Prefix position (left/right) */}
+              <SettingRow label="Position">
+                <TabMenu
+                  value={settings.percentPrefixPosition ?? 'right'}
+                  onChange={(v) => update({ percentPrefixPosition: v as 'left' | 'right' })}
+                  options={[
+                    { value: 'left', label: 'Left' },
+                    { value: 'right', label: 'Right' },
+                  ]}
+                />
+              </SettingRow>
               <div className="space-y-1.5">
                 <span className="text-xs text-gray-600 font-medium">% styling</span>
                 <div className="grid grid-cols-3 gap-1.5 items-end">

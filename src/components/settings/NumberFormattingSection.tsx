@@ -3,6 +3,8 @@
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { SettingRow } from '@/components/shared/SettingRow';
 import {
   Select,
   SelectTrigger,
@@ -68,6 +70,14 @@ export function NumberFormattingSection() {
           </Select>
         </div>
       </div>
+
+      {/* Show trailing zeros */}
+      <SettingRow label="Show trailing zeros" variant="inline">
+        <Switch
+          checked={settings.showTrailingZeros ?? true}
+          onCheckedChange={(checked) => update({ showTrailingZeros: checked })}
+        />
+      </SettingRow>
 
       {/* Prefix + Suffix — 2-column row */}
       <div className="grid grid-cols-2 gap-1.5">

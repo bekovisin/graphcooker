@@ -37,10 +37,12 @@ function SeriesNameCell({
   colName,
   width,
   colors,
+  onMouseDown,
 }: {
   colName: string;
   width: number;
   colors: { headerBg: string; text: string; border: string };
+  onMouseDown?: (e: React.MouseEvent) => void;
 }) {
   const seriesNames = useEditorStore((s) => s.seriesNames);
   const setSeriesName = useEditorStore((s) => s.setSeriesName);
@@ -111,6 +113,10 @@ function SeriesNameCell({
         height: SERIES_NAME_ROW_HEIGHT,
         color: colors.text,
         backgroundColor: colors.headerBg,
+      }}
+      onMouseDown={(e) => {
+        // Single click selects the column (including header for copy)
+        onMouseDown?.(e);
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -303,7 +309,16 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
               }}
               onMouseEnter={() => handleMouseMoveForDrop(colIndex)}
             >
-              <SeriesNameCell colName={col} width={width} colors={colors} />
+              <SeriesNameCell
+                colName={col}
+                width={width}
+                colors={colors}
+                onMouseDown={(e) => {
+                  if (e.button !== 0) return;
+                  e.stopPropagation();
+                  onColumnClick(colIndex, e);
+                }}
+              />
 
               {/* Header selection overlay */}
               {headerSelected && (

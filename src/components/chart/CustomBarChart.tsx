@@ -59,6 +59,10 @@ function formatNumber(value: number, nf: ChartSettings['numberFormatting']): str
   const factor = Math.pow(10, nf.decimalPlaces);
   const rounded = Math.round(value * factor) / factor;
   let str = rounded.toFixed(nf.decimalPlaces);
+  // Strip trailing zeros if showTrailingZeros is off
+  if (!nf.showTrailingZeros && str.includes('.')) {
+    str = str.replace(/0+$/, '').replace(/\.$/, '');
+  }
   const [intPart, decPart] = str.split('.');
   let formattedInt = intPart;
   if (nf.thousandsSeparator !== 'none') {
@@ -872,13 +876,16 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
               } else if (labelPos === 'right') {
                 labelX = padding.left + barX + renderedW - 4;
                 anchor = 'end';
+              } else if (labelPos === 'outside_right') {
+                labelX = padding.left + barX + renderedW + (settings.labels.outsideLabelPadding ?? 6);
+                anchor = 'start';
               } else {
                 labelX = padding.left + barX + renderedW / 2;
                 anchor = 'middle';
               }
 
               const labelColor = settings.labels.dataPointColorMode === 'auto'
-                ? getContrastColor(s.color)
+                ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(s.color))
                 : (settings.labels.dataPointSeriesColors[s.name] || settings.labels.dataPointColor);
 
               const offsetX = settings.labels.dataPointCustomPadding
@@ -887,6 +894,19 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
               const offsetY = settings.labels.dataPointCustomPadding
                 ? settings.labels.dataPointPaddingTop - settings.labels.dataPointPaddingBottom
                 : 0;
+
+              const showPercent = settings.labels.showPercentPrefix;
+              const prefixPos = settings.labels.percentPrefixPosition ?? 'right';
+              const prefixPad = settings.labels.percentPrefixPadding ?? 0;
+              // In auto-contrast mode, prefix inherits label color
+              const prefixColor = settings.labels.dataPointColorMode === 'auto'
+                ? labelColor
+                : (settings.labels.percentPrefixColor ?? labelColor);
+              const prefixStyle = {
+                fontSize: settings.labels.percentPrefixFontSize ?? settings.labels.dataPointFontSize,
+                fontWeight: fontWeightToCSS(settings.labels.percentPrefixFontWeight ?? 'normal'),
+                fill: prefixColor,
+              };
 
               labelElements.push(
                 <text
@@ -904,7 +924,13 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
                     pointerEvents: 'none',
                   }}
                 >
+                  {showPercent && prefixPos === 'left' && (
+                    <tspan dx={prefixPad} style={prefixStyle}>%</tspan>
+                  )}
                   {labelText}
+                  {showPercent && prefixPos === 'right' && (
+                    <tspan dx={prefixPad} style={prefixStyle}>%</tspan>
+                  )}
                 </text>
               );
             }
@@ -946,104 +972,83 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
             const useFixedWidth = settings.yAxis.spaceMode === 'fixed';
             const maxLabelW = useFixedWidth ? settings.yAxis.spaceModeValue - 4 : yLabelMaxWidth;
+            const maxLines = useFixedWidth ? (settings.yAxis.fixedMaxLines ?? 0) : 0;
+            const useEllipsis = settings.yAxis.fixedEllipsis ?? true;
 
             const fullWidth = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
             const needsTruncation = fullWidth > maxLabelW && maxLabelW > 0;
 
-            // Check if label has spaces (can wrap to 2 lines)
+            // Check if label has spaces (can wrap)
             const hasSpaces = cat.includes(' ');
+
+            const renderLines = (labelX: number, anchor: 'start' | 'end') => {
+              let lines = wrapText(cat, maxLabelW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+              // Apply max lines limit
+              if (maxLines > 0 && lines.length > maxLines) {
+                lines = lines.slice(0, maxLines);
+                if (useEllipsis) {
+                  const lastLine = lines[maxLines - 1];
+                  const ellipsisText = truncateText(lastLine + '...', maxLabelW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                  lines[maxLines - 1] = ellipsisText.endsWith('...') ? ellipsisText : lastLine.slice(0, -1) + '...';
+                }
+              }
+              const lineHeight = yTickStyle.fontSize * 1.2;
+              const totalH = lines.length * lineHeight;
+              return lines.map((line, li) => (
+                <text
+                  key={`ylabel-${ci}-${li}`}
+                  x={labelX}
+                  y={barY + barHeight / 2 - totalH / 2 + lineHeight * (li + 0.7)}
+                  textAnchor={anchor}
+                  style={{
+                    fontSize: yTickStyle.fontSize,
+                    fontFamily: yTickStyle.fontFamily,
+                    fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
+                    fontStyle: yTickStyle.fontStyle || 'normal',
+                    fill: yTickStyle.color,
+                  }}
+                >
+                  {line}
+                </text>
+              ));
+            };
+
+            const renderSingleLine = (labelX: number, anchor: 'start' | 'end') => {
+              const displayText = needsTruncation
+                ? truncateText(cat, maxLabelW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight)
+                : cat;
+              return (
+                <text
+                  x={labelX}
+                  y={barY + barHeight / 2}
+                  textAnchor={anchor}
+                  dy="0.35em"
+                  style={{
+                    fontSize: yTickStyle.fontSize,
+                    fontFamily: yTickStyle.fontFamily,
+                    fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
+                    fontStyle: yTickStyle.fontStyle || 'normal',
+                    fill: yTickStyle.color,
+                  }}
+                >
+                  {displayText}
+                </text>
+              );
+            };
 
             if (yAxisRight) {
               const labelX = padding.left + plotWidth + tickPadding + 6;
-              if (needsTruncation && hasSpaces) {
-                // Wrap to 2 lines
-                const lines = wrapText(cat, maxLabelW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
-                const lineHeight = yTickStyle.fontSize * 1.2;
-                const totalH = lines.length * lineHeight;
-                return lines.map((line, li) => (
-                  <text
-                    key={`ylabel-${ci}-${li}`}
-                    x={labelX}
-                    y={barY + barHeight / 2 - totalH / 2 + lineHeight * (li + 0.7)}
-                    textAnchor="start"
-                    style={{
-                      fontSize: yTickStyle.fontSize,
-                      fontFamily: yTickStyle.fontFamily,
-                      fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
-                    fontStyle: yTickStyle.fontStyle || 'normal',
-                      fill: yTickStyle.color,
-                    }}
-                  >
-                    {line}
-                  </text>
-                ));
+              if (needsTruncation && hasSpaces && (maxLines === 0 || maxLines > 1)) {
+                return renderLines(labelX, 'start');
               } else {
-                const displayText = needsTruncation
-                  ? truncateText(cat, maxLabelW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight)
-                  : cat;
-                return (
-                  <text
-                    x={labelX}
-                    y={barY + barHeight / 2}
-                    textAnchor="start"
-                    dy="0.35em"
-                    style={{
-                      fontSize: yTickStyle.fontSize,
-                      fontFamily: yTickStyle.fontFamily,
-                      fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
-                    fontStyle: yTickStyle.fontStyle || 'normal',
-                      fill: yTickStyle.color,
-                    }}
-                  >
-                    {displayText}
-                  </text>
-                );
+                return renderSingleLine(labelX, 'start');
               }
             } else {
-              // Left position
               const labelX = padding.left - tickPadding - 6;
-              if (needsTruncation && hasSpaces) {
-                const lines = wrapText(cat, maxLabelW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
-                const lineHeight = yTickStyle.fontSize * 1.2;
-                const totalH = lines.length * lineHeight;
-                return lines.map((line, li) => (
-                  <text
-                    key={`ylabel-${ci}-${li}`}
-                    x={labelX}
-                    y={barY + barHeight / 2 - totalH / 2 + lineHeight * (li + 0.7)}
-                    textAnchor="end"
-                    style={{
-                      fontSize: yTickStyle.fontSize,
-                      fontFamily: yTickStyle.fontFamily,
-                      fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
-                    fontStyle: yTickStyle.fontStyle || 'normal',
-                      fill: yTickStyle.color,
-                    }}
-                  >
-                    {line}
-                  </text>
-                ));
+              if (needsTruncation && hasSpaces && (maxLines === 0 || maxLines > 1)) {
+                return renderLines(labelX, 'end');
               } else {
-                const displayText = needsTruncation
-                  ? truncateText(cat, maxLabelW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight)
-                  : cat;
-                return (
-                  <text
-                    x={labelX}
-                    y={barY + barHeight / 2}
-                    textAnchor="end"
-                    dy="0.35em"
-                    style={{
-                      fontSize: yTickStyle.fontSize,
-                      fontFamily: yTickStyle.fontFamily,
-                      fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
-                    fontStyle: yTickStyle.fontStyle || 'normal',
-                      fill: yTickStyle.color,
-                    }}
-                  >
-                    {displayText}
-                  </text>
-                );
+                return renderSingleLine(labelX, 'end');
               }
             }
           };

@@ -60,7 +60,15 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
     <div
       className="shrink-0 relative"
       style={{ width, height }}
-      onMouseDown={onMouseDown}
+      onMouseDown={(e) => {
+        // When editing this cell, don't propagate mousedown to prevent
+        // parent from resetting active cell and triggering blur
+        if (isEditing) {
+          e.stopPropagation();
+          return;
+        }
+        onMouseDown(e);
+      }}
       onDoubleClick={onDoubleClick}
     >
       {isEditing ? (
@@ -70,7 +78,6 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
           onChange={(e) => onEditValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={() => onEditCommit(editValue)}
-          onFocus={(e) => e.target.select()}
           className="absolute inset-0 w-full h-full px-2 text-[13px] outline-none bg-white z-10"
           style={{
             width,

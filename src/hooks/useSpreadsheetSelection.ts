@@ -63,6 +63,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
         end: { row: rowCount - 1, col: colIndex },
       });
       setIsEditing(false);
+      setHeaderSelected(true);
     },
     [rowCount]
   );

@@ -321,6 +321,30 @@ export function YAxisSection() {
         </div>
       </SettingRow>
 
+      {/* Fixed mode: max lines + ellipsis */}
+      {settings.spaceMode === 'fixed' && (
+        <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+          <SettingRow label="Max lines">
+            <Input
+              type="number"
+              value={settings.fixedMaxLines ?? 0}
+              onChange={(e) => update({ fixedMaxLines: parseInt(e.target.value) || 0 })}
+              className="h-8 text-xs w-full"
+              min={0}
+              max={10}
+            />
+          </SettingRow>
+          {(settings.fixedMaxLines ?? 0) > 0 && (
+            <SettingRow label="Ellipsis truncation" variant="inline">
+              <Switch
+                checked={settings.fixedEllipsis ?? true}
+                onCheckedChange={(checked) => update({ fixedEllipsis: checked })}
+              />
+            </SettingRow>
+          )}
+        </div>
+      )}
+
       {/* Styling toggle — under Labels */}
       <SettingRow label="Styling" variant="inline">
         <Switch
