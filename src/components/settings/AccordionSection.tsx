@@ -22,7 +22,7 @@ export function AccordionSection({
 }: AccordionSectionProps) {
   return (
     <AccordionItem value={id} className="border-b border-gray-300/60 border-t-0">
-      <AccordionTrigger className="px-4 py-1.5 text-[13px] font-bold text-gray-900 hover:bg-gray-50 hover:no-underline [&[data-state=open]]:bg-blue-50/80 [&[data-state=open]]:text-blue-900">
+      <AccordionTrigger className="px-5 py-2.5 text-[13px] font-bold text-gray-900 hover:bg-gray-50 hover:no-underline [&[data-state=open]]:bg-blue-50/80 [&[data-state=open]]:text-blue-900">
         {title}
       </AccordionTrigger>
       <AccordionContent className="px-4 pb-3 bg-gray-50/50">

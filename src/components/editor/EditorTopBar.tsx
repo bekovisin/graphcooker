@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   ArrowLeft,
+  BookmarkPlus,
   Check,
   ChevronDown,
   Download,
@@ -24,6 +25,7 @@ import {
   Save,
 } from 'lucide-react';
 import Link from 'next/link';
+import { SaveTemplateDialog } from './SaveTemplateDialog';
 
 interface EditorTopBarProps {
   onExport: (format: 'png' | 'svg' | 'html' | 'pdf') => void;
@@ -42,6 +44,7 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(visualizationName);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -146,6 +149,11 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
           )}
         </div>
 
+        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowSaveTemplate(true)}>
+          <BookmarkPlus className="w-4 h-4" />
+          Save as template
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="default" size="sm" className="gap-1.5">
@@ -179,6 +187,8 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <SaveTemplateDialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate} />
     </div>
   );
 }

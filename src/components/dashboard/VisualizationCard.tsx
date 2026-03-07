@@ -118,6 +118,19 @@ export function VisualizationCard({
           : 'hover:shadow-md hover:border-gray-300'
       }`}
       onClick={handleClick}
+      draggable={!isSelectionMode && !isEditing}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', String(viz.id));
+        e.dataTransfer.effectAllowed = 'move';
+        if (e.currentTarget instanceof HTMLElement) {
+          e.currentTarget.style.opacity = '0.5';
+        }
+      }}
+      onDragEnd={(e) => {
+        if (e.currentTarget instanceof HTMLElement) {
+          e.currentTarget.style.opacity = '1';
+        }
+      }}
     >
       {/* Selection checkbox overlay */}
       {isSelectionMode && (

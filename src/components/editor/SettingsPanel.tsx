@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion } from '@/components/ui/accordion';
 import { SearchSettings } from '@/components/shared/SearchSettings';
 import { useEditorStore } from '@/store/editorStore';
+import { useSettingsPresetStore } from '@/store/settingsPresetStore';
 
 // Settings sections
 import { ChartTypeSection } from '@/components/settings/ChartTypeSection';
@@ -48,13 +50,75 @@ const sections = [
 
 export function SettingsPanel() {
   const { settingsSearchQuery } = useEditorStore();
+  const { presets, activePresetId, setActivePreset } = useSettingsPresetStore();
+  const [mode, setMode] = useState<'advanced' | 'custom'>('advanced');
 
-  const filteredSections = settingsSearchQuery
+  const activePreset = presets.find((p) => p.id === activePresetId);
+
+  // Filter by search query first
+  let filteredSections = settingsSearchQuery
     ? sections.filter((s) => s.title.toLowerCase().includes(settingsSearchQuery.toLowerCase()))
     : sections;
 
+  // Then filter by preset if in custom mode
+  if (mode === 'custom' && activePreset) {
+    filteredSections = filteredSections.filter((s) =>
+      activePreset.visibleSections.includes(s.id)
+    );
+  }
+
   return (
     <div className="w-[340px] border-l flex flex-col shrink-0" style={{ backgroundColor: '#f7f7f7' }}>
+      {/* Mode toggle */}
+      <div className="px-3 pt-3 pb-1">
+        <div className="flex items-center bg-gray-200/60 rounded-lg p-0.5">
+          <button
+            onClick={() => setMode('advanced')}
+            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              mode === 'advanced'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Advanced
+          </button>
+          <button
+            onClick={() => setMode('custom')}
+            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+              mode === 'custom'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Custom
+          </button>
+        </div>
+
+        {/* Preset picker (only in custom mode) */}
+        {mode === 'custom' && (
+          <div className="mt-2">
+            {presets.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-2">
+                No presets saved. Go to General Settings to create one.
+              </p>
+            ) : (
+              <select
+                value={activePresetId || ''}
+                onChange={(e) => setActivePreset(e.target.value || null)}
+                className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
+              >
+                <option value="">Select a preset...</option>
+                {presets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.visibleSections.length} sections)
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+      </div>
+
       <SearchSettings />
       <ScrollArea className="flex-1">
         <Accordion type="single" collapsible className="pb-8">
@@ -63,7 +127,9 @@ export function SettingsPanel() {
           ))}
           {filteredSections.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-gray-400">
-              No settings match &ldquo;{settingsSearchQuery}&rdquo;
+              {mode === 'custom' && !activePreset
+                ? 'Select a preset to customize visible sections.'
+                : `No settings match "${settingsSearchQuery}"`}
             </div>
           )}
         </Accordion>

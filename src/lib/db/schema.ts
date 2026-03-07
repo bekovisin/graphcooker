@@ -58,6 +58,18 @@ export const colorThemes = pgTable('color_themes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const templates = pgTable('templates', {
+  id: serial('id').primaryKey(),
+  templateName: varchar('template_name', { length: 255 }).notNull(),
+  chartType: varchar('chart_type', { length: 50 }).notNull().default('bar_stacked_custom'),
+  settings: jsonb('settings').notNull().default({}),
+  data: jsonb('data').notNull().default([]),
+  columnMapping: jsonb('column_mapping').default({}),
+  thumbnail: text('thumbnail'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const dashboardTemplates = pgTable('dashboard_templates', {
   id: serial('id').primaryKey(),
   visualizationId: integer('visualization_id').notNull(),

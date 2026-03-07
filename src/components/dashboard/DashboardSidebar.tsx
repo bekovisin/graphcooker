@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   FolderOpen,
   FolderPlus,
@@ -10,6 +12,11 @@ import {
   Pencil,
   Trash2,
   Home,
+  BarChart3,
+  Download,
+  CheckSquare,
+  Square,
+  Settings,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,33 +32,59 @@ export interface FolderItem {
   createdAt: string;
 }
 
+export interface VizItem {
+  id: number;
+  name: string;
+  folderId: number | null;
+  chartType: string;
+  thumbnail: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface DashboardSidebarProps {
   folders: FolderItem[];
+  visualizations: VizItem[];
   activeFolderId: number | null;
   onFolderSelect: (folderId: number | null) => void;
   onCreateFolder: (name: string, parentId?: number | null) => void;
   onRenameFolder: (id: number, name: string) => void;
   onDeleteFolder: (id: number) => void;
+  onMoveToFolder: (vizId: number, folderId: number | null) => void;
   vizCountByFolder: Record<string, number>;
   totalVizCount: number;
+  isSelectionMode: boolean;
+  selectedIds: Set<number>;
+  onToggleSelect: (id: number) => void;
+  onExportSingle: (id: number) => void;
 }
 
 export function DashboardSidebar({
   folders,
+  visualizations,
   activeFolderId,
   onFolderSelect,
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onMoveToFolder,
   vizCountByFolder,
   totalVizCount,
+  isSelectionMode,
+  selectedIds,
+  onToggleSelect,
+  onExportSingle,
 }: DashboardSidebarProps) {
+  const router = useRouter();
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [creatingSubfolderId, setCreatingSubfolderId] = useState<number | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
   const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
+  const [dragOverFolderId, setDragOverFolderId] = useState<number | 'root' | null>(null);
   const newFolderInputRef = useRef<HTMLInputElement>(null);
+  const subFolderInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -59,6 +92,12 @@ export function DashboardSidebar({
       newFolderInputRef.current.focus();
     }
   }, [creatingFolder]);
+
+  useEffect(() => {
+    if (creatingSubfolderId !== null && subFolderInputRef.current) {
+      subFolderInputRef.current.focus();
+    }
+  }, [creatingSubfolderId]);
 
   useEffect(() => {
     if (editingFolderId !== null && editInputRef.current) {
@@ -85,6 +124,15 @@ export function DashboardSidebar({
     setCreatingFolder(false);
   };
 
+  const handleCreateSubfolder = (parentId: number) => {
+    const name = newFolderName.trim();
+    if (name) {
+      onCreateFolder(name, parentId);
+    }
+    setNewFolderName('');
+    setCreatingSubfolderId(null);
+  };
+
   const handleRenameFolder = (id: number) => {
     const name = editFolderName.trim();
     if (name) {
@@ -94,23 +142,91 @@ export function DashboardSidebar({
     setEditFolderName('');
   };
 
+  const handleDragOver = (e: React.DragEvent, folderId: number | 'root') => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverFolderId(folderId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverFolderId(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, folderId: number | null) => {
+    e.preventDefault();
+    setDragOverFolderId(null);
+    const vizId = parseInt(e.dataTransfer.getData('text/plain'));
+    if (!isNaN(vizId)) {
+      onMoveToFolder(vizId, folderId);
+    }
+  };
+
   // Build folder tree
   const rootFolders = folders.filter((f) => f.parentId === null);
   const childFolders = (parentId: number) => folders.filter((f) => f.parentId === parentId);
+  const vizInFolder = (folderId: number) => visualizations.filter((v) => v.folderId === folderId);
+
+  const renderVizItem = (viz: VizItem, depth: number) => {
+    const isSelected = selectedIds.has(viz.id);
+    return (
+      <div
+        key={`viz-${viz.id}`}
+        className={`group flex items-center gap-1.5 py-1 rounded-md cursor-pointer transition-colors text-xs ${
+          isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+        }`}
+        style={{ paddingLeft: `${16 + (depth + 1) * 16}px`, paddingRight: '8px' }}
+        onClick={() => {
+          if (isSelectionMode) {
+            onToggleSelect(viz.id);
+          } else {
+            router.push(`/editor/${viz.id}`);
+          }
+        }}
+      >
+        {isSelectionMode && (
+          <span className="shrink-0">
+            {isSelected ? (
+              <CheckSquare className="w-3 h-3 text-blue-500" />
+            ) : (
+              <Square className="w-3 h-3 text-gray-400" />
+            )}
+          </span>
+        )}
+        <BarChart3 className="w-3 h-3 shrink-0 text-gray-400" />
+        <span className="flex-1 truncate">{viz.name}</span>
+        {!isSelectionMode && (
+          <button
+            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-200 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExportSingle(viz.id);
+            }}
+            title="Export"
+          >
+            <Download className="w-3 h-3 text-gray-500" />
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const renderFolder = (folder: FolderItem, depth: number = 0) => {
     const children = childFolders(folder.id);
-    const hasChildren = children.length > 0;
+    const folderViz = vizInFolder(folder.id);
+    const hasChildren = children.length > 0 || folderViz.length > 0;
     const isExpanded = expandedFolders.has(folder.id);
     const isActive = activeFolderId === folder.id;
     const isEditing = editingFolderId === folder.id;
     const count = vizCountByFolder[String(folder.id)] || 0;
+    const isDragOver = dragOverFolderId === folder.id;
 
     return (
       <div key={folder.id}>
         <div
           className={`group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-sm ${
-            isActive
+            isDragOver
+              ? 'bg-blue-100 ring-2 ring-blue-300'
+              : isActive
               ? 'bg-blue-50 text-blue-700'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
@@ -119,6 +235,9 @@ export function DashboardSidebar({
             onFolderSelect(folder.id);
             if (hasChildren) toggleFolder(folder.id);
           }}
+          onDragOver={(e) => handleDragOver(e, folder.id)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, folder.id)}
         >
           {/* Expand/collapse chevron */}
           <span className="w-4 h-4 flex items-center justify-center shrink-0">
@@ -169,7 +288,19 @@ export function DashboardSidebar({
                   <MoreHorizontal className="w-3.5 h-3.5 text-gray-500" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setNewFolderName('');
+                    setCreatingSubfolderId(folder.id);
+                    setExpandedFolders((prev) => new Set(prev).add(folder.id));
+                  }}
+                  className="gap-2 text-xs"
+                >
+                  <FolderPlus className="w-3.5 h-3.5" />
+                  New sub-folder
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -196,8 +327,36 @@ export function DashboardSidebar({
           )}
         </div>
 
-        {/* Children */}
-        {isExpanded && children.map((child) => renderFolder(child, depth + 1))}
+        {/* Expanded: child folders + visualizations + sub-folder input */}
+        {isExpanded && (
+          <>
+            {children.map((child) => renderFolder(child, depth + 1))}
+            {creatingSubfolderId === folder.id && (
+              <div
+                className="flex items-center gap-1 py-1.5"
+                style={{ paddingLeft: `${16 + (depth + 1) * 16}px`, paddingRight: '8px' }}
+              >
+                <FolderOpen className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <input
+                  ref={subFolderInputRef}
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onBlur={() => handleCreateSubfolder(folder.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCreateSubfolder(folder.id);
+                    if (e.key === 'Escape') {
+                      setCreatingSubfolderId(null);
+                      setNewFolderName('');
+                    }
+                  }}
+                  placeholder="Sub-folder name..."
+                  className="flex-1 text-xs bg-white border border-blue-300 rounded px-1.5 py-0.5 outline-none min-w-0"
+                />
+              </div>
+            )}
+            {folderViz.map((viz) => renderVizItem(viz, depth))}
+          </>
+        )}
       </div>
     );
   };
@@ -219,19 +378,24 @@ export function DashboardSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-        {/* All items */}
-        <button
-          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
-            activeFolderId === null
+        {/* All items - also a drop target for root */}
+        <div
+          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
+            dragOverFolderId === 'root'
+              ? 'bg-blue-100 ring-2 ring-blue-300'
+              : activeFolderId === null
               ? 'bg-blue-50 text-blue-700'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
           onClick={() => onFolderSelect(null)}
+          onDragOver={(e) => handleDragOver(e, 'root')}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, null)}
         >
           <Home className={`w-4 h-4 ${activeFolderId === null ? 'text-blue-500' : 'text-gray-400'}`} />
           <span className="flex-1 text-left">All visualizations</span>
           <span className="text-[10px] text-gray-400 tabular-nums">{totalVizCount}</span>
-        </button>
+        </div>
 
         {/* Separator */}
         {folders.length > 0 && <div className="border-b border-gray-200 my-2" />}
@@ -260,6 +424,17 @@ export function DashboardSidebar({
             />
           </div>
         )}
+      </div>
+
+      {/* Bottom: General Settings link */}
+      <div className="border-t border-gray-200 p-2">
+        <Link
+          href="/settings"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+        >
+          <Settings className="w-4 h-4 text-gray-400" />
+          General Settings
+        </Link>
       </div>
     </div>
   );

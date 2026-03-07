@@ -28,7 +28,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DashboardSidebar, FolderItem } from '@/components/dashboard/DashboardSidebar';
 import { VisualizationCard, VizItem } from '@/components/dashboard/VisualizationCard';
+import { FolderCard } from '@/components/dashboard/FolderCard';
 import { BulkExportDialog, BulkExportOptions } from '@/components/dashboard/BulkExportDialog';
+import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { toast } from 'sonner';
 
@@ -59,6 +61,7 @@ export default function DashboardPage() {
   const [showBulkExport, setShowBulkExport] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
+  const [showNewVizDialog, setShowNewVizDialog] = useState(false);
 
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -132,12 +135,12 @@ export default function DashboardPage() {
   };
 
   // Folder operations
-  const handleCreateFolder = async (name: string) => {
+  const handleCreateFolder = async (name: string, parentId?: number | null) => {
     try {
       const res = await fetch('/api/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, parentId: parentId || null }),
       });
       if (res.ok) {
         const folder = await res.json();
@@ -402,16 +405,21 @@ export default function DashboardPage() {
     if (activeFolderId !== null || searchQuery.trim()) return null;
 
     const rootViz = sortViz(visualizations.filter((v) => v.folderId === null));
-    const foldersWithViz = folders
-      .filter((f) => f.parentId === null)
+    const rootFolders = folders.filter((f) => f.parentId === null);
+    const foldersWithViz = rootFolders
       .map((folder) => ({
         folder,
         vizItems: sortViz(visualizations.filter((v) => v.folderId === folder.id)),
-      }))
-      .filter((g) => g.vizItems.length > 0);
+      }));
 
-    return { rootViz, foldersWithViz };
+    return { rootViz, foldersWithViz, rootFolders };
   }, [visualizations, folders, activeFolderId, searchQuery, sortViz]);
+
+  // Sub-folders for current active folder view
+  const activeSubFolders = useMemo(() => {
+    if (activeFolderId === null) return [];
+    return folders.filter((f) => f.parentId === activeFolderId);
+  }, [folders, activeFolderId]);
 
   // Bulk export handler — renders charts offscreen, captures as blobs, bundles into a ZIP
   const handleBulkExport = async (exportOptions: BulkExportOptions) => {
@@ -573,6 +581,13 @@ export default function DashboardPage() {
     });
   };
 
+  // Single export handler (for sidebar export button)
+  const handleExportSingle = (id: number) => {
+    setSelectedIds(new Set([id]));
+    setIsSelectionMode(true);
+    setShowBulkExport(true);
+  };
+
   const activeFolderName = activeFolderId !== null
     ? folders.find((f) => f.id === activeFolderId)?.name || 'Unknown folder'
     : 'All visualizations';
@@ -683,6 +698,15 @@ export default function DashboardPage() {
 
       return viewMode === 'grid' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {activeSubFolders.map((sf) => (
+            <FolderCard
+              key={`folder-${sf.id}`}
+              folder={sf}
+              vizCount={vizCountByFolder[String(sf.id)] || 0}
+              onClick={() => setActiveFolderId(sf.id)}
+              onDrop={(vizId) => handleMoveToFolder(vizId, sf.id)}
+            />
+          ))}
           {filteredViz.map(renderVizCard)}
         </div>
       ) : (
@@ -692,9 +716,9 @@ export default function DashboardPage() {
 
     // "All visualizations" view - show folder groups
     if (!folderGroups) return null;
-    const { rootViz, foldersWithViz } = folderGroups;
+    const { rootViz, foldersWithViz, rootFolders } = folderGroups;
 
-    if (rootViz.length === 0 && foldersWithViz.length === 0) {
+    if (rootViz.length === 0 && rootFolders.length === 0) {
       return (
         <div className="text-center py-20">
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -711,45 +735,49 @@ export default function DashboardPage() {
     }
 
     return (
-      <div className="space-y-6">
-        {/* Folder groups */}
-        {foldersWithViz.map(({ folder, vizItems }) => (
-          <div key={folder.id}>
-            {renderFolderGroupHeader(folder, vizItems.length)}
-            {expandedFolderIds.has(folder.id) && (
-              <div className="ml-6 mt-1">
-                {viewMode === 'grid' ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {vizItems.map(renderVizCard)}
+      <div className="space-y-4">
+        {/* Folder cards + root viz in one grid */}
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {rootFolders.map((folder) => (
+              <FolderCard
+                key={`folder-${folder.id}`}
+                folder={folder}
+                vizCount={vizCountByFolder[String(folder.id)] || 0}
+                onClick={() => setActiveFolderId(folder.id)}
+                onDrop={(vizId) => handleMoveToFolder(vizId, folder.id)}
+              />
+            ))}
+            {rootViz.map(renderVizCard)}
+          </div>
+        ) : (
+          <>
+            {/* Folder groups in list view */}
+            {foldersWithViz.map(({ folder, vizItems }) => (
+              <div key={folder.id}>
+                {renderFolderGroupHeader(folder, vizItems.length)}
+                {expandedFolderIds.has(folder.id) && (
+                  <div className="ml-6 mt-1">
+                    <div className="space-y-1">{vizItems.map(renderListRow)}</div>
                   </div>
-                ) : (
-                  <div className="space-y-1">{vizItems.map(renderListRow)}</div>
                 )}
               </div>
-            )}
-          </div>
-        ))}
-
-        {/* Root visualizations (no folder) */}
-        {rootViz.length > 0 && (
-          <div>
-            {foldersWithViz.length > 0 && (
-              <div className="border-t border-gray-200 pt-4 mt-2">
-                <span className="text-xs font-medium text-gray-400 uppercase tracking-wider px-1">
-                  Uncategorized
-                </span>
+            ))}
+            {rootViz.length > 0 && (
+              <div>
+                {foldersWithViz.length > 0 && (
+                  <div className="border-t border-gray-200 pt-4 mt-2">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider px-1">
+                      Uncategorized
+                    </span>
+                  </div>
+                )}
+                <div className="mt-3">
+                  <div className="space-y-1">{rootViz.map(renderListRow)}</div>
+                </div>
               </div>
             )}
-            <div className="mt-3">
-              {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {rootViz.map(renderVizCard)}
-                </div>
-              ) : (
-                <div className="space-y-1">{rootViz.map(renderListRow)}</div>
-              )}
-            </div>
-          </div>
+          </>
         )}
       </div>
     );
@@ -768,7 +796,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button onClick={createNew} disabled={creating} size="sm" className="gap-1.5">
+            <Button onClick={() => setShowNewVizDialog(true)} disabled={creating} size="sm" className="gap-1.5">
               {creating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -785,13 +813,19 @@ export default function DashboardPage() {
         {/* Sidebar */}
         <DashboardSidebar
           folders={folders}
+          visualizations={visualizations}
           activeFolderId={activeFolderId}
           onFolderSelect={setActiveFolderId}
           onCreateFolder={handleCreateFolder}
           onRenameFolder={handleRenameFolder}
           onDeleteFolder={handleDeleteFolder}
+          onMoveToFolder={handleMoveToFolder}
           vizCountByFolder={vizCountByFolder}
           totalVizCount={visualizations.length}
+          isSelectionMode={isSelectionMode}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onExportSingle={handleExportSingle}
         />
 
         {/* Content */}
@@ -937,6 +971,14 @@ export default function DashboardPage() {
         onExport={handleBulkExport}
       />
 
+      {/* New Visualization Dialog */}
+      <NewVisualizationDialog
+        open={showNewVizDialog}
+        onOpenChange={setShowNewVizDialog}
+        onCreateBlank={createNew}
+        activeFolderId={activeFolderId}
+      />
+
       {/* Confirm Dialog */}
       <ConfirmDialog
         open={confirmDialog.open}
@@ -1001,6 +1043,19 @@ function ListViewRow({ viz, isSelected, isSelectionMode, onToggleSelect, onDelet
       onClick={() => {
         if (isSelectionMode) onToggleSelect(viz.id);
         else router.push(`/editor/${viz.id}`);
+      }}
+      draggable={!isSelectionMode && !isEditing}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('text/plain', String(viz.id));
+        e.dataTransfer.effectAllowed = 'move';
+        if (e.currentTarget instanceof HTMLElement) {
+          e.currentTarget.style.opacity = '0.5';
+        }
+      }}
+      onDragEnd={(e) => {
+        if (e.currentTarget instanceof HTMLElement) {
+          e.currentTarget.style.opacity = '1';
+        }
       }}
     >
       {/* Selection checkbox */}
