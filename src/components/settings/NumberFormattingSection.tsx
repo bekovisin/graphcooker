@@ -108,6 +108,30 @@ export function NumberFormattingSection() {
           />
         </div>
       </div>
+
+      {/* X Axis custom decimals */}
+      <SettingRow label="X axis custom decimals" variant="inline">
+        <Switch
+          checked={settings.xAxisCustomDecimals ?? false}
+          onCheckedChange={(checked) => update({ xAxisCustomDecimals: checked })}
+        />
+      </SettingRow>
+
+      {settings.xAxisCustomDecimals && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">X axis decimals</label>
+            <Input
+              type="number"
+              value={settings.xAxisDecimalPlaces ?? 0}
+              onChange={(e) => update({ xAxisDecimalPlaces: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+              max={10}
+            />
+          </div>
+        </div>
+      )}
     </AccordionSection>
   );
 }

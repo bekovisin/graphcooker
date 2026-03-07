@@ -222,6 +222,8 @@ export interface NumberFormattingSettings {
   suffix: string;
   showTrailingZeros: boolean;
   roundDecimal: boolean;
+  xAxisCustomDecimals: boolean;
+  xAxisDecimalPlaces: number;
 }
 
 // Legend

@@ -144,6 +144,8 @@ export const defaultChartSettings: ChartSettings = {
     suffix: '',
     showTrailingZeros: true,
     roundDecimal: true,
+    xAxisCustomDecimals: false,
+    xAxisDecimalPlaces: 0,
   },
   legend: {
     show: true,

@@ -311,14 +311,17 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
 
   // X-axis tick generation with custom step support
   const xTicksAll = useMemo(() => {
+    let ticks: number[];
     if (settings.xAxis.ticksToShowMode === 'custom') {
       const step = settings.xAxis.tickStep || 10;
-      return generateCustomStepTicks(minVal, maxVal, step);
+      ticks = generateCustomStepTicks(minVal, maxVal, step);
+    } else if (settings.xAxis.ticksToShowMode === 'number') {
+      ticks = generateNiceTicks(minVal, maxVal, settings.xAxis.ticksToShowNumber);
+    } else {
+      ticks = generateNiceTicks(minVal, maxVal);
     }
-    if (settings.xAxis.ticksToShowMode === 'number') {
-      return generateNiceTicks(minVal, maxVal, settings.xAxis.ticksToShowNumber);
-    }
-    return generateNiceTicks(minVal, maxVal);
+    // Filter ticks to data range so chart doesn't extend beyond actual max/min
+    return ticks.filter((t) => t >= minVal - 1e-9 && t <= maxVal + 1e-9);
   }, [minVal, maxVal, settings.xAxis.ticksToShowMode, settings.xAxis.ticksToShowNumber, settings.xAxis.tickStep]);
 
   // Filter ticks based on label count mode + hidden labels
@@ -641,6 +644,19 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
             height={totalBarsHeight}
             fill={settings.plotBackground.backgroundColor}
             fillOpacity={(settings.plotBackground.backgroundOpacity ?? 100) / 100}
+          />
+        )}
+
+        {/* Plot border */}
+        {settings.plotBackground.border && (
+          <rect
+            x={padding.left}
+            y={chartTop}
+            width={plotWidth}
+            height={totalBarsHeight}
+            fill="none"
+            stroke={settings.plotBackground.borderColor || '#cccccc'}
+            strokeWidth={settings.plotBackground.borderWidth || 1}
           />
         )}
 
