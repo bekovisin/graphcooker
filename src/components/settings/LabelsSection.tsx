@@ -165,6 +165,7 @@ export function LabelsSection() {
                 { value: 'left', label: 'Left' },
                 { value: 'center', label: 'Center' },
                 { value: 'right', label: 'Right' },
+                { value: 'outside_right', label: 'Outside' },
               ]}
             />
           </SettingRow>

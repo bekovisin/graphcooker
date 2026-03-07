@@ -68,7 +68,7 @@ export interface BarsSettings {
 
 // Labels
 export type BarLabelStyle = 'above_bars' | 'axis';
-export type DataPointLabelPosition = 'left' | 'center' | 'right';
+export type DataPointLabelPosition = 'left' | 'center' | 'right' | 'outside_right';
 export type DataPointLabelColorMode = 'auto' | 'custom';
 export type StackLabelMode = 'none' | 'net_sum' | 'separate';
 

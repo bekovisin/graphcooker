@@ -264,6 +264,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
   // Get current chart container dimensions for export dialog defaults
   const getContainerDimensions = () => {
+    if (typeof document === 'undefined') return { width: 800, height: 600 };
     const container = document.getElementById('chart-container');
     if (container) {
       return { width: container.offsetWidth, height: container.offsetHeight };
