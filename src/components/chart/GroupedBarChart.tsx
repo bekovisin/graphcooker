@@ -56,8 +56,11 @@ function resolveColors(colorsSettings: ChartSettings['colors'], seriesNames: str
 
 function formatNumber(value: number, nf: ChartSettings['numberFormatting']): string {
   const factor = Math.pow(10, nf.decimalPlaces);
-  const rounded = Math.round(value * factor) / factor;
-  let str = rounded.toFixed(nf.decimalPlaces);
+  // Round or truncate based on setting
+  const adjusted = nf.roundDecimal !== false
+    ? Math.round(value * factor) / factor
+    : Math.trunc(value * factor) / factor;
+  let str = adjusted.toFixed(nf.decimalPlaces);
   // Strip trailing zeros if showTrailingZeros is off
   if (!nf.showTrailingZeros && str.includes('.')) {
     str = str.replace(/0+$/, '').replace(/\.$/, '');
@@ -92,13 +95,13 @@ function fontWeightToCSS(fw: string): number {
   return 400;
 }
 
+let _measureCanvas: HTMLCanvasElement | null = null;
 function measureTextWidth(text: string, fontSize: number, fontFamily: string, fontWeight: string): number {
   if (typeof document === 'undefined') return text.length * fontSize * 0.6;
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+  if (!_measureCanvas) _measureCanvas = document.createElement('canvas');
+  const ctx = _measureCanvas.getContext('2d');
   if (!ctx) return text.length * fontSize * 0.6;
-  const w = fontWeight === 'bold' ? 'bold' : fontWeight === '600' ? '600' : 'normal';
-  ctx.font = `${w} ${fontSize}px ${fontFamily}`;
+  ctx.font = `${fontWeightToCSS(fontWeight)} ${fontSize}px ${fontFamily}`;
   return ctx.measureText(text).width;
 }
 
@@ -132,17 +135,9 @@ function wrapText(text: string, maxWidth: number, fontSize: number, fontFamily: 
     }
   }
   if (currentLine) lines.push(currentLine);
-  // Max 2 lines: both lines truncated if they exceed maxWidth
-  if (lines.length > 2) {
-    const remainingText = lines.slice(1).join(' ');
-    lines.length = 2;
-    lines[0] = truncateText(lines[0], maxWidth, fontSize, fontFamily, fontWeight);
-    lines[1] = truncateText(remainingText, maxWidth, fontSize, fontFamily, fontWeight);
-  } else {
-    // Truncate each line individually
-    for (let i = 0; i < lines.length; i++) {
-      lines[i] = truncateText(lines[i], maxWidth, fontSize, fontFamily, fontWeight);
-    }
+  // Truncate each line individually
+  for (let i = 0; i < lines.length; i++) {
+    lines[i] = truncateText(lines[i], maxWidth, fontSize, fontFamily, fontWeight);
   }
   return lines.length > 0 ? lines : [truncateText(text, maxWidth, fontSize, fontFamily, fontWeight)];
 }
@@ -419,9 +414,14 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
       for (let ci = 0; ci < categories.length; ci++) {
         const v = s.data[ci];
         if (v === 0) continue;
-        let text = formatNumber(v, settings.numberFormatting);
-        if (settings.labels.showPercentPrefix) text += '%';
-        const w = measureTextWidth(text, fs, ff, fw);
+        const text = formatNumber(v, settings.numberFormatting);
+        let w = measureTextWidth(text, fs, ff, fw);
+        if (settings.labels.showPercentPrefix) {
+          const prefixPad = settings.labels.percentPrefixPadding ?? 0;
+          const prefixFs = settings.labels.percentPrefixFontSize ?? fs;
+          const prefixFw = String(fontWeightToCSS(settings.labels.percentPrefixFontWeight ?? 'normal'));
+          w += measureTextWidth('%', prefixFs, ff, prefixFw) + prefixPad;
+        }
         if (w > maxW) maxW = w;
       }
     }
@@ -945,6 +945,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                 fontWeight: fontWeightToCSS(settings.labels.percentPrefixFontWeight ?? 'normal'),
                 fill: prefixColor,
               };
+              // Render label text (without prefix)
               labelElements.push(
                 <text
                   key={`label-${ci}-${si}`}
@@ -961,15 +962,53 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                     pointerEvents: 'none',
                   }}
                 >
-                  {showPercent && prefixPos === 'left' && (
-                    <tspan dx={prefixPad} style={prefixStyle}>%</tspan>
-                  )}
                   {labelText}
-                  {showPercent && prefixPos === 'right' && (
-                    <tspan dx={prefixPad} style={prefixStyle}>%</tspan>
-                  )}
                 </text>
               );
+
+              // Render prefix as separate text element for independent positioning
+              if (showPercent) {
+                const labelW = measureTextWidth(labelText, settings.labels.dataPointFontSize, settings.labels.dataPointFontFamily, String(fontWeightToCSS(settings.labels.dataPointFontWeight)));
+                const prefixText = '%';
+                const prefixW = measureTextWidth(prefixText, prefixStyle.fontSize as number, settings.labels.dataPointFontFamily, String(prefixStyle.fontWeight));
+                let prefixX: number;
+
+                if (prefixPos === 'left') {
+                  if (anchor === 'start') {
+                    prefixX = labelX + offsetX - prefixPad - prefixW;
+                  } else if (anchor === 'end') {
+                    prefixX = labelX + offsetX - labelW - prefixPad - prefixW;
+                  } else {
+                    prefixX = labelX + offsetX - labelW / 2 - prefixPad - prefixW;
+                  }
+                } else {
+                  if (anchor === 'start') {
+                    prefixX = labelX + offsetX + labelW + prefixPad;
+                  } else if (anchor === 'end') {
+                    prefixX = labelX + offsetX + prefixPad;
+                  } else {
+                    prefixX = labelX + offsetX + labelW / 2 + prefixPad;
+                  }
+                }
+
+                labelElements.push(
+                  <text
+                    key={`prefix-${ci}-${si}`}
+                    x={prefixX}
+                    y={groupedBarY + actualBarH / 2 + offsetY}
+                    dy="0.35em"
+                    textAnchor="start"
+                    style={{
+                      ...prefixStyle,
+                      fontFamily: settings.labels.dataPointFontFamily,
+                      fontStyle: settings.labels.dataPointFontStyle || 'normal',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {prefixText}
+                  </text>
+                );
+              }
             }
 
             // Grouped: no stacking — each bar starts from zero
@@ -1030,12 +1069,15 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
               }
               const lineHeight = yTickStyle.fontSize * 1.2;
               const totalH = lines.length * lineHeight;
+              const centerY = barY + barHeight / 2;
+              const startY = centerY - totalH / 2;
               return lines.map((line, li) => (
                 <text
                   key={`ylabel-${ci}-${li}`}
                   x={labelX}
-                  y={barY + barHeight / 2 - totalH / 2 + lineHeight * (li + 0.7)}
+                  y={startY + lineHeight * li + lineHeight / 2}
                   textAnchor={anchor}
+                  dominantBaseline="central"
                   style={{
                     fontSize: yTickStyle.fontSize,
                     fontFamily: yTickStyle.fontFamily,
@@ -1058,7 +1100,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
                   x={labelX}
                   y={barY + barHeight / 2}
                   textAnchor={anchor}
-                  dy="0.35em"
+                  dominantBaseline="central"
                   style={{
                     fontSize: yTickStyle.fontSize,
                     fontFamily: yTickStyle.fontFamily,

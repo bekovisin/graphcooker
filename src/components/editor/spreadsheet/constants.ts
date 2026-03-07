@@ -1,8 +1,8 @@
 import { ColumnRole } from './types';
 
-export const DEFAULT_COL_WIDTH = 150;
+export const DEFAULT_COL_WIDTH = 180;
 export const MIN_COL_WIDTH = 50;
-export const DEFAULT_ROW_HEIGHT = 32;
+export const DEFAULT_ROW_HEIGHT = 34;
 export const MIN_ROW_HEIGHT = 24;
 export const ROW_NUMBER_WIDTH = 48;
 export const HEADER_HEIGHT = 48;

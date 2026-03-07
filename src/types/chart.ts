@@ -220,6 +220,7 @@ export interface NumberFormattingSettings {
   prefix: string;
   suffix: string;
   showTrailingZeros: boolean;
+  roundDecimal: boolean;
 }
 
 // Legend

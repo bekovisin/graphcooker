@@ -17,6 +17,7 @@ interface UseSpreadsheetClipboardProps {
   headerSelected: boolean;
   seriesNames: Record<string, string>;
   onDataChange: (data: DataRow[], columnOrder: string[]) => void;
+  setSeriesName: (colName: string, displayName: string) => void;
   pushHistory: () => void;
 }
 
@@ -28,6 +29,7 @@ export function useSpreadsheetClipboard({
   headerSelected,
   seriesNames,
   onDataChange,
+  setSeriesName,
   pushHistory,
 }: UseSpreadsheetClipboardProps) {
   const handleCopy = useCallback(async () => {
@@ -95,8 +97,27 @@ export function useSpreadsheetClipboard({
       const newData = data.map((row) => ({ ...row }));
       const newColumnOrder = [...columnOrder];
 
+      // Auto-detect header row: when pasting at top-left (0,0) with multiple rows,
+      // or when header is explicitly selected (Ctrl+A), treat first row as series names.
+      const shouldTreatFirstAsHeader = headerSelected ||
+        (activeCell.row === 0 && activeCell.col === 0 && parsed.length > 1);
+
+      let dataRows = parsed;
+      if (shouldTreatFirstAsHeader && parsed.length > 0) {
+        const headerRow = parsed[0];
+        for (let c = 0; c < headerRow.length; c++) {
+          const targetCol = activeCell.col + c;
+          if (targetCol < newColumnOrder.length) {
+            const colName = newColumnOrder[targetCol];
+            setSeriesName(colName, headerRow[c]);
+          }
+        }
+        dataRows = parsed.slice(1);
+      }
+
       // Expand rows if needed
-      while (newData.length < activeCell.row + parsed.length) {
+      const startRow = shouldTreatFirstAsHeader ? 0 : activeCell.row;
+      while (newData.length < startRow + dataRows.length) {
         const emptyRow: DataRow = {};
         newColumnOrder.forEach((col) => (emptyRow[col] = ''));
         newData.push(emptyRow);
@@ -111,13 +132,13 @@ export function useSpreadsheetClipboard({
       }
 
       // Write paste data
-      for (let r = 0; r < parsed.length; r++) {
-        for (let c = 0; c < parsed[r].length; c++) {
-          const targetRow = activeCell.row + r;
+      for (let r = 0; r < dataRows.length; r++) {
+        for (let c = 0; c < dataRows[r].length; c++) {
+          const targetRow = startRow + r;
           const targetCol = activeCell.col + c;
           if (targetRow < newData.length && targetCol < newColumnOrder.length) {
             const colName = newColumnOrder[targetCol];
-            const val = parsed[r][c];
+            const val = dataRows[r][c];
             // Try to parse as number
             const num = Number(val);
             newData[targetRow][colName] = val !== '' && !isNaN(num) ? num : val;
@@ -127,7 +148,7 @@ export function useSpreadsheetClipboard({
 
       onDataChange(newData, newColumnOrder);
     },
-    [data, columnOrder, activeCell, onDataChange, pushHistory]
+    [data, columnOrder, activeCell, headerSelected, onDataChange, setSeriesName, pushHistory]
   );
 
   const handleDelete = useCallback(() => {

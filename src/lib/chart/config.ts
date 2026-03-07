@@ -142,6 +142,7 @@ export const defaultChartSettings: ChartSettings = {
     prefix: '',
     suffix: '',
     showTrailingZeros: true,
+    roundDecimal: true,
   },
   legend: {
     show: true,

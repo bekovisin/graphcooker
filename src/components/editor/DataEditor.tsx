@@ -11,7 +11,7 @@ import { ColumnTypeConfig } from './spreadsheet/types';
 import { generateUniqueColumnName } from './spreadsheet/utils';
 
 export function DataEditor() {
-  const { data, columnOrder, columnTypes, setData, setDataAndColumns, setColumnType, updateSettings, activeTab } = useEditorStore();
+  const { data, columnOrder, columnTypes, setData, setDataAndColumns, setColumnType, activeTab } = useEditorStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectionInfo, setSelectionInfo] = useState<SelectionInfo | null>(null);
 
@@ -74,13 +74,9 @@ export function DataEditor() {
       const colName = columnOrder[typeModalColIndex];
       if (colName) {
         setColumnType(colName, config);
-        // Sync decimal places to chart number formatting
-        if (config.type === 'number' && config.decimalPlaces !== undefined) {
-          updateSettings('numberFormatting', { decimalPlaces: config.decimalPlaces });
-        }
       }
     },
-    [columnOrder, typeModalColIndex, setColumnType, updateSettings]
+    [columnOrder, typeModalColIndex, setColumnType]
   );
 
   const typeModalColName = columnOrder[typeModalColIndex] || '';

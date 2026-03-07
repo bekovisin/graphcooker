@@ -35,6 +35,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     columnOrder,
     columnMapping,
     seriesNames,
+    setSeriesName,
     setDataAndColumns,
     insertRow,
     removeRow,
@@ -76,6 +77,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     headerSelected: selection.headerSelected,
     seriesNames,
     onDataChange: handleDataChange,
+    setSeriesName,
     pushHistory,
   });
 

@@ -79,6 +79,14 @@ export function NumberFormattingSection() {
         />
       </SettingRow>
 
+      {/* Round values */}
+      <SettingRow label="Round values" variant="inline">
+        <Switch
+          checked={settings.roundDecimal ?? true}
+          onCheckedChange={(checked) => update({ roundDecimal: checked })}
+        />
+      </SettingRow>
+
       {/* Prefix + Suffix — 2-column row */}
       <div className="grid grid-cols-2 gap-1.5">
         <div>

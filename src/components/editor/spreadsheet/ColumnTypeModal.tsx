@@ -163,6 +163,7 @@ export function ColumnTypeModal({
                   <option value="space_comma">12 235,56</option>
                 </select>
               </div>
+
             </>
           )}
         </div>
