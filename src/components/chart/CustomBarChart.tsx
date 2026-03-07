@@ -696,9 +696,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
           return (
             <line
               x1={yLineX}
-              y1={chartTop}
+              y1={chartTop - (settings.xAxis.zeroLineExtendTop || 0)}
               x2={yLineX}
-              y2={chartTop + totalBarsHeight}
+              y2={chartTop + totalBarsHeight + (settings.xAxis.zeroLineExtendBottom || 0)}
               stroke={settings.yAxis.axisLine.color}
               strokeWidth={settings.yAxis.axisLine.width}
             />
@@ -1263,7 +1263,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             const groupStartX = legendIsOverlay
               ? curX
               : settings.legend.alignment === 'center'
-                ? (width - maxItemW) / 2 + lPadL - lPadR
+                ? lPadL + (width - lPadL - lPadR - maxItemW) / 2
                 : settings.legend.alignment === 'right'
                   ? width - maxItemW - lPadR
                   : 0 + lPadL;
