@@ -32,6 +32,50 @@ const FontWeight = Extension.create({
   },
 });
 
+// ── Custom FontSize extension ──
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) => element.style.fontSize?.replace('px', '') || null,
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) return {};
+              return { style: `font-size: ${attributes.fontSize}px` };
+            },
+          },
+        },
+      },
+    ];
+  },
+});
+
+// ── Custom FontFamily extension (inline via textStyle) ──
+const FontFamily = Extension.create({
+  name: 'fontFamily',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          fontFamily: {
+            default: null,
+            parseHTML: (element) => element.style.fontFamily || null,
+            renderHTML: (attributes) => {
+              if (!attributes.fontFamily) return {};
+              return { style: `font-family: ${attributes.fontFamily}` };
+            },
+          },
+        },
+      },
+    ];
+  },
+});
+
 const fontWeightOptions = [
   { value: '100', label: 'Thin' },
   { value: '200', label: 'Extra Light' },
@@ -42,6 +86,20 @@ const fontWeightOptions = [
   { value: 'bold', label: 'Bold' },
   { value: '800', label: 'Extra Bold' },
   { value: '900', label: 'Black' },
+];
+
+const fontFamilyOptions = [
+  { value: '', label: 'Default' },
+  { value: 'Inter, sans-serif', label: 'Inter' },
+  { value: 'Roboto, sans-serif', label: 'Roboto' },
+  { value: 'Montserrat, sans-serif', label: 'Montserrat' },
+  { value: 'Arial', label: 'Arial' },
+  { value: 'Helvetica', label: 'Helvetica' },
+  { value: 'Georgia', label: 'Georgia' },
+  { value: 'Times New Roman', label: 'Times' },
+  { value: 'Courier New', label: 'Courier' },
+  { value: 'Verdana', label: 'Verdana' },
+  { value: 'system-ui', label: 'System' },
 ];
 
 interface RichTextEditorProps {
@@ -67,7 +125,6 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        // Disable features we don't need
         heading: false,
         bulletList: false,
         orderedList: false,
@@ -82,6 +139,8 @@ export function RichTextEditor({
       TextStyle,
       Color,
       FontWeight,
+      FontSize,
+      FontFamily,
       Placeholder.configure({
         placeholder,
       }),
@@ -98,8 +157,7 @@ export function RichTextEditor({
     },
   });
 
-  // Sync external value changes (only if different from current editor content)
-  // We use a ref to track the last value we set, avoiding infinite loops
+  // Sync external value changes
   const lastExternalValue = useRef(value);
   if (editor && value !== lastExternalValue.current) {
     const currentHtml = editor.getHTML();
@@ -115,14 +173,50 @@ export function RichTextEditor({
     return attrs.fontWeight || 'normal';
   }, [editor]);
 
-  const setFontWeight = useCallback(
+  const setFontWeightValue = useCallback(
     (weight: string) => {
       if (!editor) return;
       if (weight === 'normal' || weight === '400') {
-        // Remove font weight mark
         editor.chain().focus().setMark('textStyle', { fontWeight: null }).run();
       } else {
         editor.chain().focus().setMark('textStyle', { fontWeight: weight }).run();
+      }
+    },
+    [editor],
+  );
+
+  const getCurrentFontFamily = useCallback(() => {
+    if (!editor) return '';
+    const attrs = editor.getAttributes('textStyle');
+    return attrs.fontFamily || '';
+  }, [editor]);
+
+  const setFontFamilyValue = useCallback(
+    (family: string) => {
+      if (!editor) return;
+      if (!family) {
+        editor.chain().focus().setMark('textStyle', { fontFamily: null }).run();
+      } else {
+        editor.chain().focus().setMark('textStyle', { fontFamily: family }).run();
+      }
+    },
+    [editor],
+  );
+
+  const getCurrentFontSize = useCallback(() => {
+    if (!editor) return '';
+    const attrs = editor.getAttributes('textStyle');
+    return attrs.fontSize || '';
+  }, [editor]);
+
+  const setFontSizeValue = useCallback(
+    (size: string) => {
+      if (!editor) return;
+      const num = parseInt(size);
+      if (!num || num <= 0) {
+        editor.chain().focus().setMark('textStyle', { fontSize: null }).run();
+      } else {
+        editor.chain().focus().setMark('textStyle', { fontSize: String(num) }).run();
       }
     },
     [editor],
@@ -142,18 +236,51 @@ export function RichTextEditor({
     return attrs.color || defaultColor;
   }, [editor, defaultColor]);
 
+  const handleResetToDefaults = useCallback(() => {
+    if (!editor) return;
+    editor.chain().selectAll().unsetAllMarks().run();
+  }, [editor]);
+
   if (!editor) return null;
 
   return (
     <div className="border border-gray-300 rounded-md overflow-hidden bg-white">
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 px-1.5 py-1 border-b border-gray-200 bg-gray-50 flex-wrap">
+        {/* Font Family Dropdown */}
+        <select
+          value={getCurrentFontFamily()}
+          onChange={(e) => setFontFamilyValue(e.target.value)}
+          className="h-6 text-[10px] border border-gray-300 rounded px-1 bg-white cursor-pointer outline-none"
+          style={{ minWidth: 68 }}
+          title="Font Family"
+        >
+          {fontFamilyOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+
+        {/* Font Size Input */}
+        <input
+          type="number"
+          value={getCurrentFontSize()}
+          onChange={(e) => setFontSizeValue(e.target.value)}
+          placeholder="px"
+          className="h-6 w-10 text-[10px] border border-gray-300 rounded px-1 bg-white outline-none text-center"
+          title="Font Size (px)"
+          min={1}
+          max={200}
+        />
+
         {/* Font Weight Dropdown */}
         <select
           value={getCurrentFontWeight()}
-          onChange={(e) => setFontWeight(e.target.value)}
+          onChange={(e) => setFontWeightValue(e.target.value)}
           className="h-6 text-[10px] border border-gray-300 rounded px-1 bg-white cursor-pointer outline-none"
-          style={{ minWidth: 80 }}
+          style={{ minWidth: 70 }}
+          title="Font Weight"
         >
           {fontWeightOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -240,7 +367,6 @@ export function RichTextEditor({
                   value={getCurrentColor()}
                   onChange={(color) => {
                     handleColorChange(color);
-                    // Don't close - let user pick freely
                   }}
                 />
                 <button
@@ -254,6 +380,19 @@ export function RichTextEditor({
             </div>
           )}
         </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Reset to Defaults */}
+        <button
+          type="button"
+          onClick={handleResetToDefaults}
+          className="h-6 px-2 text-[10px] text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded transition-colors whitespace-nowrap"
+          title="Reset all formatting to defaults"
+        >
+          Reset
+        </button>
       </div>
 
       {/* Editor */}

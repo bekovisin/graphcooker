@@ -104,7 +104,7 @@ export type TickPosition = 'default' | 'left' | 'right';
 export type TicksToShowMode = 'auto' | 'number' | 'custom';
 export type TickMarkPosition = 'outside' | 'inside' | 'cross';
 
-export type FontWeight = '200' | '300' | 'normal' | '500' | '600' | 'bold';
+export type FontWeight = '100' | '200' | '300' | 'normal' | '500' | '600' | 'bold' | '800' | '900';
 export type FontStyle = 'normal' | 'italic';
 
 export interface AxisStyling {

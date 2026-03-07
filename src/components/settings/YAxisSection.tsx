@@ -106,12 +106,15 @@ function InlineStylingPanel({ styling, onChange }: {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="100" className="text-xs">Thin</SelectItem>
               <SelectItem value="200" className="text-xs">Extra-light</SelectItem>
               <SelectItem value="300" className="text-xs">Light</SelectItem>
               <SelectItem value="normal" className="text-xs">Normal</SelectItem>
               <SelectItem value="500" className="text-xs">Medium</SelectItem>
               <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
               <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+              <SelectItem value="800" className="text-xs">Extra-bold</SelectItem>
+              <SelectItem value="900" className="text-xs">Black</SelectItem>
             </SelectContent>
           </Select>
         </div>

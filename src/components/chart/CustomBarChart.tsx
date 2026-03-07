@@ -79,10 +79,13 @@ function getContrastColor(hexColor: string): string {
 
 function fontWeightToCSS(fw: string): number {
   if (fw === 'bold') return 700;
+  if (fw === '900') return 900;
+  if (fw === '800') return 800;
   if (fw === '600') return 600;
   if (fw === '500') return 500;
   if (fw === '300') return 300;
   if (fw === '200') return 200;
+  if (fw === '100') return 100;
   return 400;
 }
 
@@ -422,22 +425,22 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
   const spacingMain = settings.bars.spacingMain;
   const emptyRowSpacing = settings.bars.emptyRowSpacing;
   const bottomBarPadding = settings.bars.bottomBarPadding;
-  // Above-bars label row height: account for wrapping when space mode is fixed
-  const labelRowHeight = useMemo(() => {
-    if (!isAboveBars) return 0;
+  // Above-bars label row height: per-category to avoid blank space under single-line labels
+  const labelRowHeights = useMemo(() => {
+    if (!isAboveBars) return categories.map(() => 0);
     const baseHeight = yTickStyle.fontSize + 8;
-    if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) return baseHeight;
-    // Check if any category needs wrapping — if so, add extra line height
+    if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) {
+      return categories.map(() => baseHeight);
+    }
     const maxW = settings.yAxis.spaceModeValue;
-    let maxLines = 1;
-    for (const cat of categories) {
+    return categories.map((cat) => {
       const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
       if (fullW > maxW && cat.includes(' ')) {
         const lines = wrapText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
-        maxLines = Math.max(maxLines, lines.length);
+        return lines.length > 1 ? yTickStyle.fontSize * 1.2 * lines.length + 4 : baseHeight;
       }
-    }
-    return maxLines > 1 ? yTickStyle.fontSize * 1.2 * maxLines + 4 : baseHeight;
+      return baseHeight;
+    });
   }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, categories]);
 
   // Determine which categories are "empty" (blank label AND all series values are 0/null)
@@ -453,30 +456,32 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
   const nonEmptyCount = isEmptyCategory.filter(e => !e).length;
   const emptyCount = isEmptyCategory.filter(e => e).length;
 
+  // Sum of per-category label heights for non-empty categories (used in height calculations)
+  const totalLabelRowHeight = labelRowHeights.reduce((sum, h, ci) => sum + (isEmptyCategory[ci] ? 0 : h), 0);
+
   const barHeight = (() => {
     if (heightProp && categories.length > 0 && nonEmptyCount > 0) {
       const nonBarSpace = padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight) + bottomBarPadding;
-      const availableForBars = heightProp - nonBarSpace - emptyCount * emptyRowSpacing;
+      const availableForBars = heightProp - nonBarSpace - emptyCount * emptyRowSpacing - totalLabelRowHeight;
       const perCategory = availableForBars / nonEmptyCount;
-      return Math.max(4, perCategory - spacingMain - labelRowHeight);
+      return Math.max(4, perCategory - spacingMain);
     }
     return settings.bars.barHeight;
   })();
-  const categoryHeight = barHeight + spacingMain + labelRowHeight;
 
-  // Build cumulative Y offsets for each category
+  // Build cumulative Y offsets for each category (per-category heights)
   const catYOffsets = useMemo(() => {
     const offsets: number[] = [];
     let cumY = 0;
     for (let ci = 0; ci < categories.length; ci++) {
       offsets.push(cumY);
-      cumY += isEmptyCategory[ci] ? emptyRowSpacing : categoryHeight;
+      cumY += isEmptyCategory[ci] ? emptyRowSpacing : (barHeight + spacingMain + labelRowHeights[ci]);
     }
     return offsets;
-  }, [categories.length, isEmptyCategory, emptyRowSpacing, categoryHeight]);
+  }, [categories.length, isEmptyCategory, emptyRowSpacing, barHeight, spacingMain, labelRowHeights]);
 
   const totalBarsHeight = catYOffsets.length > 0
-    ? catYOffsets[catYOffsets.length - 1] + (isEmptyCategory[categories.length - 1] ? emptyRowSpacing : categoryHeight) + bottomBarPadding
+    ? catYOffsets[catYOffsets.length - 1] + (isEmptyCategory[categories.length - 1] ? emptyRowSpacing : (barHeight + spacingMain + labelRowHeights[categories.length - 1])) + bottomBarPadding
     : bottomBarPadding;
 
   const computedChartHeight = totalBarsHeight + padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);
@@ -651,7 +656,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
         {/* ── Y axis gridlines ── */}
         {settings.yAxis.gridlines && categories.map((_, ci) => {
           if (isEmptyCategory[ci]) return null;
-          const y = chartTop + catYOffsets[ci] + (isAboveBars ? labelRowHeight : 0) + barHeight / 2;
+          const y = chartTop + catYOffsets[ci] + (isAboveBars ? labelRowHeights[ci] : 0) + barHeight / 2;
           return (
             <line
               key={`ygrid-${ci}`}
@@ -819,7 +824,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
           // Skip rendering for empty categories (spacer rows)
           if (isEmptyCategory[ci]) return null;
           const catY = chartTop + catYOffsets[ci];
-          const barY = catY + (isAboveBars ? labelRowHeight : 0);
+          const barY = catY + (isAboveBars ? labelRowHeights[ci] : 0);
 
           // Stacked bars
           let stackX = xScale(Math.max(0, minVal));
