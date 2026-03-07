@@ -224,12 +224,14 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     const exportWidth = options.width || currentW;
     const exportHeight = options.height || currentH;
 
-    // Render a fresh chart at the exact target dimensions in an offscreen container
+    // Render a fresh chart at the exact target dimensions in an offscreen container.
+    // Pass canvasWidth so question/header/footer keep their canvas layout — extra
+    // width/height only changes the chart, not the surrounding blocks.
     const { container, cleanup } = await renderChartOffscreen(
       settings,
       data,
       columnMapping,
-      { width: exportWidth, height: exportHeight, transparent: options.transparent },
+      { width: exportWidth, height: exportHeight, transparent: options.transparent, canvasWidth: currentW },
       columnOrder,
       seriesNames,
     );
