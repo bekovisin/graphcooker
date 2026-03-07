@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DashboardSidebar, FolderItem } from '@/components/dashboard/DashboardSidebar';
 import { VisualizationCard, VizItem } from '@/components/dashboard/VisualizationCard';
-import { BulkExportDialog } from '@/components/dashboard/BulkExportDialog';
+import { BulkExportDialog, BulkExportOptions } from '@/components/dashboard/BulkExportDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { toast } from 'sonner';
 
@@ -413,60 +413,107 @@ export default function DashboardPage() {
     return { rootViz, foldersWithViz };
   }, [visualizations, folders, activeFolderId, searchQuery, sortViz]);
 
-  // Convert data URL to downloadable blob URL
-  const dataUrlToBlob = (dataUrl: string): Blob => {
-    const parts = dataUrl.split(',');
-    const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
-    const binary = atob(parts[1]);
-    const array = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
-    return new Blob([array], { type: mime });
-  };
-
-  // Bulk export handler (always PNG from stored thumbnails)
-  const handleBulkExport = async () => {
+  // Bulk export handler — supports all formats via offscreen rendering
+  const handleBulkExport = async (exportOptions: BulkExportOptions) => {
     const toExport = visualizations.filter((v) => selectedIds.has(v.id));
     if (toExport.length === 0) return;
 
-    const withThumbnails = toExport.filter((v) => v.thumbnail);
-    if (withThumbnails.length === 0) {
-      toast.error('No thumbnails available. Open each visualization first to generate previews.');
-      exitSelectionMode();
-      return;
-    }
+    const { format, width, height, transparent, pixelRatio } = exportOptions;
 
     toast.promise(
       (async () => {
         let exported = 0;
-        for (const viz of withThumbnails) {
-          if (viz.thumbnail) {
-            try {
-              const blob = dataUrlToBlob(viz.thumbnail);
-              const blobUrl = URL.createObjectURL(blob);
-              const link = document.createElement('a');
-              link.href = blobUrl;
-              link.download = `${viz.name.replace(/[^a-zA-Z0-9-_]/g, '_')}.png`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              URL.revokeObjectURL(blobUrl);
-              exported++;
-              // Small delay between downloads to avoid browser blocking
-              if (exported < withThumbnails.length) {
-                await new Promise((r) => setTimeout(r, 500));
-              }
-            } catch (e) {
-              console.error(`Failed to export ${viz.name}:`, e);
+        let failed = 0;
+
+        for (const viz of toExport) {
+          try {
+            // Fetch full visualization data (settings, data, columnMapping)
+            const res = await fetch(`/api/visualizations/${viz.id}`);
+            if (!res.ok) {
+              failed++;
+              continue;
             }
+            const fullViz = await res.json();
+
+            const { defaultChartSettings, defaultData, defaultColumnMapping } = await import(
+              '@/lib/chart/config'
+            );
+
+            const vizData = Array.isArray(fullViz.data) && fullViz.data.length > 0
+              ? fullViz.data
+              : defaultData;
+            const vizSettings =
+              fullViz.settings && Object.keys(fullViz.settings).length > 0
+                ? { ...defaultChartSettings, ...fullViz.settings }
+                : defaultChartSettings;
+            const vizMapping =
+              fullViz.columnMapping && Object.keys(fullViz.columnMapping).length > 0
+                ? fullViz.columnMapping
+                : defaultColumnMapping;
+            const vizName = viz.name || 'chart';
+
+            if (format === 'html') {
+              // HTML export doesn't need offscreen rendering
+              const { exportHtml } = await import('@/lib/export/exportHtml');
+              exportHtml(vizSettings, vizData, vizMapping, vizName, {
+                width,
+                height,
+                transparent,
+              });
+            } else {
+              // Render chart offscreen at the requested dimensions
+              const { renderChartOffscreen } = await import(
+                '@/lib/export/renderChartOffscreen'
+              );
+              const { container, cleanup } = await renderChartOffscreen(
+                vizSettings,
+                vizData,
+                vizMapping,
+                { width, height, transparent }
+              );
+
+              try {
+                switch (format) {
+                  case 'png': {
+                    const { exportPng } = await import('@/lib/export/exportPng');
+                    await exportPng(container, vizName, { transparent, pixelRatio });
+                    break;
+                  }
+                  case 'svg': {
+                    const { exportSvg } = await import('@/lib/export/exportSvg');
+                    await exportSvg(container, vizName, { transparent });
+                    break;
+                  }
+                  case 'pdf': {
+                    const { exportPdf } = await import('@/lib/export/exportPdf');
+                    await exportPdf(container, vizName, { transparent });
+                    break;
+                  }
+                }
+              } finally {
+                cleanup();
+              }
+            }
+
+            exported++;
+
+            // Small delay between downloads to avoid browser throttling
+            if (exported < toExport.length) {
+              await new Promise((r) => setTimeout(r, 600));
+            }
+          } catch (e) {
+            console.error(`Failed to export ${viz.name}:`, e);
+            failed++;
           }
         }
-        if (exported < toExport.length) {
-          toast.info(`${toExport.length - exported} visualization(s) had no thumbnail and were skipped.`);
+
+        if (failed > 0) {
+          toast.info(`${failed} visualization(s) could not be exported.`);
         }
       })(),
       {
-        loading: `Exporting ${withThumbnails.length} visualization${withThumbnails.length > 1 ? 's' : ''}...`,
-        success: `Exported ${withThumbnails.length} file${withThumbnails.length > 1 ? 's' : ''} as PNG`,
+        loading: `Exporting ${toExport.length} visualization${toExport.length > 1 ? 's' : ''} as ${format.toUpperCase()}...`,
+        success: `Exported ${toExport.length} file${toExport.length > 1 ? 's' : ''} as ${format.toUpperCase()}`,
         error: 'Export failed',
       }
     );
