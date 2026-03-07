@@ -62,9 +62,16 @@ export function SettingsPanel() {
 
   // Then filter by preset if in custom mode
   if (mode === 'custom' && activePreset) {
-    filteredSections = filteredSections.filter((s) =>
-      activePreset.visibleSections.includes(s.id)
-    );
+    // Use granular visibleSettings if available, otherwise fall back to visibleSections
+    if (activePreset.visibleSettings && activePreset.visibleSettings.length > 0) {
+      filteredSections = filteredSections.filter((s) =>
+        activePreset.visibleSettings.some((vs) => vs.startsWith(`${s.id}.`))
+      );
+    } else {
+      filteredSections = filteredSections.filter((s) =>
+        activePreset.visibleSections.includes(s.id)
+      );
+    }
   }
 
   return (
@@ -108,11 +115,15 @@ export function SettingsPanel() {
                 className="w-full text-xs border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-400"
               >
                 <option value="">Select a preset...</option>
-                {presets.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.visibleSections.length} sections)
-                  </option>
-                ))}
+                {presets.map((p) => {
+                  const count = p.visibleSettings?.length || p.visibleSections.length;
+                  const label = p.visibleSettings?.length ? 'settings' : 'sections';
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({count} {label})
+                    </option>
+                  );
+                })}
               </select>
             )}
           </div>

@@ -788,11 +788,11 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-white border-b shrink-0 z-20">
         <div className="px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-lg font-semibold text-gray-900">Flourish</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold tracking-tight">
+              <span className="text-gray-900">Graph</span>
+              <span className="text-orange-500">Cooker</span>
+            </h1>
           </div>
 
           <div className="flex items-center gap-2">

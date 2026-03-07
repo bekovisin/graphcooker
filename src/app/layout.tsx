@@ -21,7 +21,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Flourish | Data Visualization",
+  title: "GraphCooker | Data Visualization",
   description: "Create beautiful data visualizations",
 };
 

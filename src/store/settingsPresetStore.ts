@@ -5,6 +5,8 @@ export interface SettingsPreset {
   id: string;
   name: string;
   visibleSections: string[];
+  /** Granular sub-setting visibility: "sectionId.settingKey" */
+  visibleSettings: string[];
   createdAt: string;
 }
 
@@ -13,7 +15,7 @@ interface SettingsPresetState {
   activePresetId: string | null;
   addPreset: (preset: Omit<SettingsPreset, 'id' | 'createdAt'>) => void;
   removePreset: (id: string) => void;
-  updatePreset: (id: string, updates: Partial<Pick<SettingsPreset, 'name' | 'visibleSections'>>) => void;
+  updatePreset: (id: string, updates: Partial<Pick<SettingsPreset, 'name' | 'visibleSections' | 'visibleSettings'>>) => void;
   setActivePreset: (id: string | null) => void;
 }
 

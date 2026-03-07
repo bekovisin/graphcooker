@@ -9,8 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Plus, BookmarkPlus, Loader2, BarChart3, Trash2 } from 'lucide-react';
+import { Plus, BookmarkPlus, Loader2, BarChart3, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { EditTemplateDialog } from './EditTemplateDialog';
 
 interface Template {
   id: number;
@@ -38,6 +39,7 @@ export function NewVisualizationDialog({
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [creatingFromTemplate, setCreatingFromTemplate] = useState<number | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<number | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -206,15 +208,26 @@ export function NewVisualizationDialog({
                         </div>
                       )}
                     </div>
-                    {/* Name + delete */}
+                    {/* Name + edit/delete */}
                     <div className="px-2.5 py-2 flex items-center justify-between">
                       <p className="text-xs font-medium text-gray-800 truncate flex-1">{template.templateName}</p>
-                      <button
-                        onClick={(e) => handleDeleteTemplate(e, template.id)}
-                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingTemplateId(template.id);
+                          }}
+                          className="p-0.5 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteTemplate(e, template.id)}
+                          className="p-0.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -223,6 +236,13 @@ export function NewVisualizationDialog({
           </div>
         )}
       </DialogContent>
+
+      <EditTemplateDialog
+        open={editingTemplateId !== null}
+        onOpenChange={(o) => { if (!o) setEditingTemplateId(null); }}
+        templateId={editingTemplateId}
+        onUpdated={fetchTemplates}
+      />
     </Dialog>
   );
 }

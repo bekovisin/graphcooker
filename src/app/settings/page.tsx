@@ -2,32 +2,12 @@
 
 import { useState } from 'react';
 import { useSettingsPresetStore, SettingsPreset } from '@/store/settingsPresetStore';
+import { settingsMap, getAllSettingKeys, getTotalSettingsCount } from '@/lib/settingsMap';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Plus, Trash2, Check } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-
-const allSections = [
-  { id: 'chart-type', title: 'Chart type' },
-  { id: 'controls-filters', title: 'Controls & filters' },
-  { id: 'colors', title: 'Colors' },
-  { id: 'bars', title: 'Bars' },
-  { id: 'labels', title: 'Labels' },
-  { id: 'x-axis', title: 'X axis' },
-  { id: 'y-axis', title: 'Y axis' },
-  { id: 'plot-background', title: 'Plot background' },
-  { id: 'number-formatting', title: 'Number formatting' },
-  { id: 'legend', title: 'Legend' },
-  { id: 'popups-panels', title: 'Popups & panels' },
-  { id: 'annotations', title: 'Annotations' },
-  { id: 'animations', title: 'Animations' },
-  { id: 'layout', title: 'Layout' },
-  { id: 'question', title: 'Question' },
-  { id: 'header', title: 'Header' },
-  { id: 'footer', title: 'Footer' },
-  { id: 'accessibility', title: 'Accessibility' },
-];
 
 export default function SettingsPage() {
   const { presets, activePresetId, addPreset, removePreset, setActivePreset } =
@@ -35,19 +15,88 @@ export default function SettingsPage() {
 
   const [presetName, setPresetName] = useState('');
   const [selectedSections, setSelectedSections] = useState<Set<string>>(
-    new Set(allSections.map((s) => s.id))
+    new Set(settingsMap.map((s) => s.id))
   );
+  const [selectedSettings, setSelectedSettings] = useState<Set<string>>(
+    new Set(getAllSettingKeys())
+  );
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
-  const toggleSection = (id: string) => {
+  const toggleExpand = (sectionId: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) next.delete(sectionId);
+      else next.add(sectionId);
+      return next;
+    });
+  };
+
+  const toggleSection = (sectionId: string) => {
+    const section = settingsMap.find((s) => s.id === sectionId);
+    if (!section) return;
+
     setSelectedSections((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+      const sectionKeys = section.settings.map((s) => `${sectionId}.${s.key}`);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+        // Uncheck all sub-settings
+        setSelectedSettings((ps) => {
+          const ns = new Set(ps);
+          sectionKeys.forEach((k) => ns.delete(k));
+          return ns;
+        });
       } else {
-        next.add(id);
+        next.add(sectionId);
+        // Check all sub-settings
+        setSelectedSettings((ps) => {
+          const ns = new Set(ps);
+          sectionKeys.forEach((k) => ns.add(k));
+          return ns;
+        });
       }
       return next;
     });
+  };
+
+  const toggleSetting = (sectionId: string, settingKey: string) => {
+    const fullKey = `${sectionId}.${settingKey}`;
+    const section = settingsMap.find((s) => s.id === sectionId);
+    if (!section) return;
+
+    setSelectedSettings((prev) => {
+      const next = new Set(prev);
+      if (next.has(fullKey)) {
+        next.delete(fullKey);
+      } else {
+        next.add(fullKey);
+      }
+      // Update section checkbox: checked if ANY sub-setting is checked
+      const sectionKeys = section.settings.map((s) => `${sectionId}.${s.key}`);
+      const anyChecked = sectionKeys.some((k) => next.has(k));
+      setSelectedSections((ps) => {
+        const ns = new Set(ps);
+        if (anyChecked) ns.add(sectionId);
+        else ns.delete(sectionId);
+        return ns;
+      });
+      return next;
+    });
+  };
+
+  const getSubSettingCount = (sectionId: string) => {
+    const section = settingsMap.find((s) => s.id === sectionId);
+    if (!section) return { checked: 0, total: 0 };
+    const total = section.settings.length;
+    const checked = section.settings.filter((s) =>
+      selectedSettings.has(`${sectionId}.${s.key}`)
+    ).length;
+    return { checked, total };
+  };
+
+  const isSectionPartial = (sectionId: string) => {
+    const { checked, total } = getSubSettingCount(sectionId);
+    return checked > 0 && checked < total;
   };
 
   const handleSavePreset = () => {
@@ -60,13 +109,18 @@ export default function SettingsPage() {
       toast.error('Select at least one section');
       return;
     }
-    addPreset({ name, visibleSections: Array.from(selectedSections) });
+    addPreset({
+      name,
+      visibleSections: Array.from(selectedSections),
+      visibleSettings: Array.from(selectedSettings),
+    });
     setPresetName('');
     toast.success('Preset saved');
   };
 
   const handleLoadPreset = (preset: SettingsPreset) => {
     setSelectedSections(new Set(preset.visibleSections));
+    setSelectedSettings(new Set(preset.visibleSettings || getAllSettingKeys()));
     setActivePreset(preset.id);
     toast.success(`Loaded "${preset.name}"`);
   };
@@ -76,8 +130,17 @@ export default function SettingsPage() {
     toast.success('Preset deleted');
   };
 
-  const selectAll = () => setSelectedSections(new Set(allSections.map((s) => s.id)));
-  const selectNone = () => setSelectedSections(new Set());
+  const selectAll = () => {
+    setSelectedSections(new Set(settingsMap.map((s) => s.id)));
+    setSelectedSettings(new Set(getAllSettingKeys()));
+  };
+  const selectNone = () => {
+    setSelectedSections(new Set());
+    setSelectedSettings(new Set());
+  };
+
+  const totalSettings = getTotalSettingsCount();
+  const checkedSettings = selectedSettings.size;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,10 +156,15 @@ export default function SettingsPage() {
       </div>
 
       <div className="max-w-3xl mx-auto py-8 px-4">
-        {/* Section checkboxes */}
+        {/* Section checkboxes with sub-settings */}
         <div className="bg-white rounded-lg border p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Settings sections</h2>
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">Settings sections</h2>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {checkedSettings} of {totalSettings} settings selected
+              </p>
+            </div>
             <div className="flex gap-2">
               <Button variant="ghost" size="sm" className="text-xs" onClick={selectAll}>
                 Select all
@@ -107,21 +175,67 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {allSections.map((section) => (
-              <label
-                key={section.id}
-                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-gray-50 cursor-pointer select-none"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedSections.has(section.id)}
-                  onChange={() => toggleSection(section.id)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">{section.title}</span>
-              </label>
-            ))}
+          <div className="space-y-1">
+            {settingsMap.map((section) => {
+              const isExpanded = expandedSections.has(section.id);
+              const { checked, total } = getSubSettingCount(section.id);
+              const isPartial = isSectionPartial(section.id);
+
+              return (
+                <div key={section.id} className="border border-gray-100 rounded-lg overflow-hidden">
+                  {/* Section header */}
+                  <div className="flex items-center gap-2 px-3 py-2.5 hover:bg-gray-50 select-none">
+                    <button
+                      onClick={() => toggleExpand(section.id)}
+                      className="p-0.5 rounded hover:bg-gray-200 transition-colors"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
+                      )}
+                    </button>
+                    <label className="flex items-center gap-2 flex-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedSections.has(section.id)}
+                        ref={(el) => {
+                          if (el) el.indeterminate = isPartial;
+                        }}
+                        onChange={() => toggleSection(section.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-800">{section.title}</span>
+                    </label>
+                    <span className="text-xs text-gray-400">
+                      {checked}/{total}
+                    </span>
+                  </div>
+
+                  {/* Sub-settings */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 bg-gray-50/50 px-3 py-2">
+                      <div className="grid grid-cols-2 gap-1">
+                        {section.settings.map((sub) => (
+                          <label
+                            key={sub.key}
+                            className="flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-white cursor-pointer select-none"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedSettings.has(`${section.id}.${sub.key}`)}
+                              onChange={() => toggleSetting(section.id, sub.key)}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                            />
+                            <span className="text-xs text-gray-600">{sub.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Save as preset */}
@@ -162,7 +276,7 @@ export default function SettingsPage() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-800 truncate">{preset.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {preset.visibleSections.length} of {allSections.length} sections
+                      {preset.visibleSections.length} sections, {preset.visibleSettings?.length || 0} settings
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 ml-3">

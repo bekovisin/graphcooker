@@ -22,16 +22,19 @@ import {
   FileText,
   FileType,
   Loader2,
+  RefreshCw,
   Save,
 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { SaveTemplateDialog } from './SaveTemplateDialog';
 
 interface EditorTopBarProps {
   onExport: (format: 'png' | 'svg' | 'html' | 'pdf') => void;
+  fromTemplateId?: number | null;
 }
 
-export function EditorTopBar({ onExport }: EditorTopBarProps) {
+export function EditorTopBar({ onExport, fromTemplateId }: EditorTopBarProps) {
   const {
     visualizationName,
     setVisualizationName,
@@ -40,11 +43,16 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
     isDirty,
     isSaving,
     lastSavedAt,
+    settings,
+    data,
+    columnMapping,
+    chartType,
   } = useEditorStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(visualizationName);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [updatingTemplate, setUpdatingTemplate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -61,6 +69,32 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
       setEditValue(visualizationName);
     }
     setIsEditing(false);
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!fromTemplateId) return;
+    setUpdatingTemplate(true);
+    try {
+      const res = await fetch(`/api/templates/${fromTemplateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chartType,
+          settings,
+          data,
+          columnMapping,
+        }),
+      });
+      if (res.ok) {
+        toast.success('Template updated');
+      } else {
+        toast.error('Failed to update template');
+      }
+    } catch {
+      toast.error('Failed to update template');
+    } finally {
+      setUpdatingTemplate(false);
+    }
   };
 
   return (
@@ -148,6 +182,21 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
             <span className="text-gray-400">—</span>
           )}
         </div>
+
+        {fromTemplateId && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1"
+            onClick={handleUpdateTemplate}
+            disabled={updatingTemplate}
+            title="Update the source template with current settings"
+          >
+            {updatingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            <span className="hidden xl:inline">Update template</span>
+            <span className="xl:hidden">Update</span>
+          </Button>
+        )}
 
         <Button variant="outline" size="sm" className="gap-1" onClick={() => setShowSaveTemplate(true)} title="Save as template">
           <BookmarkPlus className="w-4 h-4" />

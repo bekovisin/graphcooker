@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useEditorStore } from '@/store/editorStore';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 import { EditorTopBar } from './EditorTopBar';
@@ -28,6 +29,9 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     setIsDirty,
     setLastSavedAt,
   } = useEditorStore();
+
+  const searchParams = useSearchParams();
+  const fromTemplateId = searchParams.get('fromTemplate') ? parseInt(searchParams.get('fromTemplate')!) : null;
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const thumbnailCapturedRef = useRef(false);
@@ -271,7 +275,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
-      <EditorTopBar onExport={handleExportRequest} />
+      <EditorTopBar onExport={handleExportRequest} fromTemplateId={fromTemplateId} />
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area */}
         <ChartPreview />
