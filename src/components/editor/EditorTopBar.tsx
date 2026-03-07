@@ -64,12 +64,12 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
   };
 
   return (
-    <div className="relative flex items-center h-14 px-4 border-b bg-white shrink-0">
+    <div className="flex items-center h-14 px-4 border-b bg-white shrink-0">
       {/* Left: Back + Name */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
         <Link
           href="/"
-          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-gray-100 transition-colors"
+          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
         >
           <ArrowLeft className="w-4 h-4 text-gray-600" />
         </Link>
@@ -95,15 +95,15 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
               setEditValue(visualizationName);
               setIsEditing(true);
             }}
-            className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate max-w-[300px] text-left"
+            className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate max-w-[200px] text-left"
           >
             {visualizationName}
           </button>
         )}
       </div>
 
-      {/* Center: Tabs — absolutely centered on screen */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+      {/* Center: Tabs */}
+      <div className="flex items-center justify-center shrink-0">
         <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
           <button
             onClick={() => setActiveTab('preview')}
@@ -129,7 +129,7 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
       </div>
 
       {/* Right: Save status + Export */}
-      <div className="flex items-center gap-3 ml-auto">
+      <div className="flex items-center gap-2 justify-end flex-1">
         {/* Save status badge */}
         <div className="flex items-center gap-1.5 text-xs border rounded-md px-2.5 py-1 whitespace-nowrap">
           {isSaving ? (
@@ -149,9 +149,10 @@ export function EditorTopBar({ onExport }: EditorTopBarProps) {
           )}
         </div>
 
-        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowSaveTemplate(true)}>
+        <Button variant="outline" size="sm" className="gap-1" onClick={() => setShowSaveTemplate(true)} title="Save as template">
           <BookmarkPlus className="w-4 h-4" />
-          Save as template
+          <span className="hidden xl:inline">Save as template</span>
+          <span className="xl:hidden">Template</span>
         </Button>
 
         <DropdownMenu>
