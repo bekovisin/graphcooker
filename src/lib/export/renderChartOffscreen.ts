@@ -29,11 +29,24 @@ function hasContent(html: string): boolean {
   return html.replace(/<[^>]*>/g, '').trim().length > 0;
 }
 
-/** Strip HTML tags → plain text */
+/** Strip HTML tags → plain text, preserving paragraph breaks as \n */
 function stripHtml(html: string): string {
+  if (!html) return '';
+  // Insert newlines before block-level closing tags so paragraphs are preserved
+  let text = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/<\/li>/gi, '\n');
+  // Strip remaining HTML tags
+  text = text.replace(/<[^>]*>/g, '');
+  // Decode HTML entities
   const div = document.createElement('div');
-  div.innerHTML = html;
-  return div.textContent || div.innerText || '';
+  div.innerHTML = text;
+  text = div.textContent || div.innerText || text;
+  // Collapse 3+ consecutive newlines → 2, and trim trailing whitespace
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+  return text;
 }
 
 /** Measure text width using a canvas context */
@@ -145,7 +158,20 @@ function measureQuestionBlock(question: QuestionSettings, svgW: number): BlockMe
   if (hasText) {
     const plainText = stripHtml(question.text);
     const availW = contentW - padL - padR;
-    textLines = wrapTextToLines(plainText, availW > 0 ? availW : svgW, td.fontSize, td.fontFamily);
+    const wrapW = availW > 0 ? availW : svgW;
+    // Split into paragraphs and wrap each independently so multi-paragraph
+    // rich text (from TipTap <p> tags) is measured correctly.
+    const paragraphs = plainText.split('\n');
+    textLines = [];
+    for (const para of paragraphs) {
+      const trimmed = para.trim();
+      if (trimmed) {
+        textLines.push(...wrapTextToLines(trimmed, wrapW, td.fontSize, td.fontFamily));
+      } else if (textLines.length > 0) {
+        // Empty paragraph = visual paragraph break
+        textLines.push('');
+      }
+    }
     textHeight = padT + textLines.length * (td.fontSize * td.lineHeight) + padB;
   }
 
@@ -159,7 +185,17 @@ function measureQuestionBlock(question: QuestionSettings, svgW: number): BlockMe
   if (hasSubtext) {
     const plainSubtext = stripHtml(question.subtext);
     const availW = contentW - spadL - spadR;
-    subtextLines = wrapTextToLines(plainSubtext, availW > 0 ? availW : svgW, sd.fontSize, sd.fontFamily);
+    const wrapW = availW > 0 ? availW : svgW;
+    const paragraphs = plainSubtext.split('\n');
+    subtextLines = [];
+    for (const para of paragraphs) {
+      const trimmed = para.trim();
+      if (trimmed) {
+        subtextLines.push(...wrapTextToLines(trimmed, wrapW, sd.fontSize, sd.fontFamily));
+      } else if (subtextLines.length > 0) {
+        subtextLines.push('');
+      }
+    }
     subtextHeight = spadT + subtextLines.length * (sd.fontSize * sd.lineHeight) + spadB;
   }
 
