@@ -48,6 +48,8 @@ export interface BarsSettings {
   barOpacity: number;
   spacingMain: number;
   spacingInStack: number;
+  emptyRowSpacing: number;
+  bottomBarPadding: number;
   outline: boolean;
   outlineColor: string;
   outlineWidth: number;

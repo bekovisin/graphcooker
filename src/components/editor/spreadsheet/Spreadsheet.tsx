@@ -34,6 +34,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     data,
     columnOrder,
     columnMapping,
+    seriesNames,
     setDataAndColumns,
     insertRow,
     removeRow,
@@ -72,6 +73,8 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     columnOrder,
     activeCell: selection.activeCell,
     selectionRange: selection.selectionRange,
+    headerSelected: selection.headerSelected,
+    seriesNames,
     onDataChange: handleDataChange,
     pushHistory,
   });
@@ -536,6 +539,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
         dropTargetIndex={dragReorder.dropTargetIndex}
         onDropTargetUpdate={dragReorder.updateDropTarget}
         onColumnTypeClick={onColumnTypeClick}
+        headerSelected={selection.headerSelected}
       />
 
       {/* Rows */}

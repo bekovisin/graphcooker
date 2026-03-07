@@ -14,6 +14,8 @@ interface UseSpreadsheetClipboardProps {
   columnOrder: string[];
   activeCell: CellAddress | null;
   selectionRange: SelectionRange | null;
+  headerSelected: boolean;
+  seriesNames: Record<string, string>;
   onDataChange: (data: DataRow[], columnOrder: string[]) => void;
   pushHistory: () => void;
 }
@@ -23,13 +25,27 @@ export function useSpreadsheetClipboard({
   columnOrder,
   activeCell,
   selectionRange,
+  headerSelected,
+  seriesNames,
   onDataChange,
   pushHistory,
 }: UseSpreadsheetClipboardProps) {
   const handleCopy = useCallback(async () => {
     if (!selectionRange) return;
     const range = normalizeRange(selectionRange);
-    const text = serializeSelectionToClipboard(data, columnOrder, range);
+    let text = '';
+
+    // If header is selected, prepend series names as first row
+    if (headerSelected) {
+      const headerCells: string[] = [];
+      for (let c = range.minCol; c <= range.maxCol; c++) {
+        const col = columnOrder[c];
+        headerCells.push(seriesNames[col] || col || '');
+      }
+      text = headerCells.join('\t') + '\n';
+    }
+
+    text += serializeSelectionToClipboard(data, columnOrder, range);
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -43,7 +59,7 @@ export function useSpreadsheetClipboard({
       document.execCommand('copy');
       document.body.removeChild(textarea);
     }
-  }, [data, columnOrder, selectionRange]);
+  }, [data, columnOrder, selectionRange, headerSelected, seriesNames]);
 
   const handleCut = useCallback(async () => {
     if (!selectionRange) return;

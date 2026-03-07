@@ -420,21 +420,50 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
   // Bar sizing: when heightProp is provided, compute bar height to fill the space
   const spacingMain = settings.bars.spacingMain;
+  const emptyRowSpacing = settings.bars.emptyRowSpacing;
+  const bottomBarPadding = settings.bars.bottomBarPadding;
   const labelRowHeight = isAboveBars ? yTickStyle.fontSize + 8 : 0;
+
+  // Determine which categories are "empty" (blank label AND all series values are 0/null)
+  const isEmptyCategory = useMemo(() =>
+    categories.map((cat, ci) => {
+      const hasLabel = cat && cat.trim().length > 0;
+      const hasValues = series.some(s => s.data[ci] !== 0 && s.data[ci] != null);
+      return !hasLabel && !hasValues;
+    }),
+    [categories, series]
+  );
+
+  const nonEmptyCount = isEmptyCategory.filter(e => !e).length;
+  const emptyCount = isEmptyCategory.filter(e => e).length;
+
   const barHeight = (() => {
-    if (heightProp && categories.length > 0) {
-      // Subtract non-bar space from total height to get available bar area
-      const nonBarSpace = padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);
-      const availableForBars = heightProp - nonBarSpace;
-      const perCategory = availableForBars / categories.length;
-      // bar height = per category height - spacing - label row
+    if (heightProp && categories.length > 0 && nonEmptyCount > 0) {
+      const nonBarSpace = padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight) + bottomBarPadding;
+      const availableForBars = heightProp - nonBarSpace - emptyCount * emptyRowSpacing;
+      const perCategory = availableForBars / nonEmptyCount;
       return Math.max(4, perCategory - spacingMain - labelRowHeight);
     }
     return settings.bars.barHeight;
   })();
   const categoryHeight = barHeight + spacingMain + labelRowHeight;
 
-  const computedChartHeight = categories.length * categoryHeight + padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);
+  // Build cumulative Y offsets for each category
+  const catYOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    let cumY = 0;
+    for (let ci = 0; ci < categories.length; ci++) {
+      offsets.push(cumY);
+      cumY += isEmptyCategory[ci] ? emptyRowSpacing : categoryHeight;
+    }
+    return offsets;
+  }, [categories.length, isEmptyCategory, emptyRowSpacing, categoryHeight]);
+
+  const totalBarsHeight = catYOffsets.length > 0
+    ? catYOffsets[catYOffsets.length - 1] + (isEmptyCategory[categories.length - 1] ? emptyRowSpacing : categoryHeight) + bottomBarPadding
+    : bottomBarPadding;
+
+  const computedChartHeight = totalBarsHeight + padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);
   const svgHeight = heightProp || computedChartHeight;
 
   const plotWidth = Math.max(1, width - padding.left - padding.right);
@@ -506,7 +535,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
   // X axis Y position based on position setting (includes legendAboveOffset)
   const chartTop = padding.top + legendAboveOffset;
-  const chartBottom = chartTop + categories.length * categoryHeight;
+  const chartBottom = chartTop + totalBarsHeight;
   const xAxisYPos = xAxisOnTop ? chartTop : chartBottom;
   const xAxisTickDir = xAxisOnTop ? -1 : 1; // ticks go up when on top
 
@@ -554,7 +583,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             x={padding.left}
             y={chartTop}
             width={plotWidth}
-            height={categories.length * categoryHeight}
+            height={totalBarsHeight}
             fill={settings.plotBackground.backgroundColor}
             fillOpacity={(settings.plotBackground.backgroundOpacity ?? 100) / 100}
           />
@@ -571,7 +600,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
               x1={x}
               y1={chartTop}
               x2={x}
-              y2={chartTop + categories.length * categoryHeight}
+              y2={chartTop + totalBarsHeight}
               stroke={gridStroke}
               strokeWidth={gridStrokeWidth}
               strokeDasharray={gridDashArray}
@@ -581,7 +610,8 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
         {/* ── Y axis gridlines ── */}
         {settings.yAxis.gridlines && categories.map((_, ci) => {
-          const y = chartTop + ci * categoryHeight + (isAboveBars ? labelRowHeight : 0) + barHeight / 2;
+          if (isEmptyCategory[ci]) return null;
+          const y = chartTop + catYOffsets[ci] + (isAboveBars ? labelRowHeight : 0) + barHeight / 2;
           return (
             <line
               key={`ygrid-${ci}`}
@@ -607,7 +637,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
               x1={yLineX}
               y1={chartTop}
               x2={yLineX}
-              y2={chartTop + categories.length * categoryHeight}
+              y2={chartTop + totalBarsHeight}
               stroke={settings.yAxis.axisLine.color}
               strokeWidth={settings.yAxis.axisLine.width}
             />
@@ -620,7 +650,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             x1={padding.left + zeroX}
             y1={chartTop}
             x2={padding.left + zeroX}
-            y2={chartTop + categories.length * categoryHeight}
+            y2={chartTop + totalBarsHeight}
             stroke={settings.xAxis.zeroLine?.color || '#666666'}
             strokeWidth={settings.xAxis.zeroLine?.width || 1}
           />
@@ -724,7 +754,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
           const titleX = yAxisRight
             ? width - 12
             : 12;
-          const titleY = chartTop + (categories.length * categoryHeight) / 2;
+          const titleY = chartTop + totalBarsHeight / 2;
           return (
             <text
               x={titleX}
@@ -746,7 +776,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
         {/* ── Bars & Labels ── */}
         {categories.map((cat, ci) => {
-          const catY = chartTop + ci * categoryHeight;
+          // Skip rendering for empty categories (spacer rows)
+          if (isEmptyCategory[ci]) return null;
+          const catY = chartTop + catYOffsets[ci];
           const barY = catY + (isAboveBars ? labelRowHeight : 0);
 
           // Stacked bars

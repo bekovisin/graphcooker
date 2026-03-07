@@ -28,6 +28,8 @@ export const defaultChartSettings: ChartSettings = {
     barOpacity: 1,
     spacingMain: 12,
     spacingInStack: 0,
+    emptyRowSpacing: 24,
+    bottomBarPadding: 0,
     outline: false,
     outlineColor: '#ffffff',
     outlineWidth: 1,

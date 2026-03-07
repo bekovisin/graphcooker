@@ -3,8 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { DataRow } from '@/types/data';
-import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Spreadsheet, SelectionInfo } from './spreadsheet/Spreadsheet';
 import { ColumnMapper } from './ColumnMapper';
 import { ColumnTypeModal } from './spreadsheet/ColumnTypeModal';
@@ -14,7 +13,6 @@ import { generateUniqueColumnName } from './spreadsheet/utils';
 export function DataEditor() {
   const { data, columnOrder, columnTypes, setData, setDataAndColumns, setColumnType, activeTab } = useEditorStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [searchText, setSearchText] = useState('');
   const [selectionInfo, setSelectionInfo] = useState<SelectionInfo | null>(null);
 
   // Column type modal state
@@ -82,7 +80,7 @@ export function DataEditor() {
   );
 
   const typeModalColName = columnOrder[typeModalColIndex] || '';
-  const typeModalCurrentConfig: ColumnTypeConfig = columnTypes[typeModalColName] || { type: 'text' };
+  const typeModalCurrentConfig: ColumnTypeConfig = columnTypes[typeModalColName] || { type: 'number' };
 
   if (activeTab !== 'data') return null;
 
@@ -91,7 +89,7 @@ export function DataEditor() {
       {/* Spreadsheet area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
           <div className="flex items-center gap-2">
             <button
               onClick={addColumn}
@@ -100,15 +98,6 @@ export function DataEditor() {
               <Plus className="w-3 h-3" />
               Column
             </button>
-          </div>
-          <div className="relative w-48">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <Input
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Search data..."
-              className="h-7 pl-7 text-xs"
-            />
           </div>
         </div>
 

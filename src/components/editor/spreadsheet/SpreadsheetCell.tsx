@@ -36,6 +36,7 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
+      inputRef.current.select();
     }
   }, [isEditing]);
 
@@ -69,6 +70,7 @@ export const SpreadsheetCell = memo(function SpreadsheetCell({
           onChange={(e) => onEditValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={() => onEditCommit(editValue)}
+          onFocus={(e) => e.target.select()}
           className="absolute inset-0 w-full h-full px-2 text-[13px] outline-none bg-white z-10"
           style={{
             width,

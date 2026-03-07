@@ -4,8 +4,9 @@ import { memo, useCallback } from 'react';
 import { DataRow } from '@/types/data';
 import { CellAddress, NormalizedRange } from './types';
 import { ROW_NUMBER_WIDTH } from './constants';
-import { isCellInRange } from './utils';
+import { isCellInRange, formatCellValue } from './utils';
 import { SpreadsheetCell } from './SpreadsheetCell';
+import { useEditorStore } from '@/store/editorStore';
 
 interface SpreadsheetRowProps {
   rowIndex: number;
@@ -56,6 +57,8 @@ export const SpreadsheetRow = memo(function SpreadsheetRow({
   onRowDragStart,
   onRowMouseEnterForDrop,
 }: SpreadsheetRowProps) {
+  const columnTypes = useEditorStore((s) => s.columnTypes);
+
   const isRowSelected =
     normalizedSelection != null &&
     normalizedSelection.minCol === 0 &&
@@ -138,10 +141,13 @@ export const SpreadsheetRow = memo(function SpreadsheetRow({
         const isEditingThis =
           editingCell?.row === rowIndex && editingCell?.col === colIndex;
 
+        const rawValue = rowData[col];
+        const displayValue = isEditingThis ? rawValue : formatCellValue(rawValue, columnTypes[col]);
+
         return (
           <SpreadsheetCell
             key={col}
-            value={rowData[col]}
+            value={displayValue}
             width={getColumnWidth(colIndex)}
             height={rowHeight}
             isActive={isActive}

@@ -13,6 +13,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
   const [selectionRange, setSelectionRange] = useState<SelectionRange | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
+  const [headerSelected, setHeaderSelected] = useState(false);
 
   const clampCell = useCallback(
     (cell: CellAddress): CellAddress => ({
@@ -28,6 +29,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
       setActiveCellState(clamped);
       setSelectionRange({ start: clamped, end: clamped });
       setIsEditing(false);
+      setHeaderSelected(false);
     },
     [clampCell]
   );
@@ -49,6 +51,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
       end: { row: rowCount - 1, col: colCount - 1 },
     });
     setIsEditing(false);
+    setHeaderSelected(true);
   }, [rowCount, colCount]);
 
   const selectColumn = useCallback(
@@ -81,6 +84,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
     setActiveCellState(null);
     setSelectionRange(null);
     setIsEditing(false);
+    setHeaderSelected(false);
   }, []);
 
   const startEditing = useCallback(
@@ -134,6 +138,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
     selectionRange,
     isEditing,
     editValue,
+    headerSelected,
     setEditValue,
     setActiveCell,
     extendSelection,

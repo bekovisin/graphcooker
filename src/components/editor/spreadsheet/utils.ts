@@ -1,6 +1,6 @@
 import { ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { CellAddress, ColumnRole, NormalizedRange, SelectionRange } from './types';
+import { CellAddress, ColumnRole, ColumnTypeConfig, NormalizedRange, SelectionRange } from './types';
 
 export function colIndexToLetter(index: number): string {
   let result = '';
@@ -91,4 +91,61 @@ export function generateUniqueColumnName(existingColumns: string[], baseName: st
     name = `${baseName} ${counter}`;
   }
   return name;
+}
+
+/**
+ * Format a cell value for display based on column type config.
+ * Only applies formatting for number type columns.
+ */
+export function formatCellValue(value: string | number | null, config?: ColumnTypeConfig): string {
+  if (value == null || value === '') return '';
+  if (!config || config.type === 'text') return String(value);
+
+  // Number formatting
+  const num = typeof value === 'number' ? value : parseFloat(String(value));
+  if (isNaN(num)) return String(value);
+
+  const decimalPlaces = config.decimalPlaces ?? 2;
+  const factor = Math.pow(10, decimalPlaces);
+  const rounded = Math.round(num * factor) / factor;
+  const fixed = rounded.toFixed(decimalPlaces);
+
+  // Determine output format
+  const format = config.outputFormat === 'match_input'
+    ? (config.inputFormat || 'comma_dot')
+    : (config.outputFormat || 'comma_dot');
+
+  const [intPart, decPart] = fixed.split('.');
+
+  let formattedInt = intPart;
+  let separator = '';
+  let decimalChar = '.';
+
+  switch (format) {
+    case 'comma_dot':
+      separator = ',';
+      decimalChar = '.';
+      break;
+    case 'dot_comma':
+      separator = '.';
+      decimalChar = ',';
+      break;
+    case 'space_dot':
+      separator = ' ';
+      decimalChar = '.';
+      break;
+    case 'space_comma':
+      separator = ' ';
+      decimalChar = ',';
+      break;
+  }
+
+  if (separator) {
+    // Handle negative sign
+    const isNegative = formattedInt.startsWith('-');
+    const absInt = isNegative ? formattedInt.slice(1) : formattedInt;
+    formattedInt = (isNegative ? '-' : '') + absInt.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+  }
+
+  return decPart ? `${formattedInt}${decimalChar}${decPart}` : formattedInt;
 }

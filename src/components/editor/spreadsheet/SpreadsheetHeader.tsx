@@ -29,6 +29,7 @@ interface SpreadsheetHeaderProps {
   dropTargetIndex: number | null;
   onDropTargetUpdate: (index: number | null) => void;
   onColumnTypeClick?: (colIndex: number) => void;
+  headerSelected?: boolean;
 }
 
 /* ─── Inline series-name editor ─── */
@@ -137,6 +138,7 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
   dropTargetIndex,
   onDropTargetUpdate,
   onColumnTypeClick,
+  headerSelected,
 }: SpreadsheetHeaderProps) {
   const headerRef = useRef<HTMLDivElement>(null);
   const columnTypes = useEditorStore((s) => s.columnTypes);
@@ -197,10 +199,11 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
 
   const getTypeBadge = (colName: string): { label: string; isNumber: boolean } => {
     const config: ColumnTypeConfig | undefined = columnTypes[colName];
-    if (config?.type === 'number') {
-      return { label: '123', isNumber: true };
+    if (config?.type === 'text') {
+      return { label: 'ABC', isNumber: false };
     }
-    return { label: 'ABC', isNumber: false };
+    // Default to number
+    return { label: '123', isNumber: true };
   };
 
   return (
@@ -276,7 +279,9 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
       <div className="flex" style={{ height: SERIES_NAME_ROW_HEIGHT }}>
         {/* Row number area — empty for series row */}
         <div
-          className="shrink-0 sticky left-0 z-30 border-r border-b border-gray-300 bg-gray-50 flex items-center justify-center text-[10px] text-gray-400 font-medium select-none"
+          className={`shrink-0 sticky left-0 z-30 border-r border-b border-gray-300 flex items-center justify-center text-[10px] font-medium select-none ${
+            headerSelected ? 'bg-blue-100 text-blue-700' : 'bg-gray-50 text-gray-400'
+          }`}
           style={{ width: ROW_NUMBER_WIDTH, height: SERIES_NAME_ROW_HEIGHT }}
         />
 
@@ -299,6 +304,11 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
               onMouseEnter={() => handleMouseMoveForDrop(colIndex)}
             >
               <SeriesNameCell colName={col} width={width} colors={colors} />
+
+              {/* Header selection overlay */}
+              {headerSelected && (
+                <div className="absolute inset-0 bg-blue-500/10 pointer-events-none z-[5]" />
+              )}
 
               {/* Resize handle (spans both rows via absolute positioning from parent) */}
               <div

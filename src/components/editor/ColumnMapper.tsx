@@ -19,7 +19,8 @@ interface ColumnMapperProps {
 }
 
 export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
-  const { columnOrder, columnMapping, setColumnMapping } = useEditorStore();
+  const { columnOrder, columnMapping, setColumnMapping, seriesNames } = useEditorStore();
+  const getDisplayName = (col: string) => seriesNames[col] || col;
   const [valuesInput, setValuesInput] = useState('');
 
   const availableColumns = useMemo(() => columnOrder, [columnOrder]);
@@ -139,7 +140,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                 <SelectContent>
                   {availableColumns.map((col) => (
                     <SelectItem key={col} value={col} className="text-xs">
-                      {col}
+                      {getDisplayName(col)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -201,7 +202,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                           : { backgroundColor: '#f9fafb', color: '#6b7280', border: '1px solid transparent' }
                       }
                     >
-                      <span>{col}</span>
+                      <span>{getDisplayName(col)}</span>
                       {isSelected && <X className="w-3 h-3" />}
                     </button>
                   );
@@ -234,7 +235,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
               <SelectContent>
                 <SelectItem value="__none__" className="text-xs">None</SelectItem>
                 {availableColumns.map((col) => (
-                  <SelectItem key={col} value={col} className="text-xs">{col}</SelectItem>
+                  <SelectItem key={col} value={col} className="text-xs">{getDisplayName(col)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -265,7 +266,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
               <SelectContent>
                 <SelectItem value="__none__" className="text-xs">None</SelectItem>
                 {availableColumns.map((col) => (
-                  <SelectItem key={col} value={col} className="text-xs">{col}</SelectItem>
+                  <SelectItem key={col} value={col} className="text-xs">{getDisplayName(col)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -304,7 +305,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                         : { color: '#9ca3af', border: '1px solid transparent' }
                     }
                   >
-                    <span>{col}</span>
+                    <span>{getDisplayName(col)}</span>
                   </button>
                 );
               })}

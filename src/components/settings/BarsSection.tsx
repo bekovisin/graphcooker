@@ -97,6 +97,28 @@ export function BarsSection() {
         suffix="px"
       />
 
+      {/* Empty row spacing */}
+      <SliderWithInput
+        label="Empty row spacing"
+        value={settings.emptyRowSpacing}
+        onChange={(v) => update({ emptyRowSpacing: v })}
+        min={0}
+        max={100}
+        step={1}
+        suffix="px"
+      />
+
+      {/* Bottom bar padding */}
+      <SliderWithInput
+        label="Bottom bar padding"
+        value={settings.bottomBarPadding}
+        onChange={(v) => update({ bottomBarPadding: v })}
+        min={-50}
+        max={100}
+        step={1}
+        suffix="px"
+      />
+
       {/* Bar Opacity */}
       <SliderWithInput
         label="Bar opacity"
