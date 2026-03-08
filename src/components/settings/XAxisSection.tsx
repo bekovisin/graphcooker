@@ -555,9 +555,9 @@ export function XAxisSection() {
                 value={settings.tickMarks.width}
                 onChange={(e) => updateTickMarks({ width: parseFloat(e.target.value) || 1 })}
                 className="h-7 text-xs w-full"
-                min={0.5}
+                min={0.01}
                 max={5}
-                step={0.5}
+                step={0.01}
               />
             </div>
           </div>
@@ -587,9 +587,9 @@ export function XAxisSection() {
               value={settings.axisLine.width}
               onChange={(e) => updateAxisLine({ width: parseFloat(e.target.value) || 1 })}
               className="h-7 text-xs w-full"
-              min={0.5}
+              min={0.01}
               max={5}
-              step={0.5}
+              step={0.01}
             />
           </div>
           <div className="shrink-0">

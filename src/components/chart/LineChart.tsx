@@ -398,7 +398,29 @@ export function LineChart({
   const xAxisTitleHeight = xAxisSettings.titleType === 'custom' && xAxisSettings.titleText ? xAxisSettings.titleStyling.fontSize + 10 : 0;
 
   // Legend
-  const legendHeight = legendSettings.show && legendSettings.position !== 'overlay' ? 30 + legendSettings.marginTop : 0;
+  const legendRowGap = legendSettings.rowGap ?? 4;
+  const legendHeight = (() => {
+    if (!legendSettings.show || legendSettings.position === 'overlay') return 0;
+    const mTop = legendSettings.marginTop || 0;
+    const swW = legendSettings.swatchWidth;
+    const gap = legendSettings.swatchPadding + 16;
+    const fontSize = legendSettings.size;
+    const wrapMode = legendSettings.wrapMode || 'auto';
+    if (wrapMode === 'fixed') {
+      const perRow = legendSettings.fixedItemsPerRow ?? 3;
+      const rowCount = Math.ceil(series.length / perRow);
+      return rowCount * (fontSize + legendRowGap) - legendRowGap + mTop + 10;
+    }
+    // Auto: estimate rows based on available width
+    const itemWidths = series.map((s) => measureTextWidth(s.name, fontSize, legendSettings.fontFamily, legendSettings.textWeight) + swW + gap);
+    const availW = width - (settings.layout.paddingLeft || 0) - (settings.layout.paddingRight || 0) - 20;
+    let rowCount = 1;
+    let curW = 0;
+    for (let i = 0; i < itemWidths.length; i++) {
+      if (curW > 0 && curW + itemWidths[i] > availW) { rowCount++; curW = itemWidths[i]; } else { curW += itemWidths[i]; }
+    }
+    return rowCount * (fontSize + legendRowGap) - legendRowGap + mTop + 10;
+  })();
 
   // Layout padding
   const padding = {
@@ -1130,32 +1152,67 @@ export function LineChart({
         })}
 
         {/* Legend */}
-        {legendSettings.show && (
-          <g transform={`translate(${marginLeft}, ${
-            legendSettings.position === 'above'
-              ? padding.top + legendSettings.marginTop
-              : marginTop + chartHeight + xAxisHeight + xAxisTitleHeight + 8 + legendSettings.marginTop
-          })`}>
-            {series.map((s, i) => {
-              const xOff = i * (measureTextWidth(s.name, legendSettings.size, legendSettings.fontFamily, legendSettings.textWeight) + legendSettings.swatchWidth + legendSettings.swatchPadding + 16);
+        {legendSettings.show && (() => {
+          const legY = legendSettings.position === 'above'
+            ? padding.top + legendSettings.marginTop
+            : marginTop + chartHeight + xAxisHeight + xAxisTitleHeight + 8 + legendSettings.marginTop;
+          const swW = legendSettings.swatchWidth;
+          const swH = legendSettings.swatchHeight;
+          const gap = legendSettings.swatchPadding + 16;
+          const fontSize = legendSettings.size;
+          const itemWidths = series.map((s) => measureTextWidth(s.name, fontSize, legendSettings.fontFamily, legendSettings.textWeight) + swW + gap);
+          const availW = width - marginLeft - padding.right;
+          const wrapMode = legendSettings.wrapMode || 'auto';
+          const fixedPerRow = legendSettings.fixedItemsPerRow ?? 3;
+          const rowGapPx = legendSettings.rowGap ?? 4;
+
+          // Build rows
+          const rows: number[][] = [];
+          if (wrapMode === 'fixed') {
+            for (let i = 0; i < series.length; i += fixedPerRow) {
+              rows.push(Array.from({ length: Math.min(fixedPerRow, series.length - i) }, (_, j) => i + j));
+            }
+          } else {
+            let currentRow: number[] = [];
+            let currentWidth = 0;
+            for (let i = 0; i < series.length; i++) {
+              if (currentRow.length > 0 && currentWidth + itemWidths[i] > availW) {
+                rows.push(currentRow);
+                currentRow = [i];
+                currentWidth = itemWidths[i];
+              } else {
+                currentRow.push(i);
+                currentWidth += itemWidths[i];
+              }
+            }
+            if (currentRow.length > 0) rows.push(currentRow);
+          }
+
+          return rows.flatMap((row, rowIdx) => {
+            let rowX = 0;
+            const rowY = legY + rowIdx * (fontSize + rowGapPx);
+            return row.map((idx) => {
+              const s = series[idx];
+              const x = rowX;
+              rowX += itemWidths[idx];
               return (
-                <g key={`legend-${i}`} transform={`translate(${xOff}, 0)`}>
+                <g key={`legend-${idx}`} transform={`translate(${marginLeft + x}, ${rowY})`}>
                   <rect
                     x={0}
-                    y={-legendSettings.swatchHeight / 2}
-                    width={legendSettings.swatchWidth}
-                    height={legendSettings.swatchHeight}
+                    y={-swH / 2}
+                    width={swW}
+                    height={swH}
                     rx={legendSettings.swatchRoundness}
                     fill={s.color}
                     stroke={legendSettings.outline ? '#666666' : 'none'}
                     strokeWidth={0.5}
                   />
                   <text
-                    x={legendSettings.swatchWidth + legendSettings.swatchPadding}
+                    x={swW + legendSettings.swatchPadding}
                     y={0}
                     dy="0.35em"
                     fill={legendSettings.color}
-                    fontSize={legendSettings.size}
+                    fontSize={fontSize}
                     fontFamily={legendSettings.fontFamily}
                     fontWeight={legendSettings.textWeight}
                     fontStyle={legendSettings.textStyle}
@@ -1164,9 +1221,9 @@ export function LineChart({
                   </text>
                 </g>
               );
-            })}
-          </g>
-        )}
+            });
+          });
+        })()}
       </svg>
 
       {/* Tooltip */}

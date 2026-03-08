@@ -16,11 +16,13 @@ import {
   BookmarkPlus,
   Check,
   ChevronDown,
+  ChevronRight,
   Download,
   FileImage,
   FileCode,
   FileText,
   FileType,
+  Home,
   Loader2,
   RefreshCw,
   Save,
@@ -29,12 +31,18 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { SaveTemplateDialog } from './SaveTemplateDialog';
 
+interface BreadcrumbItem {
+  id: number;
+  name: string;
+}
+
 interface EditorTopBarProps {
   onExport: (format: 'png' | 'svg' | 'html' | 'pdf') => void;
   fromTemplateId?: number | null;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
-export function EditorTopBar({ onExport, fromTemplateId }: EditorTopBarProps) {
+export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: EditorTopBarProps) {
   const {
     visualizationName,
     setVisualizationName,
@@ -99,14 +107,33 @@ export function EditorTopBar({ onExport, fromTemplateId }: EditorTopBarProps) {
 
   return (
     <div className="flex items-center h-14 px-4 border-b bg-white shrink-0">
-      {/* Left: Back + Name */}
-      <div className="flex items-center gap-3 min-w-0 flex-1">
+      {/* Left: Back + Breadcrumbs + Name */}
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <Link
-          href="/"
+          href={breadcrumbs.length > 0 ? `/?folder=${breadcrumbs[breadcrumbs.length - 1].id}` : '/'}
           className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
+          title="Back to dashboard"
         >
           <ArrowLeft className="w-4 h-4 text-gray-600" />
         </Link>
+
+        {/* Breadcrumbs */}
+        <Link href="/" className="flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 transition-colors shrink-0" title="Dashboard">
+          <Home className="w-3.5 h-3.5 text-gray-400" />
+        </Link>
+        {breadcrumbs.map((bc) => (
+          <span key={bc.id} className="flex items-center gap-1.5 shrink-0">
+            <ChevronRight className="w-3 h-3 text-gray-300" />
+            <Link
+              href={`/?folder=${bc.id}`}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors truncate max-w-[100px]"
+              title={bc.name}
+            >
+              {bc.name}
+            </Link>
+          </span>
+        ))}
+        <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
 
         {isEditing ? (
           <Input

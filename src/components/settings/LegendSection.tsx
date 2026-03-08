@@ -21,6 +21,7 @@ import type {
   LegendAlignment,
   LegendOrientation,
   LegendPosition,
+  LegendWrapMode,
   DataColorsHeader,
 } from '@/types/chart';
 
@@ -330,6 +331,48 @@ export function LegendSection() {
               </Select>
             </div>
           </div>
+
+          {/* Wrapping — only for horizontal orientation */}
+          {settings.orientation === 'horizontal' && (
+            <>
+              <SettingRow label="Wrap mode">
+                <TabMenu
+                  value={settings.wrapMode || 'auto'}
+                  onChange={(v) => update({ wrapMode: v as LegendWrapMode })}
+                  options={[
+                    { value: 'auto', label: 'Auto' },
+                    { value: 'fixed', label: 'Fixed' },
+                  ]}
+                />
+              </SettingRow>
+
+              {(settings.wrapMode || 'auto') === 'fixed' && (
+                <div className="pl-2 border-l-2 border-gray-100">
+                  <label className="text-[10px] text-gray-400 mb-0.5 block">Items per row</label>
+                  <Input
+                    type="number"
+                    value={settings.fixedItemsPerRow ?? 3}
+                    onChange={(e) => update({ fixedItemsPerRow: parseInt(e.target.value) || 1 })}
+                    className="h-7 text-xs w-full"
+                    min={1}
+                    max={50}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] text-gray-400 mb-0.5 block">Row spacing (px)</label>
+                <Input
+                  type="number"
+                  value={settings.rowGap ?? 4}
+                  onChange={(e) => update({ rowGap: parseInt(e.target.value) || 0 })}
+                  className="h-7 text-xs w-full"
+                  min={0}
+                  max={50}
+                />
+              </div>
+            </>
+          )}
 
           {/* Overlay position controls */}
           {(settings.position || 'below') === 'overlay' && (

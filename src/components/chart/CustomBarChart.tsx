@@ -414,13 +414,34 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
   const legendIsAbove = settings.legend.position === 'above';
   const legendFontSize = settings.legend.size;
   const legendGapEarly = settings.legend.swatchPadding || 8;
+  const legendRowGap = settings.legend.rowGap ?? 4;
   const legendHeight = (() => {
     if (!settings.legend.show || legendIsOverlay) return 0;
     const marginTop = settings.legend.marginTop || 0;
     if (settings.legend.orientation === 'vertical') {
       return series.length * (legendFontSize + legendGapEarly) + marginTop + 10;
     }
-    return legendFontSize + 10 + marginTop;
+    // Estimate number of rows for horizontal wrapping
+    const wrapMode = settings.legend.wrapMode || 'auto';
+    const swW = settings.legend.swatchWidth;
+    const gap = settings.legend.swatchPadding || 8;
+    const fontFamily = settings.legend.fontFamily || 'Inter, sans-serif';
+    const textWeight = settings.legend.textWeight;
+    if (wrapMode === 'fixed') {
+      const perRow = settings.legend.fixedItemsPerRow ?? 3;
+      const rowCount = Math.ceil(series.length / perRow);
+      return rowCount * (legendFontSize + legendRowGap) - legendRowGap + marginTop + 10;
+    }
+    // Auto: estimate rows based on width
+    const itemWidths = series.map((s) => swW + 4 + measureTextWidth(s.name, legendFontSize, fontFamily, textWeight));
+    const availW = width - (settings.legend.paddingLeft || 0) - (settings.legend.paddingRight || 0);
+    let rowCount = 1;
+    let curW = 0;
+    for (let i = 0; i < itemWidths.length; i++) {
+      const iw = itemWidths[i] + (curW > 0 ? gap : 0);
+      if (curW > 0 && curW + iw > availW) { rowCount++; curW = itemWidths[i]; } else { curW += iw; }
+    }
+    return rowCount * (legendFontSize + legendRowGap) - legendRowGap + marginTop + 10;
   })();
   const legendAboveOffset = legendIsAbove ? legendHeight : 0;
 
@@ -1304,35 +1325,77 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             });
           }
 
-          return legendItems.map((item, idx) => {
-            const x = curX;
-            curX += itemWidths[idx] + gap;
-            return (
-              <g key={`legend-${idx}`}>
-                <rect
-                  x={x}
-                  y={legendY}
-                  width={swW}
-                  height={swH}
-                  fill={item.color}
-                  rx={settings.legend.swatchRoundness}
-                />
-                <text
-                  x={x + swW + 4}
-                  y={legendY + swH / 2}
-                  dy="0.35em"
-                  style={{
-                    fontSize,
-                    fontFamily: settings.legend.fontFamily || 'Inter, sans-serif',
-                    fontWeight: fontWeightToCSS(settings.legend.textWeight),
-                    fontStyle: settings.legend.textStyle || 'normal',
-                    fill: settings.legend.color,
-                  }}
-                >
-                  {item.name}
-                </text>
-              </g>
-            );
+          // Build wrapped rows
+          const wrapMode = settings.legend.wrapMode || 'auto';
+          const fixedPerRow = settings.legend.fixedItemsPerRow ?? 3;
+          const rowGapPx = settings.legend.rowGap ?? 4;
+          const availW = width - lPadL - lPadR;
+          const rows: number[][] = [];
+          if (wrapMode === 'fixed') {
+            for (let i = 0; i < legendItems.length; i += fixedPerRow) {
+              rows.push(Array.from({ length: Math.min(fixedPerRow, legendItems.length - i) }, (_, j) => i + j));
+            }
+          } else {
+            let currentRow: number[] = [];
+            let currentWidth = 0;
+            for (let i = 0; i < legendItems.length; i++) {
+              const iw = itemWidths[i] + (currentRow.length > 0 ? gap : 0);
+              if (currentRow.length > 0 && currentWidth + iw > availW) {
+                rows.push(currentRow);
+                currentRow = [i];
+                currentWidth = itemWidths[i];
+              } else {
+                currentRow.push(i);
+                currentWidth += iw;
+              }
+            }
+            if (currentRow.length > 0) rows.push(currentRow);
+          }
+
+          return rows.flatMap((row, rowIdx) => {
+            const rowTotalW = row.reduce((s, i) => s + itemWidths[i], 0) + (row.length - 1) * gap;
+            let rowX = legendIsOverlay
+              ? padding.left + (settings.legend.overlayX ?? 10) + lPadL
+              : 0 + lPadL;
+            if (!legendIsOverlay) {
+              if (settings.legend.alignment === 'center') {
+                rowX = (width - rowTotalW) / 2 + lPadL - lPadR;
+              } else if (settings.legend.alignment === 'right') {
+                rowX = width - rowTotalW - lPadR;
+              }
+            }
+            const rowY = legendY + rowIdx * (fontSize + rowGapPx);
+            return row.map((itemIdx) => {
+              const item = legendItems[itemIdx];
+              const x = rowX;
+              rowX += itemWidths[itemIdx] + gap;
+              return (
+                <g key={`legend-${itemIdx}`}>
+                  <rect
+                    x={x}
+                    y={rowY}
+                    width={swW}
+                    height={swH}
+                    fill={item.color}
+                    rx={settings.legend.swatchRoundness}
+                  />
+                  <text
+                    x={x + swW + 4}
+                    y={rowY + swH / 2}
+                    dy="0.35em"
+                    style={{
+                      fontSize,
+                      fontFamily: settings.legend.fontFamily || 'Inter, sans-serif',
+                      fontWeight: fontWeightToCSS(settings.legend.textWeight),
+                      fontStyle: settings.legend.textStyle || 'normal',
+                      fill: settings.legend.color,
+                    }}
+                  >
+                    {item.name}
+                  </text>
+                </g>
+              );
+            });
           });
         })()}
       </svg>

@@ -102,6 +102,14 @@ export function useSpreadsheetClipboard({
       const shouldTreatFirstAsHeader = headerSelected ||
         (activeCell.row === 0 && activeCell.col === 0 && parsed.length > 1);
 
+      // Expand columns first so header names can be applied to new columns too
+      const maxPasteCols = Math.max(...parsed.map((r) => r.length));
+      while (newColumnOrder.length < activeCell.col + maxPasteCols) {
+        const newColName = `Column ${newColumnOrder.length + 1}`;
+        newColumnOrder.push(newColName);
+        newData.forEach((row) => (row[newColName] = ''));
+      }
+
       let dataRows = parsed;
       if (shouldTreatFirstAsHeader && parsed.length > 0) {
         const headerRow = parsed[0];
@@ -121,14 +129,6 @@ export function useSpreadsheetClipboard({
         const emptyRow: DataRow = {};
         newColumnOrder.forEach((col) => (emptyRow[col] = ''));
         newData.push(emptyRow);
-      }
-
-      // Expand columns if needed
-      const maxPasteCols = Math.max(...parsed.map((r) => r.length));
-      while (newColumnOrder.length < activeCell.col + maxPasteCols) {
-        const newColName = `Column ${newColumnOrder.length + 1}`;
-        newColumnOrder.push(newColName);
-        newData.forEach((row) => (row[newColName] = ''));
       }
 
       // Write paste data

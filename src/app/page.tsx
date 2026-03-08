@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Plus,
@@ -53,7 +53,11 @@ export default function DashboardPage() {
   const [creating, setCreating] = useState(false);
 
   // Dashboard state
-  const [activeFolderId, setActiveFolderId] = useState<number | null>(null);
+  const searchParams = useSearchParams();
+  const [activeFolderId, setActiveFolderId] = useState<number | null>(() => {
+    const folderParam = searchParams.get('folder');
+    return folderParam ? parseInt(folderParam) || null : null;
+  });
   const [sortMode, setSortMode] = useState<SortMode>('updated_desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSelectionMode, setIsSelectionMode] = useState(false);

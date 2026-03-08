@@ -264,6 +264,9 @@ export const defaultChartSettings: ChartSettings = {
     paddingBottom: 0,
     paddingLeft: 0,
     dataColorsHeader: 'auto',
+    wrapMode: 'auto',
+    fixedItemsPerRow: 3,
+    rowGap: 4,
   },
   popupsPanels: {
     showPopup: true,

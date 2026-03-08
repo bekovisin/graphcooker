@@ -22,7 +22,13 @@ export async function GET(
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
     }
 
-    return NextResponse.json(visualization);
+    // Include project's folderId for breadcrumb navigation
+    const [project] = await db
+      .select({ folderId: projects.folderId })
+      .from(projects)
+      .where(eq(projects.id, visualization.projectId));
+
+    return NextResponse.json({ ...visualization, folderId: project?.folderId ?? null });
   } catch (error) {
     console.error('Failed to fetch visualization:', error);
     return NextResponse.json({ error: 'Failed to fetch visualization' }, { status: 500 });

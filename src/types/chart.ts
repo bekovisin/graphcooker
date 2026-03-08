@@ -351,6 +351,7 @@ export interface NumberFormattingSettings {
 export type LegendAlignment = 'left' | 'center' | 'right' | 'inline';
 export type LegendOrientation = 'horizontal' | 'vertical';
 export type LegendPosition = 'below' | 'above' | 'overlay';
+export type LegendWrapMode = 'auto' | 'fixed';
 export type DataColorsHeader = 'auto' | 'custom' | 'off';
 
 export interface LegendSettings {
@@ -381,6 +382,9 @@ export interface LegendSettings {
   paddingBottom: number;
   paddingLeft: number;
   dataColorsHeader: DataColorsHeader;
+  wrapMode: LegendWrapMode;
+  fixedItemsPerRow: number;
+  rowGap: number;
 }
 
 // Popups & Panels

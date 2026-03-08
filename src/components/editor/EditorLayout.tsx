@@ -37,6 +37,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   const thumbnailCapturedRef = useRef(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'html' | 'pdf'>('png');
+  const [breadcrumbs, setBreadcrumbs] = useState<{ id: number; name: string }[]>([]);
 
   // Load visualization on mount
   useEffect(() => {
@@ -57,6 +58,19 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
             settings: hasSettings ? { ...defaultChartSettings, ...viz.settings } : defaultChartSettings,
             columnMapping: hasMapping ? viz.columnMapping : defaultColumnMapping,
           });
+
+          // Fetch folder breadcrumbs if visualization is in a folder
+          if (viz.folderId) {
+            try {
+              const bcRes = await fetch(`/api/folders/breadcrumb?folderId=${viz.folderId}`);
+              if (bcRes.ok) {
+                const path = await bcRes.json();
+                setBreadcrumbs(path);
+              }
+            } catch {
+              // Non-critical — breadcrumbs just won't show
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to load visualization:', error);
@@ -281,7 +295,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
-      <EditorTopBar onExport={handleExportRequest} fromTemplateId={fromTemplateId} />
+      <EditorTopBar onExport={handleExportRequest} fromTemplateId={fromTemplateId} breadcrumbs={breadcrumbs} />
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area */}
         <ChartPreview />
