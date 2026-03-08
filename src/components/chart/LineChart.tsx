@@ -224,20 +224,31 @@ export function LineChart({
     if (min === Infinity) { min = 0; max = 100; }
     if (min === max) { min -= 1; max += 1; }
 
-    // User overrides
+    // User overrides from Scale section (min/max inputs)
     const userMin = yAxisSettings.min ? Number(yAxisSettings.min) : undefined;
     const userMax = yAxisSettings.max ? Number(yAxisSettings.max) : undefined;
     if (userMin !== undefined && !isNaN(userMin)) min = userMin;
     if (userMax !== undefined && !isNaN(userMax)) max = userMax;
 
-    // Edge padding
+    // Custom ticks mode: use start/end as the Y range
+    const tickMode = yAxisSettings.ticksToShowMode ?? 'auto';
+    if (tickMode === 'custom') {
+      const hasCustomStart = yAxisSettings.customTickStart !== undefined && yAxisSettings.customTickStart !== 0;
+      const hasCustomEnd = yAxisSettings.customTickEnd !== undefined && yAxisSettings.customTickEnd !== 0;
+      if (hasCustomStart) min = yAxisSettings.customTickStart!;
+      if (hasCustomEnd) max = yAxisSettings.customTickEnd!;
+    }
+
+    // Edge padding (only apply when range is not fully user-defined)
     const edgePad = (yAxisSettings.edgePadding ?? 10) / 100;
     const range = max - min;
-    if (userMin === undefined) min -= range * edgePad;
-    if (userMax === undefined) max += range * edgePad;
+    const hasAnyUserMin = (userMin !== undefined && !isNaN(userMin)) || (tickMode === 'custom' && yAxisSettings.customTickStart);
+    const hasAnyUserMax = (userMax !== undefined && !isNaN(userMax)) || (tickMode === 'custom' && yAxisSettings.customTickEnd);
+    if (!hasAnyUserMin) min -= range * edgePad;
+    if (!hasAnyUserMax) max += range * edgePad;
 
     return { yMin: min, yMax: max };
-  }, [series, yAxisSettings.min, yAxisSettings.max, yAxisSettings.edgePadding]);
+  }, [series, yAxisSettings.min, yAxisSettings.max, yAxisSettings.edgePadding, yAxisSettings.ticksToShowMode, yAxisSettings.customTickStart, yAxisSettings.customTickEnd]);
 
   // Y tick values — support auto/number/custom modes
   const yAxisVisible = yAxisSettings.position !== 'hidden';
@@ -256,14 +267,29 @@ export function LineChart({
     if (tickMode === 'number') {
       ticks = generateNiceTicks(lo, hi, yAxisSettings.ticksToShowNumber ?? 6);
     } else if (tickMode === 'custom') {
+      // Custom mode: user-defined interval with optional start/end values
       const step = yAxisSettings.ticksToShowNumber ?? 10;
-      ticks = generateCustomStepTicks(lo, hi, step);
+      const hasCustomStart = yAxisSettings.customTickStart !== undefined && yAxisSettings.customTickStart !== 0;
+      const hasCustomEnd = yAxisSettings.customTickEnd !== undefined && yAxisSettings.customTickEnd !== 0;
+      const customLo = hasCustomStart ? yAxisSettings.customTickStart! : lo;
+      const customHi = hasCustomEnd ? yAxisSettings.customTickEnd! : hi;
+      ticks = generateCustomStepTicks(
+        Math.min(customLo, customHi),
+        Math.max(customLo, customHi),
+        step,
+      );
     } else {
       ticks = generateNiceTicks(lo, hi, 6);
     }
-    // Filter to actual range
-    return ticks.filter((t) => t >= lo - 1e-9 && t <= hi + 1e-9);
-  }, [yMin, yMax, yAxisSettings.flipAxis, yAxisSettings.ticksToShowMode, yAxisSettings.ticksToShowNumber]);
+    // Filter to actual visible range (use custom range if set in custom mode)
+    const filterLo = tickMode === 'custom' && yAxisSettings.customTickStart
+      ? Math.min(yAxisSettings.customTickStart, yAxisSettings.customTickEnd ?? hi)
+      : lo;
+    const filterHi = tickMode === 'custom' && yAxisSettings.customTickEnd
+      ? Math.max(yAxisSettings.customTickStart ?? lo, yAxisSettings.customTickEnd)
+      : hi;
+    return ticks.filter((t) => t >= filterLo - 1e-9 && t <= filterHi + 1e-9);
+  }, [yMin, yMax, yAxisSettings.flipAxis, yAxisSettings.ticksToShowMode, yAxisSettings.ticksToShowNumber, yAxisSettings.customTickStart, yAxisSettings.customTickEnd]);
 
   const yAxisWidth = useMemo(() => {
     if (!yAxisVisible) return 0;
@@ -538,19 +564,22 @@ export function LineChart({
               const y = marginTop + yScale(v);
               const txt = formatNumber(v, nf, yAxisDecimals);
 
-              // tickPosition: 'left' = above the line, 'right' = below the line, 'default' = centered
+              // tickPosition: 'left' = above the gridline, 'right' = below the gridline, 'default' = centered
               const tickPos = yAxisSettings.tickPosition || 'default';
               const tickPad = yAxisSettings.tickPadding || 0;
               let labelY = y;
               let baseline: 'auto' | 'central' | 'hanging' = 'central';
               if (tickPos === 'left') {
-                // Above
-                labelY = y - tickPad - 2;
+                // Above: text bottom edge sits at gridline level, shifted up by padding
+                labelY = y - (tickPad + 2);
                 baseline = 'auto';
               } else if (tickPos === 'right') {
-                // Below
-                labelY = y + tickPad + 2;
+                // Below: text top edge sits at gridline level, shifted down by padding
+                labelY = y + (tickPad + 2);
                 baseline = 'hanging';
+              } else {
+                // Default centered, apply tickPadding as vertical offset
+                labelY = y + tickPad;
               }
 
               const xPos = yAxisSettings.position === 'right'
@@ -829,7 +858,17 @@ export function LineChart({
                 }
 
                 const labelText = formatNumber(val, nf);
-                const offset = position === 'above' ? -8 : 12;
+
+                // Compute actual dot radius for this point to offset the label
+                const baseR = lineSettings.dotRadius * 10;
+                const isFinal = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
+                const actualDotR = showDots !== 'none'
+                  ? (isFinal ? baseR * (lineSettings.finalDotScale / 100) : baseR)
+                  : 0;
+                const labelGap = 4; // px gap between dot edge and label
+                const offset = position === 'above'
+                  ? -(actualDotR + labelGap)
+                  : (actualDotR + labelGap);
 
                 const customPadding = labelSettings.dataPointCustomPadding;
                 const padTop = customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0;

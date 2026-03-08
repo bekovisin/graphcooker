@@ -289,6 +289,8 @@ export interface YAxisSettings {
   labelLineHeight?: number;
   ticksToShowMode?: TicksToShowMode;
   ticksToShowNumber?: number;
+  customTickStart?: number;
+  customTickEnd?: number;
   edgePadding?: number;
   gridlineStyle?: 'solid' | 'dashed' | 'dotted';
   gridlineBetweenCategories?: boolean;

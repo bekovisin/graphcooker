@@ -193,6 +193,8 @@ export const defaultChartSettings: ChartSettings = {
     labelLineHeight: 0.5,
     ticksToShowMode: 'auto',
     ticksToShowNumber: 6,
+    customTickStart: 0,
+    customTickEnd: 0,
     edgePadding: 10,
     gridlineStyle: 'solid',
     gridlineBetweenCategories: false,

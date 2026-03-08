@@ -370,9 +370,9 @@ export function YAxisSection() {
                 <Input
                   type="number"
                   value={settings.spaceModeValue}
-                  onChange={(e) => update({ spaceModeValue: parseInt(e.target.value) || 80 })}
+                  onChange={(e) => update({ spaceModeValue: parseInt(e.target.value) || 0 })}
                   className="h-8 text-xs w-full"
-                  min={20}
+                  min={0}
                   max={400}
                 />
               </div>
@@ -403,6 +403,39 @@ export function YAxisSection() {
             max={20}
             step={1}
           />
+        )}
+
+        {(settings.ticksToShowMode === 'custom') && (
+          <>
+            <NumberInput
+              label="Tick interval"
+              value={settings.ticksToShowNumber ?? 10}
+              onChange={(v) => update({ ticksToShowNumber: v })}
+              min={1}
+              max={1000}
+              step={1}
+            />
+            <div className="grid grid-cols-2 gap-1.5">
+              <div>
+                <label className="text-[10px] text-gray-400 mb-0.5 block">Start value</label>
+                <Input
+                  type="number"
+                  value={settings.customTickStart ?? 0}
+                  onChange={(e) => update({ customTickStart: parseFloat(e.target.value) || 0 })}
+                  className="h-7 text-xs w-full"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-400 mb-0.5 block">End value</label>
+                <Input
+                  type="number"
+                  value={settings.customTickEnd ?? 0}
+                  onChange={(e) => update({ customTickEnd: parseFloat(e.target.value) || 0 })}
+                  className="h-7 text-xs w-full"
+                />
+              </div>
+            </div>
+          </>
         )}
 
         {/* TICK MARKS & AXIS LINE */}
@@ -443,7 +476,7 @@ export function YAxisSection() {
           value={settings.edgePadding ?? 10}
           onChange={(v) => update({ edgePadding: v })}
           min={0}
-          max={50}
+          max={100}
           step={1}
           suffix="%"
         />
