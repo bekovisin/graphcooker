@@ -260,7 +260,7 @@ export function BarsSection() {
                   };
                   return (
                     <div key={name} className="space-y-1.5">
-                      <span className="text-sm text-gray-700 font-medium">{name}</span>
+                      <span className="text-sm text-gray-700 font-medium truncate min-w-0 block">{name}</span>
                       <div className="grid grid-cols-4 gap-2">
                         <NumberInput label="TL" value={r.tl} onChange={(v) => updateRadius('tl', v)} min={0} max={50} step={1} />
                         <NumberInput label="TR" value={r.tr} onChange={(v) => updateRadius('tr', v)} min={0} max={50} step={1} />

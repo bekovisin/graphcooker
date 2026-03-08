@@ -10,6 +10,7 @@ import { ChartPreview } from './ChartPreview';
 import { DataEditor } from './DataEditor';
 import { SettingsPanel } from './SettingsPanel';
 import { ExportDialog, ExportOptions } from './ExportDialog';
+import { UnsavedChangesDialog } from './UnsavedChangesDialog';
 
 interface EditorLayoutProps {
   visualizationId: number;
@@ -31,7 +32,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     setLastSavedAt,
   } = useEditorStore();
 
-  useUnsavedChangesGuard(isDirty);
+  const { showDialog: showUnsavedDialog, onConfirmLeave, onCancelLeave } = useUnsavedChangesGuard(isDirty);
 
   const searchParams = useSearchParams();
   const fromTemplateId = searchParams.get('fromTemplate') ? parseInt(searchParams.get('fromTemplate')!) : null;
@@ -354,6 +355,12 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
         onExport={handleExport}
         defaultWidth={dims.width}
         defaultHeight={dims.height}
+      />
+
+      <UnsavedChangesDialog
+        open={showUnsavedDialog}
+        onConfirm={onConfirmLeave}
+        onCancel={onCancelLeave}
       />
     </div>
   );
