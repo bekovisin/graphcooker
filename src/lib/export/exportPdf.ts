@@ -75,6 +75,18 @@ async function svgToVectorPdf(
         }
       }
     }
+
+    // For transparent exports, swap cover circles for the SVG mask
+    const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
+    if (coverCircles) coverCircles.remove();
+
+    const linesGroup = clonedSvg.querySelector('[data-role="chart-lines"]');
+    if (linesGroup) {
+      const maskId = linesGroup.getAttribute('data-mask-id');
+      if (maskId) {
+        linesGroup.setAttribute('mask', `url(#${maskId})`);
+      }
+    }
   }
 
   // Create PDF with exact dimensions

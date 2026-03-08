@@ -237,6 +237,13 @@ export function LineChart({
   const xAxisSettings = settings.xAxis;
   const yAxisSettings = settings.yAxis;
 
+  // Effective background color for cover circles (hides lines under dots in preview)
+  const coverBgColor = useMemo(() => {
+    if (plotBg.backgroundOpacity >= 50) return plotBg.backgroundColor;
+    if ((settings.layout.backgroundOpacity ?? 100) >= 50) return settings.layout.backgroundColor || '#ffffff';
+    return '#ffffff';
+  }, [plotBg.backgroundColor, plotBg.backgroundOpacity, settings.layout.backgroundColor, settings.layout.backgroundOpacity]);
+
   // Y axis custom decimals
   const yAxisDecimals = nf.yAxisCustomDecimals ? nf.yAxisDecimalPlaces : undefined;
 
@@ -825,8 +832,8 @@ export function LineChart({
           )}
         </defs>
 
-        {/* Lines group — clipped to chart area (shade + line paths), masked to punch out dot areas */}
-        <g transform={`translate(${marginLeft}, ${marginTop})`} clipPath={`url(#${clipId})`} mask={showDots !== 'none' ? `url(#${clipId}-dot-mask)` : undefined}>
+        {/* Lines group — clipped to chart area (shade + line paths) */}
+        <g data-role="chart-lines" data-mask-id={`${clipId}-dot-mask`} transform={`translate(${marginLeft}, ${marginTop})`} clipPath={`url(#${clipId})`}>
           {/* Shade between lines */}
           {shadePaths.map((area, i) => (
             <path
@@ -871,6 +878,35 @@ export function LineChart({
             </g>
           ))}
         </g>
+
+        {/* Cover circles — hide lines under dots using background color (preview only) */}
+        {showDots !== 'none' && (
+          <g data-role="cover-circles" transform={`translate(${marginLeft}, ${marginTop})`}>
+            {series.map((s, si) =>
+              s.points.map((val, pi) => {
+                if (val === null) return null;
+                if (showDots === 'final') {
+                  const isLastNonNull = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
+                  if (!isLastNonNull) return null;
+                }
+                const cx = xScale(pi);
+                const cy = yScale(val * animProgress);
+                const baseRadius = lineSettings.dotRadius * 10;
+                const isFinalDot = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
+                const radius = isFinalDot ? baseRadius * (lineSettings.finalDotScale / 100) : baseRadius;
+                return (
+                  <circle
+                    key={`cover-${si}-${pi}`}
+                    cx={cx}
+                    cy={cy}
+                    r={Math.max(0.5, radius)}
+                    fill={coverBgColor}
+                  />
+                );
+              })
+            )}
+          </g>
+        )}
 
         {/* Dots & data-point labels — UNCLIPPED so they render ON TOP of axes/gridlines */}
         <g transform={`translate(${marginLeft}, ${marginTop})`}>

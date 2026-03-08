@@ -47,6 +47,20 @@ export async function exportSvg(
           }
         }
       }
+
+      // For transparent exports, swap cover circles for the SVG mask
+      // Cover circles rely on a visible background color — they don't work when transparent.
+      // The mask punches holes in lines under dots, which works correctly in static SVG.
+      const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
+      if (coverCircles) coverCircles.remove();
+
+      const linesGroup = clonedSvg.querySelector('[data-role="chart-lines"]');
+      if (linesGroup) {
+        const maskId = linesGroup.getAttribute('data-mask-id');
+        if (maskId) {
+          linesGroup.setAttribute('mask', `url(#${maskId})`);
+        }
+      }
     }
 
     // Apply custom dimensions if provided
