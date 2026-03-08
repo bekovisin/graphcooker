@@ -792,10 +792,41 @@ export function LineChart({
               height={chartHeight + maxDotR * 2 + 4}
             />
           </clipPath>
+          {/* SVG mask to punch out dot areas from lines — works for any background including transparent */}
+          {showDots !== 'none' && (
+            <mask id={`${clipId}-dot-mask`} maskUnits="userSpaceOnUse" x={-maxDotR - 2} y={-maxDotR - 2} width={chartWidth + maxDotR * 2 + 4} height={chartHeight + maxDotR * 2 + 4}>
+              {/* White = visible (show lines everywhere by default) */}
+              <rect x={-maxDotR - 2} y={-maxDotR - 2} width={chartWidth + maxDotR * 2 + 4} height={chartHeight + maxDotR * 2 + 4} fill="white" />
+              {/* Black circles at dot positions = hidden (punch holes in lines under dots) */}
+              {series.map((s, si) =>
+                s.points.map((val, pi) => {
+                  if (val === null) return null;
+                  if (showDots === 'final') {
+                    const isFinalDot = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
+                    if (!isFinalDot) return null;
+                  }
+                  const cx = xScale(pi);
+                  const cy = yScale(val * animProgress);
+                  const baseRadius = lineSettings.dotRadius * 10;
+                  const isFinal = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
+                  const radius = isFinal ? baseRadius * (lineSettings.finalDotScale / 100) : baseRadius;
+                  return (
+                    <circle
+                      key={`dot-mask-${si}-${pi}`}
+                      cx={cx}
+                      cy={cy}
+                      r={Math.max(0.5, radius + 1)}
+                      fill="black"
+                    />
+                  );
+                })
+              )}
+            </mask>
+          )}
         </defs>
 
-        {/* Lines group — clipped to chart area (shade + line paths) */}
-        <g transform={`translate(${marginLeft}, ${marginTop})`} clipPath={`url(#${clipId})`}>
+        {/* Lines group — clipped to chart area (shade + line paths), masked to punch out dot areas */}
+        <g transform={`translate(${marginLeft}, ${marginTop})`} clipPath={`url(#${clipId})`} mask={showDots !== 'none' ? `url(#${clipId}-dot-mask)` : undefined}>
           {/* Shade between lines */}
           {shadePaths.map((area, i) => (
             <path
@@ -843,35 +874,6 @@ export function LineChart({
 
         {/* Dots & data-point labels — UNCLIPPED so they render ON TOP of axes/gridlines */}
         <g transform={`translate(${marginLeft}, ${marginTop})`}>
-          {/* Line-masking circles — prevent line from showing through hollow/transparent dots */}
-          {showDots !== 'none' && series.map((s, si) => (
-            <g key={`dot-mask-${si}`}>
-              {s.points.map((val, pi) => {
-                if (val === null) return null;
-                if (showDots === 'final' && pi !== s.points.length - 1) {
-                  const isLastNonNull = s.points.slice(pi + 1).every((v) => v === null);
-                  if (!isLastNonNull) return null;
-                }
-                const cx = xScale(pi);
-                const cy = yScale(val * animProgress);
-                const baseRadius = lineSettings.dotRadius * 10;
-                const isFinalDot = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
-                const radius = isFinalDot ? baseRadius * (lineSettings.finalDotScale / 100) : baseRadius;
-                return (
-                  <circle
-                    key={`mask-${si}-${pi}`}
-                    cx={cx}
-                    cy={cy}
-                    r={Math.max(0.5, radius)}
-                    fill={plotBg.backgroundColor}
-                    fillOpacity={plotBg.backgroundOpacity / 100}
-                    stroke="none"
-                  />
-                );
-              })}
-            </g>
-          ))}
-
           {/* Dots */}
           {showDots !== 'none' && series.map((s, si) => (
             <g key={`dots-${si}`}>
@@ -967,6 +969,8 @@ export function LineChart({
 
                 const customPadding = labelSettings.dataPointCustomPadding;
                 const padTop = customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0;
+                const padRight = customPadding ? (labelSettings.dataPointPaddingRight || 0) : 0;
+                const padBottom = customPadding ? (labelSettings.dataPointPaddingBottom || 0) : 0;
                 const padLeft = customPadding ? (labelSettings.dataPointPaddingLeft || 0) : 0;
 
                 // Resolve color based on lineDataPointColorMode
@@ -995,8 +999,8 @@ export function LineChart({
                 return (
                   <text
                     key={`dp-${si}-${pi}`}
-                    x={cx + padLeft}
-                    y={cy + offset + padTop}
+                    x={cx + padLeft - padRight}
+                    y={cy + offset + padTop - padBottom}
                     textAnchor="middle"
                     dy={centerOnDot ? '0.35em' : (position === 'below' ? '0.85em' : undefined)}
                     fill={labelColor}

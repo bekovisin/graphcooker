@@ -122,6 +122,32 @@ function inlineStyles(svgEl: SVGSVGElement) {
     convertStyleToSvgAttrs(el);
   });
 
+  // ── Split paint-order:stroke text into two layers for cross-viewer compatibility ──
+  // Many SVG viewers (Illustrator, Inkscape, some embed contexts) don't support
+  // paint-order. We split each affected <text> into:
+  //   1. A stroke-only clone (behind) — fill="none", keeps stroke attrs
+  //   2. The original fill-only element (on top) — stroke removed
+  svgEl.querySelectorAll('text[paint-order]').forEach((textEl) => {
+    const el = textEl as SVGTextElement;
+    const paintOrder = el.getAttribute('paint-order');
+    if (!paintOrder || !paintOrder.includes('stroke')) return;
+
+    // Clone for stroke layer
+    const strokeEl = el.cloneNode(true) as SVGTextElement;
+    strokeEl.setAttribute('fill', 'none');
+    strokeEl.removeAttribute('paint-order');
+
+    // Original becomes fill layer — remove stroke attrs
+    el.removeAttribute('paint-order');
+    el.removeAttribute('stroke');
+    el.removeAttribute('stroke-width');
+    el.removeAttribute('stroke-linejoin');
+    el.removeAttribute('stroke-linecap');
+
+    // Insert stroke layer before fill layer (renders behind)
+    el.parentNode?.insertBefore(strokeEl, el);
+  });
+
   // ── Process circles ──
   svgEl.querySelectorAll('circle').forEach((circleEl) => {
     // Normalise transparent → fill="none"
