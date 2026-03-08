@@ -24,6 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getDescendantIds } from '@/lib/folder-utils';
 
 export interface FolderItem {
   id: number;
@@ -51,6 +52,7 @@ interface DashboardSidebarProps {
   onRenameFolder: (id: number, name: string) => void;
   onDeleteFolder: (id: number) => void;
   onMoveToFolder: (vizId: number, folderId: number | null) => void;
+  onMoveFolderToFolder?: (folderId: number, targetParentId: number | null) => void;
   vizCountByFolder: Record<string, number>;
   totalVizCount: number;
   isSelectionMode: boolean;
@@ -71,6 +73,7 @@ export function DashboardSidebar({
   onRenameFolder,
   onDeleteFolder,
   onMoveToFolder,
+  onMoveFolderToFolder,
   vizCountByFolder,
   totalVizCount,
   isSelectionMode,
@@ -158,12 +161,30 @@ export function DashboardSidebar({
     setDragOverFolderId(null);
   };
 
-  const handleDrop = (e: React.DragEvent, folderId: number | null) => {
+  const handleDrop = (e: React.DragEvent, targetFolderId: number | null) => {
     e.preventDefault();
     setDragOverFolderId(null);
+
+    // Check if this is a folder drop
+    const draggedFolderIdStr = e.dataTransfer.getData('application/x-folder-id');
+    if (draggedFolderIdStr) {
+      const draggedFolderId = parseInt(draggedFolderIdStr);
+      if (isNaN(draggedFolderId)) return;
+      // Prevent dropping onto self
+      if (draggedFolderId === targetFolderId) return;
+      // Prevent circular: can't drop into own descendant
+      if (targetFolderId !== null) {
+        const descendants = getDescendantIds(draggedFolderId, folders);
+        if (descendants.has(targetFolderId)) return;
+      }
+      onMoveFolderToFolder?.(draggedFolderId, targetFolderId);
+      return;
+    }
+
+    // Otherwise it's a viz drop
     const vizId = parseInt(e.dataTransfer.getData('text/plain'));
     if (!isNaN(vizId)) {
-      onMoveToFolder(vizId, folderId);
+      onMoveToFolder(vizId, targetFolderId);
     }
   };
 
@@ -229,6 +250,11 @@ export function DashboardSidebar({
     return (
       <div key={folder.id}>
         <div
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData('application/x-folder-id', String(folder.id));
+            e.dataTransfer.effectAllowed = 'move';
+          }}
           className={`group flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-sm ${
             isDragOver
               ? 'bg-blue-100 ring-2 ring-blue-300'

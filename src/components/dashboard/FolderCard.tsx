@@ -12,6 +12,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getDescendantIds } from '@/lib/folder-utils';
 
 interface FolderItem {
   id: number;
@@ -25,6 +26,7 @@ interface FolderCardProps {
   allFolders?: FolderItem[];
   onClick: () => void;
   onDrop: (vizId: number) => void;
+  onDropFolder?: (draggedFolderId: number) => void;
   onRename?: (id: number, name: string) => void;
   onDuplicate?: (id: number) => void;
   onMove?: (id: number, targetFolderId: number | null) => void;
@@ -37,6 +39,7 @@ export function FolderCard({
   allFolders,
   onClick,
   onDrop,
+  onDropFolder,
   onRename,
   onDuplicate,
   onMove,
@@ -62,11 +65,11 @@ export function FolderCard({
     setIsEditing(false);
   };
 
-  // Filter available target folders (exclude self and own children to prevent circular refs)
+  // Filter available target folders (exclude self and all descendants to prevent circular refs)
+  const descendants = allFolders ? getDescendantIds(folder.id, allFolders) : new Set<number>();
   const moveTargets = (allFolders || []).filter((f) => {
     if (f.id === folder.id) return false;
-    // Prevent moving into own children (simple 1-level check)
-    if (f.parentId === folder.id) return false;
+    if (descendants.has(f.id)) return false;
     return true;
   });
 
@@ -74,6 +77,11 @@ export function FolderCard({
 
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/x-folder-id', String(folder.id));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
       className={`group relative rounded-lg border bg-white transition-all cursor-pointer hover:shadow-md ${
         isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : 'border-gray-200 hover:border-gray-300'
       }`}
@@ -90,6 +98,19 @@ export function FolderCard({
       onDrop={(e) => {
         e.preventDefault();
         setIsDragOver(false);
+
+        // Check for folder drop first
+        const draggedFolderIdStr = e.dataTransfer.getData('application/x-folder-id');
+        if (draggedFolderIdStr) {
+          const draggedFolderId = parseInt(draggedFolderIdStr);
+          if (isNaN(draggedFolderId)) return;
+          if (draggedFolderId === folder.id) return;
+          if (descendants.has(draggedFolderId)) return;
+          onDropFolder?.(draggedFolderId);
+          return;
+        }
+
+        // Otherwise viz drop
         const vizId = parseInt(e.dataTransfer.getData('text/plain'));
         if (!isNaN(vizId)) onDrop(vizId);
       }}

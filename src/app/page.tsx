@@ -33,6 +33,7 @@ import { BulkExportDialog, BulkExportOptions } from '@/components/dashboard/Bulk
 import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { toast } from 'sonner';
+import { getDescendantIds } from '@/lib/folder-utils';
 
 type SortMode = 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' | 'created_desc' | 'created_asc';
 
@@ -332,6 +333,16 @@ function DashboardPage() {
   };
 
   const handleMoveFolderTo = async (folderId: number, targetParentId: number | null) => {
+    // Prevent no-op
+    if (folderId === targetParentId) return;
+    // Prevent circular reference
+    if (targetParentId !== null) {
+      const descendants = getDescendantIds(folderId, folders);
+      if (descendants.has(targetParentId)) {
+        toast.error('Cannot move a folder into its own subfolder');
+        return;
+      }
+    }
     try {
       const res = await fetch(`/api/folders/${folderId}`, {
         method: 'PUT',
@@ -954,6 +965,7 @@ function DashboardPage() {
               allFolders={folders}
               onClick={() => setActiveFolderId(sf.id)}
               onDrop={(vizId) => handleMoveToFolder(vizId, sf.id)}
+              onDropFolder={(draggedFolderId) => handleMoveFolderTo(draggedFolderId, sf.id)}
               onRename={handleRenameFolder}
               onDuplicate={handleDuplicateFolder}
               onMove={handleMoveFolderTo}
@@ -1000,6 +1012,7 @@ function DashboardPage() {
                 allFolders={folders}
                 onClick={() => setActiveFolderId(folder.id)}
                 onDrop={(vizId) => handleMoveToFolder(vizId, folder.id)}
+                onDropFolder={(draggedFolderId) => handleMoveFolderTo(draggedFolderId, folder.id)}
                 onRename={handleRenameFolder}
                 onDuplicate={handleDuplicateFolder}
                 onMove={handleMoveFolderTo}
@@ -1081,6 +1094,7 @@ function DashboardPage() {
           onRenameFolder={handleRenameFolder}
           onDeleteFolder={handleDeleteFolder}
           onMoveToFolder={handleMoveToFolder}
+          onMoveFolderToFolder={handleMoveFolderTo}
           vizCountByFolder={vizCountByFolder}
           totalVizCount={visualizations.length}
           isSelectionMode={isSelectionMode}
