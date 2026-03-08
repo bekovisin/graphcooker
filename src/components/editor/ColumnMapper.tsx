@@ -89,7 +89,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
   const valuesBadge = formatColumnBadge(columnMapping.values || [], availableColumns);
 
   return (
-    <div className="w-[280px] border-l bg-white flex flex-col shrink-0">
+    <div className="w-[280px] border-l bg-white flex flex-col shrink-0 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <span className="text-sm font-semibold text-gray-800">Data</span>
@@ -195,15 +195,15 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                     <button
                       key={col}
                       onClick={() => toggleValue(col)}
-                      className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs transition-colors"
+                      className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs transition-colors min-w-0"
                       style={
                         isSelected
                           ? { backgroundColor: valueColors.bg, color: valueColors.text, border: `1px solid ${valueColors.border}` }
                           : { backgroundColor: '#f9fafb', color: '#6b7280', border: '1px solid transparent' }
                       }
                     >
-                      <span>{getDisplayName(col)}</span>
-                      {isSelected && <X className="w-3 h-3" />}
+                      <span className="truncate">{getDisplayName(col)}</span>
+                      {isSelected && <X className="w-3 h-3 shrink-0 ml-1" />}
                     </button>
                   );
                 })}
@@ -298,14 +298,14 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                         infoPopups: isSelected ? current.filter((c) => c !== col) : [...current, col],
                       });
                     }}
-                    className="flex items-center w-full px-2.5 py-1 rounded text-xs transition-colors"
+                    className="flex items-center w-full px-2.5 py-1 rounded text-xs transition-colors min-w-0"
                     style={
                       isSelected
                         ? { backgroundColor: popupColors.bg, color: popupColors.text, border: `1px solid ${popupColors.border}` }
                         : { color: '#9ca3af', border: '1px solid transparent' }
                     }
                   >
-                    <span>{getDisplayName(col)}</span>
+                    <span className="truncate">{getDisplayName(col)}</span>
                   </button>
                 );
               })}

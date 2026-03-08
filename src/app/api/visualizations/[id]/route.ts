@@ -99,6 +99,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
     }
 
+    // Clean up orphaned project (each viz has its own project in current design)
+    const remaining = await db
+      .select({ id: visualizations.id })
+      .from(visualizations)
+      .where(eq(visualizations.projectId, deleted.projectId))
+      .limit(1);
+    if (remaining.length === 0) {
+      await db.delete(projects).where(eq(projects.id, deleted.projectId));
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete visualization:', error);

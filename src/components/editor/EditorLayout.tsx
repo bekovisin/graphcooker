@@ -42,6 +42,13 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
   // Load visualization on mount
   useEffect(() => {
+    // Cancel any pending auto-save from the previous visualization immediately
+    // to prevent saving stale data to the new visualization ID
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    setIsDirty(false);
     setIsLoading(true);
     thumbnailCapturedRef.current = false;
 
@@ -134,6 +141,11 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
   // Auto-save — saves data immediately, captures thumbnail in background
   const saveVisualization = useCallback(async () => {
+    // Guard: ensure the store's visualizationId matches the current prop
+    // to prevent saving stale data to the wrong visualization
+    const storeVizId = useEditorStore.getState().visualizationId;
+    if (storeVizId !== visualizationId) return;
+
     setIsSaving(true);
     try {
       // Persist seriesNames inside columnMapping so they survive save/load
@@ -175,9 +187,9 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     });
   }, [visualizationId, visualizationName, data, settings, columnMapping, seriesNames, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
 
-  // Debounced auto-save
+  // Debounced auto-save — blocked while loading to prevent saving stale data
   useEffect(() => {
-    if (!isDirty) return;
+    if (!isDirty || isLoading) return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -192,7 +204,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [isDirty, saveVisualization]);
+  }, [isDirty, isLoading, saveVisualization]);
 
   // One-time thumbnail capture on initial load
   // This ensures thumbnails exist for dashboard cards even if user doesn't edit anything
