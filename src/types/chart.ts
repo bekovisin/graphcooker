@@ -196,6 +196,10 @@ export interface LabelsSettings {
   // Row positions: each row maps to per-series position overrides
   lineDataPointRowPositions?: Record<string, Record<string, LineDataPointPosition>>;
 
+  // Line chart — Per-row custom padding
+  dataPointRowPaddingEnabled?: Record<string, boolean>;
+  dataPointRowPadding?: Record<string, { top: number; right: number; bottom: number; left: number }>;
+
   // Line chart — Line Label space mode
   lineLabelSpaceMode?: 'auto' | 'fixed';
   lineLabelSpaceValue?: number;

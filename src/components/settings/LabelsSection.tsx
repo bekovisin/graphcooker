@@ -112,6 +112,7 @@ export function LabelsSection() {
   const [showLineColorModal, setShowLineColorModal] = useState(false);
   const [showLineLabelColorModal, setShowLineLabelColorModal] = useState(false);
   const [showLineRowColorModal, setShowLineRowColorModal] = useState(false);
+  const [showRowPaddingModal, setShowRowPaddingModal] = useState(false);
   const [dataPointStylingOpen, setDataPointStylingOpen] = useState(true);
   const isLineChart = chartType === 'line_chart';
   const isRowMode = settings.dataPointCustomMode === 'row';
@@ -970,6 +971,114 @@ export function LabelsSection() {
                 </div>
               </div>
             )}
+
+            {/* Per-row padding button & modal */}
+            <button
+              onClick={() => setShowRowPaddingModal(true)}
+              className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              Configure per-row padding...
+            </button>
+
+            <Dialog open={showRowPaddingModal} onOpenChange={setShowRowPaddingModal}>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Per-Row Padding</DialogTitle>
+                  <DialogDescription>
+                    Enable custom padding per row and set top, right, bottom, left values individually.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                  {categoryNames.map((rowName) => {
+                    const isEnabled = settings.dataPointRowPaddingEnabled?.[rowName] ?? false;
+                    const rowPad = settings.dataPointRowPadding?.[rowName] || { top: 0, right: 0, bottom: 0, left: 0 };
+                    return (
+                      <div key={rowName} className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-gray-800">{rowName}</span>
+                          <Switch
+                            checked={isEnabled}
+                            onCheckedChange={(checked) => {
+                              update({
+                                dataPointRowPaddingEnabled: {
+                                  ...settings.dataPointRowPaddingEnabled,
+                                  [rowName]: checked,
+                                },
+                              });
+                            }}
+                          />
+                        </div>
+                        {isEnabled && (
+                          <div className="grid grid-cols-4 gap-2 pl-3 border-l-2 border-gray-200">
+                            <NumberInput
+                              label="T"
+                              value={rowPad.top}
+                              onChange={(v) => {
+                                update({
+                                  dataPointRowPadding: {
+                                    ...settings.dataPointRowPadding,
+                                    [rowName]: { ...rowPad, top: v },
+                                  },
+                                });
+                              }}
+                              min={-999}
+                              max={999}
+                              step={1}
+                            />
+                            <NumberInput
+                              label="R"
+                              value={rowPad.right}
+                              onChange={(v) => {
+                                update({
+                                  dataPointRowPadding: {
+                                    ...settings.dataPointRowPadding,
+                                    [rowName]: { ...rowPad, right: v },
+                                  },
+                                });
+                              }}
+                              min={-999}
+                              max={999}
+                              step={1}
+                            />
+                            <NumberInput
+                              label="B"
+                              value={rowPad.bottom}
+                              onChange={(v) => {
+                                update({
+                                  dataPointRowPadding: {
+                                    ...settings.dataPointRowPadding,
+                                    [rowName]: { ...rowPad, bottom: v },
+                                  },
+                                });
+                              }}
+                              min={-999}
+                              max={999}
+                              step={1}
+                            />
+                            <NumberInput
+                              label="L"
+                              value={rowPad.left}
+                              onChange={(v) => {
+                                update({
+                                  dataPointRowPadding: {
+                                    ...settings.dataPointRowPadding,
+                                    [rowName]: { ...rowPad, left: v },
+                                  },
+                                });
+                              }}
+                              min={-999}
+                              max={999}
+                              step={1}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </AccordionSection>

@@ -792,12 +792,12 @@ export function LineChart({
               height={chartHeight + maxDotR * 2 + 4}
             />
           </clipPath>
-          {/* SVG mask to punch out dot areas from lines — works for any background including transparent */}
+          {/* SVG mask to punch out dot areas from lines — uses absolute SVG root coordinates */}
           {showDots !== 'none' && (
-            <mask id={`${clipId}-dot-mask`} maskUnits="userSpaceOnUse" x={-maxDotR - 2} y={-maxDotR - 2} width={chartWidth + maxDotR * 2 + 4} height={chartHeight + maxDotR * 2 + 4}>
+            <mask id={`${clipId}-dot-mask`} maskUnits="userSpaceOnUse" x="0" y="0" width={width} height={svgHeight}>
               {/* White = visible (show lines everywhere by default) */}
-              <rect x={-maxDotR - 2} y={-maxDotR - 2} width={chartWidth + maxDotR * 2 + 4} height={chartHeight + maxDotR * 2 + 4} fill="white" />
-              {/* Black circles at dot positions = hidden (punch holes in lines under dots) */}
+              <rect x="0" y="0" width={width} height={svgHeight} fill="white" />
+              {/* Black circles at ABSOLUTE dot positions = hidden (punch holes in lines under dots) */}
               {series.map((s, si) =>
                 s.points.map((val, pi) => {
                   if (val === null) return null;
@@ -805,17 +805,17 @@ export function LineChart({
                     const isFinalDot = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
                     if (!isFinalDot) return null;
                   }
-                  const cx = xScale(pi);
-                  const cy = yScale(val * animProgress);
+                  const absCx = marginLeft + xScale(pi);
+                  const absCy = marginTop + yScale(val * animProgress);
                   const baseRadius = lineSettings.dotRadius * 10;
                   const isFinal = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
                   const radius = isFinal ? baseRadius * (lineSettings.finalDotScale / 100) : baseRadius;
                   return (
                     <circle
                       key={`dot-mask-${si}-${pi}`}
-                      cx={cx}
-                      cy={cy}
-                      r={Math.max(0.5, radius + 1)}
+                      cx={absCx}
+                      cy={absCy}
+                      r={Math.max(0.5, radius)}
                       fill="black"
                     />
                   );
@@ -968,10 +968,14 @@ export function LineChart({
                     : (actualDotR + labelGap));
 
                 const customPadding = labelSettings.dataPointCustomPadding;
-                const padTop = customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0;
-                const padRight = customPadding ? (labelSettings.dataPointPaddingRight || 0) : 0;
-                const padBottom = customPadding ? (labelSettings.dataPointPaddingBottom || 0) : 0;
-                const padLeft = customPadding ? (labelSettings.dataPointPaddingLeft || 0) : 0;
+                // Per-row padding overrides global padding when enabled for this row
+                const rowName = categories[pi];
+                const rowPadEnabled = labelSettings.dataPointRowPaddingEnabled?.[rowName];
+                const rowPad = rowPadEnabled ? labelSettings.dataPointRowPadding?.[rowName] : undefined;
+                const padTop = rowPad ? (rowPad.top || 0) : (customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0);
+                const padRight = rowPad ? (rowPad.right || 0) : (customPadding ? (labelSettings.dataPointPaddingRight || 0) : 0);
+                const padBottom = rowPad ? (rowPad.bottom || 0) : (customPadding ? (labelSettings.dataPointPaddingBottom || 0) : 0);
+                const padLeft = rowPad ? (rowPad.left || 0) : (customPadding ? (labelSettings.dataPointPaddingLeft || 0) : 0);
 
                 // Resolve color based on lineDataPointColorMode
                 const colorMode = labelSettings.lineDataPointColorMode ?? 'auto';

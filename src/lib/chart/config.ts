@@ -139,6 +139,8 @@ export const defaultChartSettings: ChartSettings = {
     lineDataPointCustomMode: 'column',
     lineDataPointSeriesPositions: {},
     lineDataPointRowPositions: {},
+    dataPointRowPaddingEnabled: {},
+    dataPointRowPadding: {},
   },
   xAxis: {
     position: 'bottom',
