@@ -30,7 +30,7 @@ export interface ContextMenuPosition {
   targetCol: number | null;
 }
 
-export type ColumnRole = 'label' | 'value' | 'chartsGrid' | 'rowFilter' | 'infoPopup' | 'unmapped';
+export type ColumnRole = 'label' | 'value' | 'chartsGrid' | 'rowFilter' | 'infoPopup' | 'info' | 'unmapped';
 
 export interface ColumnTypeConfig {
   type: 'number' | 'text';

@@ -270,6 +270,61 @@ export const settingsMap: SettingsSection[] = [
       { key: 'altText', label: 'Alt text' },
     ],
   },
+  {
+    id: 'bar-background',
+    title: 'Bar background',
+    settings: [
+      { key: 'show', label: 'Show bar background' },
+      { key: 'color', label: 'Background color' },
+      { key: 'opacity', label: 'Opacity' },
+    ],
+  },
+  {
+    id: 'bar-row-borders',
+    title: 'Bar row borders',
+    settings: [
+      { key: 'show', label: 'Show row borders' },
+      { key: 'mode', label: 'Mode' },
+      { key: 'customRows', label: 'Custom rows' },
+      { key: 'color', label: 'Color' },
+      { key: 'width', label: 'Width' },
+      { key: 'style', label: 'Style' },
+      { key: 'dashLength', label: 'Dash length' },
+      { key: 'alignment', label: 'Alignment' },
+    ],
+  },
+  {
+    id: 'connector-border',
+    title: 'Connector border',
+    settings: [
+      { key: 'show', label: 'Show connector' },
+      { key: 'color', label: 'Color' },
+      { key: 'width', label: 'Width' },
+      { key: 'style', label: 'Style' },
+      { key: 'length', label: 'Length' },
+      { key: 'paddingBar', label: 'Padding (bar side)' },
+      { key: 'paddingLabel', label: 'Padding (label side)' },
+      { key: 'alignment', label: 'Alignment' },
+    ],
+  },
+  {
+    id: 'info-column',
+    title: 'Info column',
+    settings: [
+      { key: 'show', label: 'Show info column' },
+      { key: 'position', label: 'Position' },
+      { key: 'fontSize', label: 'Font size' },
+      { key: 'fontFamily', label: 'Font family' },
+      { key: 'fontWeight', label: 'Font weight' },
+      { key: 'color', label: 'Color' },
+      { key: 'letterSpacing', label: 'Letter spacing' },
+      { key: 'padding', label: 'Padding' },
+      { key: 'perRowOverrides', label: 'Per-row overrides' },
+      { key: 'icon', label: 'Icon settings' },
+      { key: 'borderLeft', label: 'Border left' },
+      { key: 'borderRight', label: 'Border right' },
+    ],
+  },
 ];
 
 /** Get all setting keys as "sectionId.settingKey" format */

@@ -821,7 +821,9 @@ export async function renderChartOffscreen(
     ? (await import('@/components/chart/LineChart')).LineChart
     : chartType === 'bar_grouped'
       ? (await import('@/components/chart/GroupedBarChart')).GroupedBarChart
-      : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
+      : chartType === 'bar_chart_custom_2'
+        ? (await import('@/components/chart/BarChartCustom2')).BarChartCustom2
+        : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
 
   const reactRoot = createRoot(container);
   reactRoot.render(

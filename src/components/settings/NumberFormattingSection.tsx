@@ -156,6 +156,51 @@ export function NumberFormattingSection() {
           </div>
         </div>
       )}
+      {/* Info custom formatting */}
+      <SettingRow label="Info custom formatting" variant="inline">
+        <Switch
+          checked={settings.infoCustomDecimals ?? false}
+          onCheckedChange={(checked) => update({ infoCustomDecimals: checked })}
+        />
+      </SettingRow>
+
+      {settings.infoCustomDecimals && (
+        <>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Info decimals</label>
+              <Input
+                type="number"
+                value={settings.infoDecimalPlaces ?? 2}
+                onChange={(e) => update({ infoDecimalPlaces: parseInt(e.target.value) || 0 })}
+                className="h-7 text-xs w-full"
+                min={0}
+                max={10}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Info prefix</label>
+              <Input
+                value={settings.infoPrefix ?? ''}
+                onChange={(e) => update({ infoPrefix: e.target.value })}
+                className="h-7 text-xs w-full"
+                placeholder="e.g. +"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Info suffix</label>
+              <Input
+                value={settings.infoSuffix ?? ''}
+                onChange={(e) => update({ infoSuffix: e.target.value })}
+                className="h-7 text-xs w-full"
+                placeholder="e.g. %"
+              />
+            </div>
+          </div>
+        </>
+      )}
     </AccordionSection>
   );
 }

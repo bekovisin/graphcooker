@@ -13,5 +13,6 @@ export const COLUMN_ROLE_COLORS: Record<ColumnRole, { bg: string; headerBg: stri
   chartsGrid: { bg: '#fff3e0', headerBg: '#ffe0b2', text: '#e65100', border: '#ffcc80', badge: '#ff9800' },
   rowFilter:  { bg: '#e3f2fd', headerBg: '#bbdefb', text: '#1565c0', border: '#90caf9', badge: '#2196f3' },
   infoPopup:  { bg: '#e8f5e9', headerBg: '#c8e6c9', text: '#2e7d32', border: '#a5d6a7', badge: '#4caf50' },
+  info:       { bg: '#fff8e1', headerBg: '#ffecb3', text: '#f57f17', border: '#ffe082', badge: '#ffa000' },
   unmapped:   { bg: '#fafafa', headerBg: '#f5f5f5', text: '#616161', border: '#e0e0e0', badge: '#9e9e9e' },
 };

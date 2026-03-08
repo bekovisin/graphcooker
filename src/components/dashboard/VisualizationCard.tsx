@@ -106,6 +106,7 @@ export function VisualizationCard({
   const chartTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
       bar_stacked_custom: 'Bar Chart (Stacked)',
+      bar_chart_custom_2: 'Bar Chart Custom 2',
     };
     return labels[type] || type;
   };

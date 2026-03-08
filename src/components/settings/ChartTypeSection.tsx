@@ -23,6 +23,7 @@ import type {
 const chartTypeOptions: { value: ChartType; label: string }[] = [
   { value: 'bar_stacked_custom', label: 'Bar chart stacked (custom)' },
   { value: 'bar_grouped', label: 'Bar chart grouped' },
+  { value: 'bar_chart_custom_2', label: 'Bar chart custom 2' },
   { value: 'line_chart', label: 'Line chart' },
 ];
 

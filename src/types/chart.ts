@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart';
+export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';
@@ -345,6 +345,10 @@ export interface NumberFormattingSettings {
   xAxisDecimalPlaces: number;
   yAxisCustomDecimals: boolean;
   yAxisDecimalPlaces: number;
+  infoCustomDecimals: boolean;
+  infoDecimalPlaces: number;
+  infoPrefix: string;
+  infoSuffix: string;
 }
 
 // Legend
@@ -523,6 +527,91 @@ export interface QuestionSettings {
   showSubtextStyling?: boolean;
 }
 
+// ===== BAR CHART CUSTOM 2 SETTINGS =====
+
+export type BorderLineStyle = 'solid' | 'dashed' | 'dotted';
+export type BorderAlignment = 'top' | 'center' | 'bottom';
+export type BarRowBordersMode = 'all' | 'custom';
+
+export interface BarRowBordersSettings {
+  show: boolean;
+  mode: BarRowBordersMode;
+  color: string;
+  width: number;
+  style: BorderLineStyle;
+  dashLength: number;
+  alignment: BorderAlignment;
+  customRows: number[];
+}
+
+export interface ConnectorBorderSettings {
+  show: boolean;
+  color: string;
+  width: number;
+  style: BorderLineStyle;
+  length: number;
+  paddingBar: number;
+  paddingLabel: number;
+  alignment: BorderAlignment;
+}
+
+export interface CustomPrefixSettings {
+  show: boolean;
+  text: string;
+  position: 'left' | 'right';
+  fontSize: number;
+  fontWeight: FontWeight;
+  color: string;
+  padding: number;
+  paddingTop: number;
+  paddingBottom: number;
+  verticalAlign: 'bottom' | 'center' | 'top';
+}
+
+export type InfoPosition = 'left' | 'right';
+
+export interface InfoIconSettings {
+  show: boolean;
+  size: number;
+  borderWidth: number;
+  defaultColor: string;
+  perRowColors: Record<string, string>;
+  iconName: string;
+}
+
+export interface InfoBorderSettings {
+  show: boolean;
+  color: string;
+  width: number;
+  style: BorderLineStyle;
+}
+
+export interface InfoColumnSettings {
+  show: boolean;
+  position: InfoPosition;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: FontWeight;
+  color: string;
+  letterSpacing: number;
+  padding: number;
+  perRowColors: Record<string, string>;
+  perRowFontSizes: Record<string, number>;
+  perRowFontFamilies: Record<string, string>;
+  perRowFontWeights: Record<string, FontWeight>;
+  perRowLetterSpacings: Record<string, number>;
+  perRowPaddings: Record<string, number>;
+  icon: InfoIconSettings;
+  borderLeft: InfoBorderSettings;
+  borderRight: InfoBorderSettings;
+}
+
+export interface BarBackgroundSettings {
+  show: boolean;
+  color: string;
+  opacity: number;
+}
+
 // ===== MASTER SETTINGS OBJECT =====
 export interface ChartSettings {
   chartType: ChartTypeSettings;
@@ -544,6 +633,11 @@ export interface ChartSettings {
   header: HeaderSettings;
   footer: FooterSettings;
   accessibility: AccessibilitySettings;
+  barRowBorders: BarRowBordersSettings;
+  connectorBorder: ConnectorBorderSettings;
+  customPrefix: CustomPrefixSettings;
+  infoColumn: InfoColumnSettings;
+  barBackground: BarBackgroundSettings;
 }
 
 // ===== PREVIEW STATE (persisted in columnMapping) =====
@@ -561,6 +655,7 @@ export interface ColumnMapping {
   chartsGrid?: string;
   rowFilter?: string;
   infoPopups?: string[];
+  info?: string;
   seriesNames?: Record<string, string>;
   _previewState?: PreviewState;
   _columnOrder?: string[];

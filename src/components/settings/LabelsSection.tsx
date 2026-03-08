@@ -91,6 +91,132 @@ const fontFamilyOptions = [
   'system-ui',
 ];
 
+function CustomPrefixSubSection() {
+  const customPrefix = useEditorStore((s) => s.settings.customPrefix);
+  const updateSettings = useEditorStore((s) => s.updateSettings);
+
+  const updateCP = (updates: Partial<typeof customPrefix>) => {
+    updateSettings('customPrefix', updates);
+  };
+
+  return (
+    <>
+      <SettingRow label="Show custom prefix" variant="inline">
+        <Switch
+          checked={customPrefix.show}
+          onCheckedChange={(checked) => updateCP({ show: checked })}
+        />
+      </SettingRow>
+
+      {customPrefix.show && (
+        <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+          <SettingRow label="Prefix text">
+            <Input
+              value={customPrefix.text}
+              onChange={(e) => updateCP({ text: e.target.value })}
+              className="h-7 text-xs w-full"
+              placeholder="e.g. %"
+            />
+          </SettingRow>
+
+          <SettingRow label="Position">
+            <TabMenu
+              value={customPrefix.position}
+              onChange={(v) => updateCP({ position: v as 'left' | 'right' })}
+              options={[
+                { value: 'left', label: 'Left' },
+                { value: 'right', label: 'Right' },
+              ]}
+            />
+          </SettingRow>
+
+          <div className="space-y-1.5">
+            <span className="text-xs text-gray-600 font-medium">Prefix styling</span>
+            <div className="grid grid-cols-3 gap-1.5 items-end">
+              <Select
+                value={String(customPrefix.fontWeight)}
+                onValueChange={(v) => updateCP({ fontWeight: v as FontWeight })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="300" className="text-xs">Light</SelectItem>
+                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                  <SelectItem value="600" className="text-xs">Semibold</SelectItem>
+                  <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  value={customPrefix.fontSize}
+                  onChange={(e) => {
+                    const num = parseFloat(e.target.value);
+                    if (!isNaN(num)) updateCP({ fontSize: Math.max(6, Math.min(48, num)) });
+                  }}
+                  min={6}
+                  max={48}
+                  step={1}
+                  className="h-8 text-xs w-full"
+                />
+                <span className="text-xs text-gray-400 shrink-0">px</span>
+              </div>
+              <ColorPicker
+                value={customPrefix.color}
+                onChange={(color) => updateCP({ color })}
+              />
+            </div>
+          </div>
+
+          <SettingRow label="Vertical align">
+            <TabMenu
+              value={customPrefix.verticalAlign}
+              onChange={(v) => updateCP({ verticalAlign: v as 'bottom' | 'center' | 'top' })}
+              options={[
+                { value: 'bottom', label: 'Bottom' },
+                { value: 'center', label: 'Center' },
+                { value: 'top', label: 'Top' },
+              ]}
+            />
+          </SettingRow>
+
+          <NumberInput
+            label="Padding"
+            value={customPrefix.padding}
+            onChange={(v) => updateCP({ padding: v })}
+            min={-20}
+            max={50}
+            step={1}
+            suffix="px"
+          />
+          <div className="grid grid-cols-2 gap-1.5">
+            <NumberInput
+              label="Padding top"
+              value={customPrefix.paddingTop}
+              onChange={(v) => updateCP({ paddingTop: v })}
+              min={-30}
+              max={30}
+              step={1}
+              suffix="px"
+            />
+            <NumberInput
+              label="Padding bottom"
+              value={customPrefix.paddingBottom}
+              onChange={(v) => updateCP({ paddingBottom: v })}
+              min={-30}
+              max={30}
+              step={1}
+              suffix="px"
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function LabelsSection() {
   const settings = useEditorStore((s) => s.settings.labels);
   const chartType = useEditorStore((s) => s.settings.chartType.chartType);
@@ -1422,129 +1548,142 @@ export function LabelsSection() {
             </div>
           )}
 
-          {/* PERCENT PREFIX */}
-          <SettingRow label="Show % prefix" variant="inline">
-            <Switch
-              checked={settings.showPercentPrefix ?? false}
-              onCheckedChange={(checked) => update({ showPercentPrefix: checked })}
-            />
-          </SettingRow>
+          {/* PERCENT PREFIX (not for bar_chart_custom_2) */}
+          {chartType !== 'bar_chart_custom_2' && (
+            <>
+              <SettingRow label="Show % prefix" variant="inline">
+                <Switch
+                  checked={settings.showPercentPrefix ?? false}
+                  onCheckedChange={(checked) => update({ showPercentPrefix: checked })}
+                />
+              </SettingRow>
 
-          {settings.showPercentPrefix && (
-            <div className="space-y-2 pl-2 border-l-2 border-gray-100">
-              {/* Prefix position (left/right) */}
-              <SettingRow label="Position">
-                <TabMenu
-                  value={settings.percentPrefixPosition ?? 'right'}
-                  onChange={(v) => update({ percentPrefixPosition: v as 'left' | 'right' })}
-                  options={[
-                    { value: 'left', label: 'Left' },
-                    { value: 'right', label: 'Right' },
-                  ]}
-                />
-              </SettingRow>
-              <div className="space-y-1.5">
-                <span className="text-xs text-gray-600 font-medium">% styling</span>
-                <div className="grid grid-cols-3 gap-1.5 items-end">
-                  <Select
-                    value={settings.percentPrefixFontWeight ?? 'normal'}
-                    onValueChange={(v) => update({ percentPrefixFontWeight: v as FontWeight })}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
-                      <SelectItem value="300" className="text-xs">Light</SelectItem>
-                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                      <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                      <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                      <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-                      <SelectItem value="900" className="text-xs">Black</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-1">
-                    <Input
-                      type="number"
-                      value={settings.percentPrefixFontSize ?? 12}
-                      onChange={(e) => {
-                        const num = parseFloat(e.target.value);
-                        if (!isNaN(num)) update({ percentPrefixFontSize: Math.max(6, Math.min(48, num)) });
-                      }}
-                      min={6}
-                      max={48}
-                      step={1}
-                      className="h-8 text-xs w-full"
+              {settings.showPercentPrefix && (
+                <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+                  {/* Prefix position (left/right) */}
+                  <SettingRow label="Position">
+                    <TabMenu
+                      value={settings.percentPrefixPosition ?? 'right'}
+                      onChange={(v) => update({ percentPrefixPosition: v as 'left' | 'right' })}
+                      options={[
+                        { value: 'left', label: 'Left' },
+                        { value: 'right', label: 'Right' },
+                      ]}
                     />
-                    <span className="text-xs text-gray-400 shrink-0">px</span>
+                  </SettingRow>
+                  <div className="space-y-1.5">
+                    <span className="text-xs text-gray-600 font-medium">% styling</span>
+                    <div className="grid grid-cols-3 gap-1.5 items-end">
+                      <Select
+                        value={settings.percentPrefixFontWeight ?? 'normal'}
+                        onValueChange={(v) => update({ percentPrefixFontWeight: v as FontWeight })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                          <SelectItem value="300" className="text-xs">Light</SelectItem>
+                          <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                          <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                          <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                          <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                          <SelectItem value="900" className="text-xs">Black</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={settings.percentPrefixFontSize ?? 12}
+                          onChange={(e) => {
+                            const num = parseFloat(e.target.value);
+                            if (!isNaN(num)) update({ percentPrefixFontSize: Math.max(6, Math.min(48, num)) });
+                          }}
+                          min={6}
+                          max={48}
+                          step={1}
+                          className="h-8 text-xs w-full"
+                        />
+                        <span className="text-xs text-gray-400 shrink-0">px</span>
+                      </div>
+                      <ColorPicker
+                        value={settings.percentPrefixColor ?? '#333333'}
+                        onChange={(color) => update({ percentPrefixColor: color })}
+                      />
+                    </div>
                   </div>
-                  <ColorPicker
-                    value={settings.percentPrefixColor ?? '#333333'}
-                    onChange={(color) => update({ percentPrefixColor: color })}
+                  {/* Prefix vertical alignment */}
+                  <SettingRow label="Vertical align">
+                    <TabMenu
+                      value={settings.percentPrefixVerticalAlign ?? 'bottom'}
+                      onChange={(v) => update({ percentPrefixVerticalAlign: v as 'bottom' | 'center' | 'top' })}
+                      options={[
+                        { value: 'bottom', label: 'Bottom' },
+                        { value: 'center', label: 'Center' },
+                        { value: 'top', label: 'Top' },
+                      ]}
+                    />
+                  </SettingRow>
+                  <NumberInput
+                    label="% padding"
+                    value={settings.percentPrefixPadding ?? 0}
+                    onChange={(v) => update({ percentPrefixPadding: v })}
+                    min={-20}
+                    max={50}
+                    step={1}
+                    suffix="px"
                   />
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <NumberInput
+                      label="Padding top"
+                      value={settings.percentPrefixPaddingTop ?? 0}
+                      onChange={(v) => update({ percentPrefixPaddingTop: v })}
+                      min={-30}
+                      max={30}
+                      step={1}
+                      suffix="px"
+                    />
+                    <NumberInput
+                      label="Padding bottom"
+                      value={settings.percentPrefixPaddingBottom ?? 0}
+                      onChange={(v) => update({ percentPrefixPaddingBottom: v })}
+                      min={-30}
+                      max={30}
+                      step={1}
+                      suffix="px"
+                    />
+                  </div>
                 </div>
-              </div>
-              {/* Prefix vertical alignment */}
-              <SettingRow label="Vertical align">
-                <TabMenu
-                  value={settings.percentPrefixVerticalAlign ?? 'bottom'}
-                  onChange={(v) => update({ percentPrefixVerticalAlign: v as 'bottom' | 'center' | 'top' })}
-                  options={[
-                    { value: 'bottom', label: 'Bottom' },
-                    { value: 'center', label: 'Center' },
-                    { value: 'top', label: 'Top' },
-                  ]}
-                />
-              </SettingRow>
-              <NumberInput
-                label="% padding"
-                value={settings.percentPrefixPadding ?? 0}
-                onChange={(v) => update({ percentPrefixPadding: v })}
-                min={-20}
-                max={50}
-                step={1}
-                suffix="px"
-              />
-              <div className="grid grid-cols-2 gap-1.5">
-                <NumberInput
-                  label="Padding top"
-                  value={settings.percentPrefixPaddingTop ?? 0}
-                  onChange={(v) => update({ percentPrefixPaddingTop: v })}
-                  min={-30}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-                <NumberInput
-                  label="Padding bottom"
-                  value={settings.percentPrefixPaddingBottom ?? 0}
-                  onChange={(v) => update({ percentPrefixPaddingBottom: v })}
-                  min={-30}
-                  max={30}
-                  step={1}
-                  suffix="px"
-                />
-              </div>
-            </div>
+              )}
+            </>
+          )}
+
+          {/* CUSTOM PREFIX (bar_chart_custom_2 only) */}
+          {chartType === 'bar_chart_custom_2' && (
+            <CustomPrefixSubSection />
           )}
         </div>
       )}
 
-      {/* STACK LABELS */}
-      <SubHeader>Stack Labels</SubHeader>
+      {/* STACK LABELS (not for bar_chart_custom_2) */}
+      {chartType !== 'bar_chart_custom_2' && (
+        <>
+          <SubHeader>Stack Labels</SubHeader>
 
-      {/* Stack labels - 3-button tab menu */}
-      <SettingRow label="Stack labels">
-        <TabMenu
-          value={settings.stackLabelMode}
-          onChange={(v) => update({ stackLabelMode: v as StackLabelMode })}
-          options={[
-            { value: 'none', label: 'None' },
-            { value: 'net_sum', label: 'Net sum' },
-            { value: 'separate', label: 'Separate +/-' },
-          ]}
-        />
-      </SettingRow>
+          {/* Stack labels - 3-button tab menu */}
+          <SettingRow label="Stack labels">
+            <TabMenu
+              value={settings.stackLabelMode}
+              onChange={(v) => update({ stackLabelMode: v as StackLabelMode })}
+              options={[
+                { value: 'none', label: 'None' },
+                { value: 'net_sum', label: 'Net sum' },
+                { value: 'separate', label: 'Separate +/-' },
+              ]}
+            />
+          </SettingRow>
+        </>
+      )}
     </AccordionSection>
   );
 }

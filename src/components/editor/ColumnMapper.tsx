@@ -78,11 +78,14 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
     setValuesInput('');
   }, [valuesInput, availableColumns, columnMapping, setColumnMapping]);
 
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
+
   const labelColors = COLUMN_ROLE_COLORS.label;
   const valueColors = COLUMN_ROLE_COLORS.value;
   const gridColors = COLUMN_ROLE_COLORS.chartsGrid;
   const filterColors = COLUMN_ROLE_COLORS.rowFilter;
   const popupColors = COLUMN_ROLE_COLORS.infoPopup;
+  const infoColors = COLUMN_ROLE_COLORS.info;
 
   const labelsIndex = availableColumns.indexOf(columnMapping.labels);
   const labelBadge = labelsIndex >= 0 ? colIndexToLetter(labelsIndex) : '';
@@ -271,6 +274,39 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Info column (bar_chart_custom_2 only) */}
+          {chartType === 'bar_chart_custom_2' && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-medium text-gray-500 shrink-0">Info</span>
+                {columnMapping.info && (
+                  <span
+                    className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white shrink-0"
+                    style={{ backgroundColor: infoColors.badge }}
+                  >
+                    {colIndexToLetter(availableColumns.indexOf(columnMapping.info))}
+                  </span>
+                )}
+              </div>
+              <Select
+                value={columnMapping.info || '__none__'}
+                onValueChange={(val) =>
+                  setColumnMapping({ ...columnMapping, info: val === '__none__' ? undefined : val })
+                }
+              >
+                <SelectTrigger className="h-8 text-xs min-w-0">
+                  <SelectValue placeholder="None (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__" className="text-xs">None</SelectItem>
+                  {availableColumns.map((col) => (
+                    <SelectItem key={col} value={col} className="text-xs">{getDisplayName(col)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Info for custom popups */}
           <div className="space-y-1.5">

@@ -32,6 +32,7 @@ export function getColumnRole(colName: string, mapping: ColumnMapping): ColumnRo
   if (mapping.chartsGrid === colName) return 'chartsGrid';
   if (mapping.rowFilter === colName) return 'rowFilter';
   if (mapping.infoPopups?.includes(colName)) return 'infoPopup';
+  if (mapping.info === colName) return 'info';
   return 'unmapped';
 }
 
