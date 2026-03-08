@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import {
   Dialog,
@@ -39,16 +39,12 @@ export function PaletteEditor({
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [themeName, setThemeName] = useState('');
 
-  // Reset colors when dialog opens with new initial colors
-  const handleOpenChange = useCallback(
-    (newOpen: boolean) => {
-      if (newOpen) {
-        setColors(initialColors);
-      }
-      onOpenChange(newOpen);
-    },
-    [initialColors, onOpenChange]
-  );
+  // Sync colors whenever the dialog opens (covers both prop-driven and user-driven open)
+  useEffect(() => {
+    if (open) {
+      setColors(initialColors);
+    }
+  }, [open, initialColors]);
 
   const updateColor = (index: number, color: string) => {
     const newColors = [...colors];
@@ -114,7 +110,7 @@ export function PaletteEditor({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">Edit Color Palette</DialogTitle>
