@@ -794,7 +794,7 @@ export function LineChart({
           </clipPath>
         </defs>
 
-        {/* Main chart group */}
+        {/* Lines group — clipped to chart area (shade + line paths) */}
         <g transform={`translate(${marginLeft}, ${marginTop})`} clipPath={`url(#${clipId})`}>
           {/* Shade between lines */}
           {shadePaths.map((area, i) => (
@@ -839,7 +839,10 @@ export function LineChart({
               ))}
             </g>
           ))}
+        </g>
 
+        {/* Dots & data-point labels — UNCLIPPED so they render ON TOP of axes/gridlines */}
+        <g transform={`translate(${marginLeft}, ${marginTop})`}>
           {/* Dots */}
           {showDots !== 'none' && series.map((s, si) => (
             <g key={`dots-${si}`}>

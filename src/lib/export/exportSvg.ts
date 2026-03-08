@@ -87,32 +87,106 @@ export async function exportSvg(
  * Inline computed CSS styles on SVG elements so the exported SVG looks
  * correct in any viewer (Illustrator, Inkscape, browsers) without
  * depending on external stylesheets.
+ *
+ * Key transformations:
+ * 1. Convert `dominant-baseline` to explicit `y` offsets — many SVG viewers
+ *    (Illustrator, Inkscape, and some embed contexts) don't support it.
+ * 2. Extract inline `style` CSS properties (paint-order, stroke, etc.) and
+ *    promote them to SVG presentation attributes for maximum compatibility.
+ * 3. Normalise transparent fills to `fill="none"`.
  */
 function inlineStyles(svgEl: SVGSVGElement) {
-  const elements = svgEl.querySelectorAll('text, rect, line, circle, path, g');
-  elements.forEach((el) => {
-    const htmlEl = el as SVGElement;
-    // For text elements, ensure style attributes are present
-    if (el.tagName === 'text') {
-      const style = htmlEl.getAttribute('style') || '';
-      // style attribute is already set inline by React — just ensure it's preserved
-      if (!style && htmlEl.hasAttribute('font-size')) {
-        // Already has individual attributes, skip
+  // ── Process text elements ──
+  svgEl.querySelectorAll('text').forEach((textEl) => {
+    const el = textEl as SVGTextElement;
+    const hasTransform = el.hasAttribute('transform');
+
+    // Convert dominant-baseline to explicit y offset (skip rotated text where
+    // modifying y would shift position along the wrong axis).
+    const db = el.getAttribute('dominant-baseline');
+    if (db && db !== 'auto' && db !== 'alphabetic' && !hasTransform) {
+      const fontSize = parseFloat(el.getAttribute('font-size') || '12');
+      const currentY = parseFloat(el.getAttribute('y') || '0');
+
+      if (db === 'central') {
+        // Shift alphabetic baseline down so the text visually centres at the original y
+        el.setAttribute('y', String(currentY + fontSize * 0.35));
+      } else if (db === 'hanging') {
+        // Shift alphabetic baseline down so the text top aligns with the original y
+        el.setAttribute('y', String(currentY + fontSize * 0.71));
       }
-      // Ensure dominant-baseline is properly set for export compatibility
-      // Some SVG viewers need the attribute to be explicitly present
-      const db = htmlEl.getAttribute('dominant-baseline');
-      if (db) {
-        htmlEl.setAttribute('dominant-baseline', db);
-      }
+      el.removeAttribute('dominant-baseline');
     }
-    // For circles (dots), ensure fill attributes are preserved correctly
-    if (el.tagName === 'circle') {
-      const fill = htmlEl.getAttribute('fill');
-      if (fill === 'transparent') {
-        htmlEl.setAttribute('fill', 'none');
-        htmlEl.setAttribute('fill-opacity', '0');
-      }
+
+    // Convert inline CSS `style` to SVG presentation attributes
+    convertStyleToSvgAttrs(el);
+  });
+
+  // ── Process circles ──
+  svgEl.querySelectorAll('circle').forEach((circleEl) => {
+    // Normalise transparent → fill="none"
+    const fill = circleEl.getAttribute('fill');
+    if (fill === 'transparent') {
+      circleEl.setAttribute('fill', 'none');
+      circleEl.setAttribute('fill-opacity', '0');
+    }
+    // Remove non-visual styles (e.g. cursor: pointer)
+    if (circleEl.hasAttribute('style')) {
+      circleEl.removeAttribute('style');
     }
   });
+
+  // ── Remove leftover non-visual styles everywhere ──
+  svgEl.querySelectorAll('[style*="cursor"]').forEach((el) => {
+    const style = el.getAttribute('style') || '';
+    const cleaned = style.replace(/cursor\s*:\s*[^;]+;?\s*/g, '').trim();
+    if (cleaned) {
+      el.setAttribute('style', cleaned);
+    } else {
+      el.removeAttribute('style');
+    }
+  });
+}
+
+/**
+ * Parse a CSS style string and promote SVG-applicable properties to
+ * presentation attributes on the element, removing them from `style`.
+ */
+function convertStyleToSvgAttrs(el: SVGElement) {
+  const style = el.getAttribute('style');
+  if (!style) return;
+
+  const svgPropMap: Record<string, string> = {
+    'paint-order': 'paint-order',
+    'stroke': 'stroke',
+    'stroke-width': 'stroke-width',
+    'stroke-linejoin': 'stroke-linejoin',
+    'stroke-linecap': 'stroke-linecap',
+    'fill': 'fill',
+    'fill-opacity': 'fill-opacity',
+    'opacity': 'opacity',
+  };
+  const skipProps = new Set(['cursor', 'pointer-events']);
+
+  const remaining: string[] = [];
+
+  style.split(';').forEach((part) => {
+    const idx = part.indexOf(':');
+    if (idx <= 0) return;
+    const prop = part.substring(0, idx).trim().toLowerCase();
+    const val = part.substring(idx + 1).trim();
+    if (!prop || !val) return;
+
+    if (svgPropMap[prop]) {
+      el.setAttribute(svgPropMap[prop], val);
+    } else if (!skipProps.has(prop)) {
+      remaining.push(`${prop}: ${val}`);
+    }
+  });
+
+  if (remaining.length > 0) {
+    el.setAttribute('style', remaining.join('; '));
+  } else {
+    el.removeAttribute('style');
+  }
 }
