@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
@@ -45,7 +45,15 @@ const sortLabels: Record<SortMode, string> = {
   created_asc: 'Created (oldest)',
 };
 
-export default function DashboardPage() {
+export default function DashboardPageWrapper() {
+  return (
+    <Suspense>
+      <DashboardPage />
+    </Suspense>
+  );
+}
+
+function DashboardPage() {
   const router = useRouter();
   const [visualizations, setVisualizations] = useState<VizItem[]>([]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
