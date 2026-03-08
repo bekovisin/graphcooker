@@ -87,7 +87,7 @@ export function DataEditor() {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Spreadsheet area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Toolbar */}
         <div className="flex items-center justify-between px-4 py-3 border-b bg-white">
           <div className="flex items-center gap-2">

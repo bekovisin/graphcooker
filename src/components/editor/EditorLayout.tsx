@@ -38,9 +38,13 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'html' | 'pdf'>('png');
   const [breadcrumbs, setBreadcrumbs] = useState<{ id: number; name: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load visualization on mount
   useEffect(() => {
+    setIsLoading(true);
+    thumbnailCapturedRef.current = false;
+
     const fetchVisualization = async () => {
       try {
         const res = await fetch(`/api/visualizations/${visualizationId}`);
@@ -74,6 +78,8 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
         }
       } catch (error) {
         console.error('Failed to load visualization:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -292,6 +298,19 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   };
 
   const dims = getContainerDimensions();
+
+  if (isLoading) {
+    return (
+      <div className="h-screen flex flex-col bg-gray-100">
+        <EditorTopBar onExport={handleExportRequest} fromTemplateId={fromTemplateId} breadcrumbs={breadcrumbs} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-400">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
