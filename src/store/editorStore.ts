@@ -143,9 +143,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   setVisualizationId: (id) => set({ visualizationId: id }),
   setVisualizationName: (name) => set({ visualizationName: name, isDirty: true }),
   setActiveTab: (tab) => set({ activeTab: tab }),
-  setPreviewDevice: (device) => set({ previewDevice: device }),
-  setCustomPreviewSize: (width, height) => set({ customPreviewWidth: width, customPreviewHeight: height }),
-  setCanvasBackgroundColor: (color) => set({ canvasBackgroundColor: color }),
+  setPreviewDevice: (device) => set({ previewDevice: device, isDirty: true }),
+  setCustomPreviewSize: (width, height) => set({ customPreviewWidth: width, customPreviewHeight: height, isDirty: true }),
+  setCanvasBackgroundColor: (color) => set({ canvasBackgroundColor: color, isDirty: true }),
   setSettingsSearchQuery: (query) => set({ settingsSearchQuery: query }),
   setData: (data) => set({ data, columnOrder: deriveColumnOrder(data), isDirty: true }),
   setDataAndColumns: (data, columnOrder) => set({ data, columnOrder, isDirty: true }),
@@ -311,7 +311,10 @@ export const useEditorStore = create<EditorState>((set) => ({
       lastSavedAt: null,
     }),
 
-  loadVisualization: (viz) =>
+  loadVisualization: (viz) => {
+    // Extract persisted preview state from columnMapping (if any)
+    const ps = viz.columnMapping?._previewState;
+
     set({
       visualizationId: viz.id,
       visualizationName: viz.name,
@@ -323,11 +326,12 @@ export const useEditorStore = create<EditorState>((set) => ({
       seriesNames: viz.columnMapping?.seriesNames || {},
       columnTypes: {},
       settingsSearchQuery: '',
-      previewDevice: 'desktop',
-      customPreviewWidth: 800,
-      customPreviewHeight: 600,
-      canvasBackgroundColor: '#e5e7eb',
+      previewDevice: (ps?.previewDevice as PreviewDevice) || 'desktop',
+      customPreviewWidth: ps?.customPreviewWidth || 800,
+      customPreviewHeight: ps?.customPreviewHeight || 600,
+      canvasBackgroundColor: ps?.canvasBackgroundColor || '#e5e7eb',
       isDirty: false,
       lastSavedAt: new Date(),
-    }),
+    });
+  },
 }));

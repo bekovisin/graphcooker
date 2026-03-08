@@ -139,25 +139,30 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     }
   }, []);
 
-  // Auto-save — saves data immediately, captures thumbnail in background
+  // Auto-save — reads latest state from store to capture preview state too
   const saveVisualization = useCallback(async () => {
-    // Guard: ensure the store's visualizationId matches the current prop
-    // to prevent saving stale data to the wrong visualization
-    const storeVizId = useEditorStore.getState().visualizationId;
-    if (storeVizId !== visualizationId) return;
+    // Read all current state at save-time to avoid stale closures
+    const state = useEditorStore.getState();
+    if (state.visualizationId !== visualizationId) return;
 
     setIsSaving(true);
     try {
-      // Persist seriesNames inside columnMapping so they survive save/load
-      const mappingWithSeriesNames = {
-        ...columnMapping,
-        seriesNames: Object.keys(seriesNames).length > 0 ? seriesNames : undefined,
+      // Persist seriesNames + preview state inside columnMapping
+      const mappingWithExtras = {
+        ...state.columnMapping,
+        seriesNames: Object.keys(state.seriesNames).length > 0 ? state.seriesNames : undefined,
+        _previewState: {
+          previewDevice: state.previewDevice,
+          customPreviewWidth: state.customPreviewWidth,
+          customPreviewHeight: state.customPreviewHeight,
+          canvasBackgroundColor: state.canvasBackgroundColor,
+        },
       };
       const body: Record<string, unknown> = {
-        name: visualizationName,
-        data,
-        settings,
-        columnMapping: mappingWithSeriesNames,
+        name: state.visualizationName,
+        data: state.data,
+        settings: state.settings,
+        columnMapping: mappingWithExtras,
       };
 
       const res = await fetch(`/api/visualizations/${visualizationId}`, {
@@ -185,7 +190,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
         }).catch(() => {});
       }
     });
-  }, [visualizationId, visualizationName, data, settings, columnMapping, seriesNames, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
+  }, [visualizationId, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
 
   // Debounced auto-save — blocked while loading to prevent saving stale data
   useEffect(() => {

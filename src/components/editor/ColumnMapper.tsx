@@ -89,21 +89,21 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
   const valuesBadge = formatColumnBadge(columnMapping.values || [], availableColumns);
 
   return (
-    <div className="w-[280px] border-l bg-white flex flex-col shrink-0 overflow-hidden">
+    <div className="w-[280px] max-w-[280px] border-l bg-white flex flex-col shrink-0 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <span className="text-sm font-semibold text-gray-800">Data</span>
+      <div className="flex items-center justify-between px-4 py-3 border-b min-w-0">
+        <span className="text-sm font-semibold text-gray-800 shrink-0">Data</span>
         <button
           onClick={onUploadClick}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors shrink-0"
         >
           <Upload className="w-3 h-3" />
           Upload data
         </button>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-5">
+      <ScrollArea className="flex-1 [&_[data-radix-scroll-area-viewport]]:!overflow-x-hidden">
+        <div className="p-4 space-y-5 overflow-hidden">
           {/* Section label */}
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
@@ -120,21 +120,21 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
 
           {/* Labels / Time (REQUIRED) */}
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-700">Labels/time</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-medium text-gray-700 shrink-0">Labels/time</span>
               <span
-                className="text-[9px] font-bold uppercase px-1 py-0 rounded"
+                className="text-[9px] font-bold uppercase px-1 py-0 rounded shrink-0"
                 style={{ color: labelColors.text, backgroundColor: labelColors.bg, border: `1px solid ${labelColors.border}` }}
               >
                 Required
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <Select
                 value={columnMapping.labels || ''}
                 onValueChange={(val) => setColumnMapping({ ...columnMapping, labels: val })}
               >
-                <SelectTrigger className="h-8 text-xs flex-1">
+                <SelectTrigger className="h-8 text-xs flex-1 min-w-0">
                   <SelectValue placeholder="Select column" />
                 </SelectTrigger>
                 <SelectContent>
@@ -158,8 +158,8 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
 
           {/* Values */}
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-700">Values</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-medium text-gray-700 shrink-0">Values</span>
               {valuesBadge && (
                 <span
                   className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
@@ -212,11 +212,11 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
 
           {/* Charts grid */}
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Charts grid</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-medium text-gray-500 shrink-0">Charts grid</span>
               {columnMapping.chartsGrid && (
                 <span
-                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white shrink-0"
                   style={{ backgroundColor: gridColors.badge }}
                 >
                   {colIndexToLetter(availableColumns.indexOf(columnMapping.chartsGrid))}
@@ -229,7 +229,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                 setColumnMapping({ ...columnMapping, chartsGrid: val === '__none__' ? undefined : val })
               }
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs min-w-0">
                 <SelectValue placeholder="None (optional)" />
               </SelectTrigger>
               <SelectContent>
@@ -243,11 +243,11 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
 
           {/* Row filter */}
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Row filter</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-medium text-gray-500 shrink-0">Row filter</span>
               {columnMapping.rowFilter && (
                 <span
-                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white shrink-0"
                   style={{ backgroundColor: filterColors.badge }}
                 >
                   {colIndexToLetter(availableColumns.indexOf(columnMapping.rowFilter))}
@@ -260,7 +260,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                 setColumnMapping({ ...columnMapping, rowFilter: val === '__none__' ? undefined : val })
               }
             >
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-8 text-xs min-w-0">
                 <SelectValue placeholder="None (optional)" />
               </SelectTrigger>
               <SelectContent>
@@ -274,11 +274,11 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
 
           {/* Info for custom popups */}
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-gray-500">Info for custom popups</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-medium text-gray-500 truncate">Info for custom popups</span>
               {(columnMapping.infoPopups?.length ?? 0) > 0 && (
                 <span
-                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  className="inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[10px] font-bold text-white shrink-0"
                   style={{ backgroundColor: popupColors.badge }}
                 >
                   {formatColumnBadge(columnMapping.infoPopups || [], availableColumns)}

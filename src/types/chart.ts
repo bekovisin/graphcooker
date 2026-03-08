@@ -546,6 +546,14 @@ export interface ChartSettings {
   accessibility: AccessibilitySettings;
 }
 
+// ===== PREVIEW STATE (persisted in columnMapping) =====
+export interface PreviewState {
+  previewDevice?: string;
+  customPreviewWidth?: number;
+  customPreviewHeight?: number;
+  canvasBackgroundColor?: string;
+}
+
 // ===== COLUMN MAPPING =====
 export interface ColumnMapping {
   labels: string;
@@ -554,4 +562,5 @@ export interface ColumnMapping {
   rowFilter?: string;
   infoPopups?: string[];
   seriesNames?: Record<string, string>;
+  _previewState?: PreviewState;
 }
