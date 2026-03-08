@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { visualizations, projects } from '@/lib/db/schema';
-import { desc, eq, like, isNull } from 'drizzle-orm';
+import { desc, eq, like, isNull, and } from 'drizzle-orm';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 
 export async function GET() {
@@ -32,24 +32,34 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Auto-increment naming: "Untitled visualization", "Untitled visualization-2", etc.
+    // Auto-naming: find the first available "Untitled visualization" name
+    // that doesn't conflict with any existing (non-deleted) visualization.
     let name = body.name;
     if (!name) {
       const existing = await db
         .select({ name: visualizations.name })
         .from(visualizations)
-        .where(like(visualizations.name, 'Untitled visualization%'));
+        .where(
+          and(
+            like(visualizations.name, 'Untitled visualization%'),
+            isNull(visualizations.deletedAt),
+          )
+        );
 
-      const suffixes = existing
-        .map((row) => {
-          const match = row.name.match(/^Untitled visualization(?:-(\d+))?$/);
-          if (!match) return 0;
-          return match[1] ? parseInt(match[1]) : 1;
-        })
-        .filter((n) => n > 0);
+      const taken = new Set(
+        existing
+          .map((row) => {
+            const match = row.name.match(/^Untitled visualization(?:-(\d+))?$/);
+            if (!match) return 0;
+            return match[1] ? parseInt(match[1]) : 1;
+          })
+          .filter((n) => n > 0)
+      );
 
-      const maxSuffix = suffixes.length > 0 ? Math.max(...suffixes) : 0;
-      name = maxSuffix === 0 ? 'Untitled visualization' : `Untitled visualization-${maxSuffix + 1}`;
+      // Find the first available slot: 1 = "Untitled visualization", 2+ = "Untitled visualization-N"
+      let slot = 1;
+      while (taken.has(slot)) slot++;
+      name = slot === 1 ? 'Untitled visualization' : `Untitled visualization-${slot}`;
     }
 
     // Create a project first
