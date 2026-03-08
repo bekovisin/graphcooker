@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { folders } from '@/lib/db/schema';
-import { asc } from 'drizzle-orm';
+import { asc, isNull } from 'drizzle-orm';
 
 export async function GET() {
   try {
-    const result = await db.select().from(folders).orderBy(asc(folders.name));
+    const result = await db.select().from(folders).where(isNull(folders.deletedAt)).orderBy(asc(folders.name));
     return NextResponse.json(result);
   } catch (error) {
     console.error('Failed to fetch folders:', error);

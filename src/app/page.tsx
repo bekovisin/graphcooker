@@ -92,6 +92,106 @@ function DashboardPage() {
     onConfirm: () => {},
   });
 
+  // Trash state
+  const [isTrashView, setIsTrashView] = useState(false);
+  const [trashItems, setTrashItems] = useState<{
+    visualizations: Array<VizItem & { deletedAt: string }>;
+    folders: Array<FolderItem & { deletedAt: string }>;
+  }>({ visualizations: [], folders: [] });
+
+  const fetchTrash = useCallback(async () => {
+    try {
+      const res = await fetch('/api/trash');
+      if (res.ok) {
+        const data = await res.json();
+        setTrashItems(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch trash:', error);
+    }
+  }, []);
+
+  // Fetch trash when entering trash view
+  useEffect(() => {
+    if (isTrashView) {
+      fetchTrash();
+    }
+  }, [isTrashView, fetchTrash]);
+
+  // Also fetch trash count on initial load
+  useEffect(() => {
+    fetchTrash();
+  }, [fetchTrash]);
+
+  // Trash action handlers
+  const handleRestoreItem = async (id: number, type: 'visualization' | 'folder') => {
+    try {
+      const res = await fetch(`/api/trash/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type }),
+      });
+      if (res.ok) {
+        toast.success(`${type === 'folder' ? 'Folder' : 'Visualization'} restored`);
+        fetchTrash();
+        fetchVisualizations();
+        fetchFolders();
+      }
+    } catch (error) {
+      console.error('Failed to restore:', error);
+      toast.error('Failed to restore item');
+    }
+  };
+
+  const handlePermanentDelete = async (id: number, type: 'visualization' | 'folder') => {
+    setConfirmDialog({
+      open: true,
+      title: 'Permanently delete?',
+      description: 'This item will be permanently deleted. This action cannot be undone.',
+      confirmLabel: 'Delete permanently',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/trash/${id}?type=${type}`, { method: 'DELETE' });
+          if (res.ok) {
+            toast.success('Permanently deleted');
+            fetchTrash();
+          }
+        } catch (error) {
+          console.error('Failed to permanently delete:', error);
+          toast.error('Failed to delete');
+        }
+      },
+    });
+  };
+
+  const handleEmptyTrash = () => {
+    const totalItems = trashItems.visualizations.length + trashItems.folders.length;
+    if (totalItems === 0) return;
+
+    setConfirmDialog({
+      open: true,
+      title: 'Empty trash?',
+      description: `All ${totalItems} item${totalItems > 1 ? 's' : ''} in the trash will be permanently deleted. This action cannot be undone.`,
+      confirmLabel: 'Empty trash',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await fetch('/api/trash', { method: 'DELETE' });
+          if (res.ok) {
+            toast.success('Trash emptied');
+            fetchTrash();
+            fetchVisualizations();
+            fetchFolders();
+          }
+        } catch (error) {
+          console.error('Failed to empty trash:', error);
+          toast.error('Failed to empty trash');
+        }
+      },
+    });
+  };
+
   // Fetch data
   useEffect(() => {
     Promise.all([fetchVisualizations(), fetchFolders()]).finally(() => setLoading(false));
@@ -129,7 +229,6 @@ function DashboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'Untitled visualization',
           folderId: activeFolderId,
         }),
       });
@@ -188,37 +287,25 @@ function DashboardPage() {
 
     setConfirmDialog({
       open: true,
-      title: `Delete "${folder?.name || 'folder'}"?`,
+      title: `Move "${folder?.name || 'folder'}" to trash?`,
       description: vizInFolder.length > 0
-        ? `This folder contains ${vizInFolder.length} visualization${vizInFolder.length > 1 ? 's' : ''}. They will be moved to the root level.`
-        : 'This folder will be permanently deleted.',
-      confirmLabel: 'Delete folder',
-      variant: 'danger',
+        ? `This folder and its ${vizInFolder.length} visualization${vizInFolder.length > 1 ? 's' : ''} will be moved to trash.`
+        : 'This folder will be moved to trash. You can restore it later.',
+      confirmLabel: 'Move to trash',
+      variant: 'warning',
       onConfirm: async () => {
         try {
-          // Move all visualizations in this folder to root
-          await Promise.all(
-            vizInFolder.map((v) =>
-              fetch(`/api/visualizations/${v.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ folderId: null }),
-              })
-            )
-          );
-
           const res = await fetch(`/api/folders/${id}`, { method: 'DELETE' });
           if (res.ok) {
-            setFolders((prev) => prev.filter((f) => f.id !== id));
-            setVisualizations((prev) =>
-              prev.map((v) => (v.folderId === id ? { ...v, folderId: null } : v))
-            );
             if (activeFolderId === id) setActiveFolderId(null);
-            toast.success(`Folder "${folder?.name}" deleted`);
+            fetchVisualizations();
+            fetchFolders();
+            fetchTrash();
+            toast.success(`Folder "${folder?.name}" moved to trash`);
           }
         } catch (error) {
           console.error('Failed to delete folder:', error);
-          toast.error('Failed to delete folder');
+          toast.error('Failed to move folder to trash');
         }
       },
     });
@@ -271,10 +358,10 @@ function DashboardPage() {
     const viz = visualizations.find((v) => v.id === id);
     setConfirmDialog({
       open: true,
-      title: 'Delete visualization?',
-      description: `"${viz?.name || 'Untitled'}" will be permanently deleted. This action cannot be undone.`,
-      confirmLabel: 'Delete',
-      variant: 'danger',
+      title: 'Move to trash?',
+      description: `"${viz?.name || 'Untitled'}" will be moved to the trash. You can restore it later.`,
+      confirmLabel: 'Move to trash',
+      variant: 'warning',
       onConfirm: async () => {
         try {
           await fetch(`/api/visualizations/${id}`, { method: 'DELETE' });
@@ -284,10 +371,11 @@ function DashboardPage() {
             next.delete(id);
             return next;
           });
-          toast.success('Visualization deleted');
+          fetchTrash();
+          toast.success('Moved to trash');
         } catch (error) {
           console.error('Failed to delete:', error);
-          toast.error('Failed to delete visualization');
+          toast.error('Failed to move to trash');
         }
       },
     });
@@ -605,17 +693,17 @@ function DashboardPage() {
     exitSelectionMode();
   };
 
-  // Bulk delete handler
+  // Bulk delete handler (move to trash)
   const handleBulkDelete = () => {
     const count = selectedIds.size;
     if (count === 0) return;
 
     setConfirmDialog({
       open: true,
-      title: `Delete ${count} visualization${count > 1 ? 's' : ''}?`,
-      description: `${count} selected visualization${count > 1 ? 's' : ''} will be permanently deleted. This action cannot be undone.`,
-      confirmLabel: `Delete ${count} item${count > 1 ? 's' : ''}`,
-      variant: 'danger',
+      title: `Move ${count} visualization${count > 1 ? 's' : ''} to trash?`,
+      description: `${count} selected visualization${count > 1 ? 's' : ''} will be moved to trash. You can restore them later.`,
+      confirmLabel: `Move to trash`,
+      variant: 'warning',
       onConfirm: async () => {
         try {
           const idsToDelete = Array.from(selectedIds);
@@ -625,11 +713,12 @@ function DashboardPage() {
             )
           );
           setVisualizations((prev) => prev.filter((v) => !selectedIds.has(v.id)));
-          toast.success(`Deleted ${count} visualization${count > 1 ? 's' : ''}`);
+          fetchTrash();
+          toast.success(`Moved ${count} visualization${count > 1 ? 's' : ''} to trash`);
           exitSelectionMode();
         } catch (error) {
           console.error('Failed to bulk delete:', error);
-          toast.error('Failed to delete some visualizations');
+          toast.error('Failed to move some visualizations to trash');
         }
       },
     });
@@ -642,7 +731,9 @@ function DashboardPage() {
     setShowBulkExport(true);
   };
 
-  const activeFolderName = activeFolderId !== null
+  const activeFolderName = isTrashView
+    ? 'Trash'
+    : activeFolderId !== null
     ? folders.find((f) => f.id === activeFolderId)?.name || 'Unknown folder'
     : 'All visualizations';
 
@@ -712,6 +803,109 @@ function DashboardPage() {
       return (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+        </div>
+      );
+    }
+
+    // Trash view
+    if (isTrashView) {
+      const totalTrash = trashItems.visualizations.length + trashItems.folders.length;
+      if (totalTrash === 0) {
+        return (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8 text-gray-300" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-700 mb-1">Trash is empty</h3>
+            <p className="text-sm text-gray-500">Deleted items will appear here</p>
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-500">{totalTrash} item{totalTrash > 1 ? 's' : ''} in trash</p>
+            <Button variant="destructive" size="sm" className="gap-1.5 text-xs" onClick={handleEmptyTrash}>
+              <Trash2 className="w-3.5 h-3.5" />
+              Empty trash
+            </Button>
+          </div>
+
+          {/* Trashed folders */}
+          {trashItems.folders.map((folder) => (
+            <div
+              key={`trash-folder-${folder.id}`}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors"
+            >
+              <FolderOpen className="w-5 h-5 text-gray-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-gray-800 truncate block">{folder.name}</span>
+                <span className="text-[10px] text-gray-400">
+                  Folder · Deleted {new Date(folder.deletedAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => handleRestoreItem(folder.id, 'folder')}
+                >
+                  Restore
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => handlePermanentDelete(folder.id, 'folder')}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+
+          {/* Trashed visualizations */}
+          {trashItems.visualizations.map((viz) => (
+            <div
+              key={`trash-viz-${viz.id}`}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg border bg-white hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-10 h-7 rounded border bg-gray-50 flex items-center justify-center shrink-0 overflow-hidden">
+                {viz.thumbnail ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={viz.thumbnail} alt="" className="w-full h-full object-contain" />
+                ) : (
+                  <BarChart3 className="w-4 h-4 text-gray-200" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium text-gray-800 truncate block">{viz.name}</span>
+                <span className="text-[10px] text-gray-400">
+                  {viz.chartType} · Deleted {new Date(viz.deletedAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => handleRestoreItem(viz.id, 'visualization')}
+                >
+                  Restore
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => handlePermanentDelete(viz.id, 'visualization')}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       );
     }
@@ -878,8 +1072,11 @@ function DashboardPage() {
         <DashboardSidebar
           folders={folders}
           visualizations={visualizations}
-          activeFolderId={activeFolderId}
-          onFolderSelect={setActiveFolderId}
+          activeFolderId={isTrashView ? null : activeFolderId}
+          onFolderSelect={(folderId) => {
+            setActiveFolderId(folderId);
+            setIsTrashView(false);
+          }}
           onCreateFolder={handleCreateFolder}
           onRenameFolder={handleRenameFolder}
           onDeleteFolder={handleDeleteFolder}
@@ -890,6 +1087,13 @@ function DashboardPage() {
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
           onExportSingle={handleExportSingle}
+          onTrashSelect={() => {
+            setIsTrashView(true);
+            setActiveFolderId(null);
+            exitSelectionMode();
+          }}
+          isTrashActive={isTrashView}
+          trashCount={trashItems.visualizations.length + trashItems.folders.length}
         />
 
         {/* Content */}
@@ -897,126 +1101,139 @@ function DashboardPage() {
           {/* Toolbar */}
           <div className="px-6 py-3 border-b bg-white flex items-center gap-3 shrink-0">
             {/* Title */}
-            <h2 className="text-sm font-semibold text-gray-800 mr-2">{activeFolderName}</h2>
+            <h2 className="text-sm font-semibold text-gray-800 mr-2">
+              {isTrashView && <Trash2 className="w-4 h-4 inline-block mr-1.5 text-red-500 -mt-0.5" />}
+              {activeFolderName}
+            </h2>
 
-            {/* Search */}
-            <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search visualizations..."
-                className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+            {!isTrashView && (
+              <>
+                {/* Search */}
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search visualizations..."
+                    className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="flex-1" />
 
-            {/* Sort */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
-                  <ArrowUpDown className="w-3.5 h-3.5" />
-                  Sort
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                {(Object.keys(sortLabels) as SortMode[]).map((mode) => (
-                  <DropdownMenuItem
-                    key={mode}
-                    onClick={() => setSortMode(mode)}
-                    className={`text-xs ${sortMode === mode ? 'bg-blue-50 text-blue-700' : ''}`}
-                  >
-                    {sortLabels[mode]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!isTrashView && (
+              <>
+                {/* Sort */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+                      <ArrowUpDown className="w-3.5 h-3.5" />
+                      Sort
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    {(Object.keys(sortLabels) as SortMode[]).map((mode) => (
+                      <DropdownMenuItem
+                        key={mode}
+                        onClick={() => setSortMode(mode)}
+                        className={`text-xs ${sortMode === mode ? 'bg-blue-50 text-blue-700' : ''}`}
+                      >
+                        {sortLabels[mode]}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
-            {/* View mode */}
-            <div className="flex border rounded-md overflow-hidden">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 transition-colors ${
-                  viewMode === 'grid' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                <Grid3X3 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 transition-colors border-l ${
-                  viewMode === 'list' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                {/* View mode */}
+                <div className="flex border rounded-md overflow-hidden">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 transition-colors ${
+                      viewMode === 'grid' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    <Grid3X3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 transition-colors border-l ${
+                      viewMode === 'list' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </>
+            )}
 
             {/* Selection mode */}
-            {!isSelectionMode ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs h-8"
-                onClick={() => setIsSelectionMode(true)}
-              >
-                <CheckSquare className="w-3.5 h-3.5" />
-                Select
-              </Button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">
-                  {selectedIds.size} selected
-                </span>
+            {!isTrashView && (
+              !isSelectionMode ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1 text-xs h-7"
-                  onClick={selectAll}
+                  className="gap-1.5 text-xs h-8"
+                  onClick={() => setIsSelectionMode(true)}
                 >
-                  <Square className="w-3 h-3" />
-                  All
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  Select
                 </Button>
-                {selectedIds.size > 0 && (
-                  <>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="gap-1 text-xs h-7"
-                      onClick={() => setShowBulkExport(true)}
-                    >
-                      <Download className="w-3 h-3" />
-                      Export
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="gap-1 text-xs h-7"
-                      onClick={handleBulkDelete}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      Delete
-                    </Button>
-                  </>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-7 px-2"
-                  onClick={exitSelectionMode}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </Button>
-              </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {selectedIds.size} selected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-xs h-7"
+                    onClick={selectAll}
+                  >
+                    <Square className="w-3 h-3" />
+                    All
+                  </Button>
+                  {selectedIds.size > 0 && (
+                    <>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="gap-1 text-xs h-7"
+                        onClick={() => setShowBulkExport(true)}
+                      >
+                        <Download className="w-3 h-3" />
+                        Export
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-1 text-xs h-7"
+                        onClick={handleBulkDelete}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 px-2"
+                    onClick={exitSelectionMode}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )
             )}
           </div>
 

@@ -195,7 +195,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                     <button
                       key={col}
                       onClick={() => toggleValue(col)}
-                      className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs transition-colors min-w-0"
+                      className="flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-xs transition-colors min-w-0 overflow-hidden"
                       style={
                         isSelected
                           ? { backgroundColor: valueColors.bg, color: valueColors.text, border: `1px solid ${valueColors.border}` }
@@ -298,7 +298,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
                         infoPopups: isSelected ? current.filter((c) => c !== col) : [...current, col],
                       });
                     }}
-                    className="flex items-center w-full px-2.5 py-1 rounded text-xs transition-colors min-w-0"
+                    className="flex items-center w-full px-2.5 py-1 rounded text-xs transition-colors min-w-0 overflow-hidden"
                     style={
                       isSelected
                         ? { backgroundColor: popupColors.bg, color: popupColors.text, border: `1px solid ${popupColors.border}` }

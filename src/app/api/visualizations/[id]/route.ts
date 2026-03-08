@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { visualizations, projects } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +16,7 @@ export async function GET(
     const [visualization] = await db
       .select()
       .from(visualizations)
-      .where(eq(visualizations.id, id));
+      .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt)));
 
     if (!visualization) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
@@ -90,24 +90,23 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    const [deleted] = await db
-      .delete(visualizations)
-      .where(eq(visualizations.id, id))
+    const now = new Date();
+
+    const [softDeleted] = await db
+      .update(visualizations)
+      .set({ deletedAt: now })
+      .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt)))
       .returning();
 
-    if (!deleted) {
+    if (!softDeleted) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
     }
 
-    // Clean up orphaned project (each viz has its own project in current design)
-    const remaining = await db
-      .select({ id: visualizations.id })
-      .from(visualizations)
-      .where(eq(visualizations.projectId, deleted.projectId))
-      .limit(1);
-    if (remaining.length === 0) {
-      await db.delete(projects).where(eq(projects.id, deleted.projectId));
-    }
+    // Also soft-delete the associated project
+    await db
+      .update(projects)
+      .set({ deletedAt: now })
+      .where(eq(projects.id, softDeleted.projectId));
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -57,6 +57,9 @@ interface DashboardSidebarProps {
   selectedIds: Set<number>;
   onToggleSelect: (id: number) => void;
   onExportSingle: (id: number) => void;
+  onTrashSelect?: () => void;
+  isTrashActive?: boolean;
+  trashCount?: number;
 }
 
 export function DashboardSidebar({
@@ -74,6 +77,9 @@ export function DashboardSidebar({
   selectedIds,
   onToggleSelect,
   onExportSingle,
+  onTrashSelect,
+  isTrashActive,
+  trashCount,
 }: DashboardSidebarProps) {
   const router = useRouter();
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
@@ -426,8 +432,24 @@ export function DashboardSidebar({
         )}
       </div>
 
-      {/* Bottom: General Settings link */}
-      <div className="border-t border-gray-200 p-2">
+      {/* Bottom: Trash & General Settings links */}
+      <div className="border-t border-gray-200 p-2 space-y-0.5">
+        {onTrashSelect && (
+          <button
+            onClick={onTrashSelect}
+            className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm transition-colors ${
+              isTrashActive
+                ? 'bg-red-50 text-red-700'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <Trash2 className={`w-4 h-4 ${isTrashActive ? 'text-red-500' : 'text-gray-400'}`} />
+            <span className="flex-1 text-left">Trash</span>
+            {(trashCount ?? 0) > 0 && (
+              <span className="text-[10px] text-gray-400 tabular-nums">{trashCount}</span>
+            )}
+          </button>
+        )}
         <Link
           href="/settings"
           className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"

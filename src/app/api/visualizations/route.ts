@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { visualizations, projects } from '@/lib/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, like, isNull } from 'drizzle-orm';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 
 export async function GET() {
@@ -19,6 +19,7 @@ export async function GET() {
       })
       .from(visualizations)
       .leftJoin(projects, eq(visualizations.projectId, projects.id))
+      .where(isNull(visualizations.deletedAt))
       .orderBy(desc(visualizations.updatedAt));
     return NextResponse.json(result);
   } catch (error) {
@@ -30,7 +31,26 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const name = body.name || 'Untitled visualization';
+
+    // Auto-increment naming: "Untitled visualization", "Untitled visualization-2", etc.
+    let name = body.name;
+    if (!name) {
+      const existing = await db
+        .select({ name: visualizations.name })
+        .from(visualizations)
+        .where(like(visualizations.name, 'Untitled visualization%'));
+
+      const suffixes = existing
+        .map((row) => {
+          const match = row.name.match(/^Untitled visualization(?:-(\d+))?$/);
+          if (!match) return 0;
+          return match[1] ? parseInt(match[1]) : 1;
+        })
+        .filter((n) => n > 0);
+
+      const maxSuffix = suffixes.length > 0 ? Math.max(...suffixes) : 0;
+      name = maxSuffix === 0 ? 'Untitled visualization' : `Untitled visualization-${maxSuffix + 1}`;
+    }
 
     // Create a project first
     const [project] = await db

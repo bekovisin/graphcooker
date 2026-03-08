@@ -99,6 +99,22 @@ export function ColorsSection() {
     }
   };
 
+  const handleUpdateTheme = async (themeId: number, colors: string[]) => {
+    try {
+      const res = await fetch(`/api/themes/${themeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ colors }),
+      });
+      if (res.ok) {
+        update({ customPaletteColors: colors });
+        fetchThemes();
+      }
+    } catch (err) {
+      console.error('Failed to update theme:', err);
+    }
+  };
+
   const handleSelectTheme = (themeId: string) => {
     if (themeId === '__none__') {
       update({ themeId: undefined, customPaletteColors: undefined });
@@ -231,6 +247,9 @@ export function ColorsSection() {
         colors={currentColors}
         onApply={handleApplyCustomColors}
         onSaveAsTheme={handleSaveAsTheme}
+        onUpdateTheme={handleUpdateTheme}
+        activeThemeId={settings.themeId ? themes.find((t) => t.id === settings.themeId)?.id : undefined}
+        activeThemeIsBuiltIn={settings.themeId ? themes.find((t) => t.id === settings.themeId)?.isBuiltIn ?? true : true}
       />
     </AccordionSection>
   );

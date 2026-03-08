@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useEditorStore } from '@/store/editorStore';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 import { EditorTopBar } from './EditorTopBar';
 import { ChartPreview } from './ChartPreview';
@@ -29,6 +30,8 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     setIsDirty,
     setLastSavedAt,
   } = useEditorStore();
+
+  useUnsavedChangesGuard(isDirty);
 
   const searchParams = useSearchParams();
   const fromTemplateId = searchParams.get('fromTemplate') ? parseInt(searchParams.get('fromTemplate')!) : null;

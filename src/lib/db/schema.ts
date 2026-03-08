@@ -14,6 +14,7 @@ export const folders = pgTable('folders', {
   name: varchar('name', { length: 255 }).notNull(),
   parentId: integer('parent_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const projects = pgTable('projects', {
@@ -22,6 +23,7 @@ export const projects = pgTable('projects', {
   folderId: integer('folder_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const visualizations = pgTable('visualizations', {
@@ -35,6 +37,7 @@ export const visualizations = pgTable('visualizations', {
   thumbnail: text('thumbnail'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const reportVersions = pgTable('report_versions', {

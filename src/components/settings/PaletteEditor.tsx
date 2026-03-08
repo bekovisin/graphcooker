@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { GripVertical, Plus, Trash2, Save } from 'lucide-react';
+import { GripVertical, Plus, Trash2, Save, RefreshCw } from 'lucide-react';
 
 interface PaletteEditorProps {
   open: boolean;
@@ -20,6 +20,9 @@ interface PaletteEditorProps {
   colors: string[];
   onApply: (colors: string[]) => void;
   onSaveAsTheme: (name: string, colors: string[]) => void;
+  onUpdateTheme?: (themeId: number, colors: string[]) => void;
+  activeThemeId?: number;
+  activeThemeIsBuiltIn?: boolean;
 }
 
 export function PaletteEditor({
@@ -28,6 +31,9 @@ export function PaletteEditor({
   colors: initialColors,
   onApply,
   onSaveAsTheme,
+  onUpdateTheme,
+  activeThemeId,
+  activeThemeIsBuiltIn,
 }: PaletteEditorProps) {
   const [colors, setColors] = useState<string[]>(initialColors);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -183,15 +189,31 @@ export function PaletteEditor({
           </button>
 
           <DialogFooter className="flex gap-2 sm:justify-between">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSaveDialog(true)}
-              className="gap-1.5 text-xs"
-            >
-              <Save className="w-3.5 h-3.5" />
-              Save as theme
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSaveDialog(true)}
+                className="gap-1.5 text-xs"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Save as theme
+              </Button>
+              {activeThemeId && !activeThemeIsBuiltIn && onUpdateTheme && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onUpdateTheme(activeThemeId, colors);
+                    onOpenChange(false);
+                  }}
+                  className="gap-1.5 text-xs"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Update theme
+                </Button>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
