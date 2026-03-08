@@ -108,17 +108,14 @@ export function LabelsSection() {
   const updateSettings = useEditorStore((s) => s.updateSettings);
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [showLinePositionModal, setShowLinePositionModal] = useState(false);
+  const [showLineRowPositionModal, setShowLineRowPositionModal] = useState(false);
   const isLineChart = chartType === 'line_chart';
   const isRowMode = settings.dataPointCustomMode === 'row';
   const customNames = isRowMode ? categoryNames : seriesNames;
   const customPositions = isRowMode ? settings.dataPointRowPositions : settings.dataPointSeriesPositions;
   const customPositionKey = isRowMode ? 'dataPointRowPositions' : 'dataPointSeriesPositions';
 
-  // Line chart position modal state
-  const isLineRowMode = (settings.lineDataPointCustomMode || 'column') === 'row';
-  const lineCustomNames = isLineRowMode ? categoryNames : seriesNames;
-  const lineCustomPositions = isLineRowMode ? settings.lineDataPointRowPositions : settings.lineDataPointSeriesPositions;
-  const lineCustomPositionKey = isLineRowMode ? 'lineDataPointRowPositions' : 'lineDataPointSeriesPositions';
+  // Line chart position modal state — both column and row modals available
 
   const update = (updates: Partial<LabelsSettings>) => {
     updateSettings('labels', updates);
@@ -493,56 +490,88 @@ export function LabelsSection() {
               />
             </SettingRow>
 
-            {/* Per-series/row position modal for line chart */}
+            {/* Per-series AND per-row position modals for line chart */}
             {settings.lineDataPointPosition === 'custom' && (
               <>
-                <SettingRow label="Custom by">
-                  <Select
-                    value={settings.lineDataPointCustomMode || 'column'}
-                    onValueChange={(v) => update({ lineDataPointCustomMode: v as 'column' | 'row' })}
-                  >
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="column">By Column</SelectItem>
-                      <SelectItem value="row">By Row</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-
                 <button
                   onClick={() => setShowLinePositionModal(true)}
                   className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
                 >
                   <Settings2 className="w-3.5 h-3.5" />
-                  Configure per-{isLineRowMode ? 'row' : 'column'} positions...
+                  Configure per-column positions...
                 </button>
 
+                <button
+                  onClick={() => setShowLineRowPositionModal(true)}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                  Configure per-row positions...
+                </button>
+
+                {/* Per-column position dialog */}
                 <Dialog open={showLinePositionModal} onOpenChange={setShowLinePositionModal}>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
-                      <DialogTitle>Per-{isLineRowMode ? 'Row' : 'Column'} Label Positions</DialogTitle>
+                      <DialogTitle>Per-Column Label Positions</DialogTitle>
                       <DialogDescription>
-                        Set the data point label position for each {isLineRowMode ? 'row' : 'column'} independently.
+                        Set the data point label position for each column (series) independently.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                      {lineCustomNames.map((name) => (
+                      {seriesNames.map((name) => (
                         <div key={name} className="flex items-center justify-between gap-3">
                           <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
                             {name}
                           </span>
                           <div className="flex-shrink-0 w-[180px]">
                             <TabMenu
-                              value={lineCustomPositions?.[name] || 'above'}
+                              value={settings.lineDataPointSeriesPositions?.[name] || 'above'}
                               onChange={(v) => {
                                 update({
-                                  [lineCustomPositionKey]: {
-                                    ...lineCustomPositions,
+                                  lineDataPointSeriesPositions: {
+                                    ...settings.lineDataPointSeriesPositions,
                                     [name]: v as LineDataPointPosition,
                                   },
-                                } as Partial<LabelsSettings>);
+                                });
+                              }}
+                              options={[
+                                { value: 'above', label: 'Above' },
+                                { value: 'below', label: 'Below' },
+                              ]}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Per-row position dialog */}
+                <Dialog open={showLineRowPositionModal} onOpenChange={setShowLineRowPositionModal}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Per-Row Label Positions</DialogTitle>
+                      <DialogDescription>
+                        Set the data point label position for each row (category) independently. Row overrides take priority over column settings.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                      {categoryNames.map((name) => (
+                        <div key={name} className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                            {name}
+                          </span>
+                          <div className="flex-shrink-0 w-[180px]">
+                            <TabMenu
+                              value={settings.lineDataPointRowPositions?.[name] || 'above'}
+                              onChange={(v) => {
+                                update({
+                                  lineDataPointRowPositions: {
+                                    ...settings.lineDataPointRowPositions,
+                                    [name]: v as LineDataPointPosition,
+                                  },
+                                });
                               }}
                               options={[
                                 { value: 'above', label: 'Above' },

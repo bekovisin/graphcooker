@@ -388,11 +388,16 @@ export function LineChart({
   const chartHeight = Math.max(100, computedHeight - marginTop - marginBottom);
   const svgHeight = computedHeight;
 
-  // Scale functions
+  // X axis data area start/end padding
+  const xStartPad = xAxisSettings.startPadding || 0;
+  const xEndPad = xAxisSettings.endPadding || 0;
+
+  // Scale functions — apply start/end padding to compress data range
   const xScale = useCallback((i: number) => {
-    if (categories.length <= 1) return chartWidth / 2;
-    return (i / (categories.length - 1)) * chartWidth;
-  }, [categories.length, chartWidth]);
+    const usableWidth = chartWidth - xStartPad - xEndPad;
+    if (categories.length <= 1) return xStartPad + usableWidth / 2;
+    return xStartPad + (i / (categories.length - 1)) * usableWidth;
+  }, [categories.length, chartWidth, xStartPad, xEndPad]);
 
   const yScale = useCallback((v: number) => {
     const min = yAxisSettings.flipAxis ? yMax : yMin;
@@ -525,15 +530,20 @@ export function LineChart({
           />
         )}
 
-        {/* Y axis gridlines */}
+        {/* Y axis gridlines — extend into Y label area when above/below position */}
         {showGridlines && yTickValues.map((v, i) => {
           const y = marginTop + yScale(v);
+          const tickPos = yAxisSettings.tickPosition || 'default';
+          const extendsLeft = (tickPos === 'left' || tickPos === 'right') && yAxisSettings.position === 'left';
+          const extendsRight = (tickPos === 'left' || tickPos === 'right') && yAxisSettings.position === 'right';
+          const gridX1 = extendsLeft ? marginLeft - yAxisWidth : marginLeft;
+          const gridX2 = extendsRight ? marginLeft + chartWidth + yAxisWidth : marginLeft + chartWidth;
           return (
             <line
               key={`grid-${i}`}
-              x1={marginLeft}
+              x1={gridX1}
               y1={y}
-              x2={marginLeft + chartWidth}
+              x2={gridX2}
               y2={y}
               stroke={yAxisSettings.gridlineStyling.color}
               strokeWidth={yAxisSettings.gridlineStyling.width}
@@ -632,17 +642,24 @@ export function LineChart({
         {/* X axis */}
         {!xAxisHidden && (
           <g>
-            {/* Axis line */}
-            {xAxisSettings.axisLine?.show !== false && (
-              <line
-                x1={marginLeft}
-                y1={marginTop + chartHeight}
-                x2={marginLeft + chartWidth}
-                y2={marginTop + chartHeight}
-                stroke={xAxisSettings.axisLine?.color || '#666666'}
-                strokeWidth={xAxisSettings.axisLine?.width || 1}
-              />
-            )}
+            {/* Axis line — extend into Y label area when above/below position */}
+            {xAxisSettings.axisLine?.show !== false && (() => {
+              const tickPos = yAxisSettings.tickPosition || 'default';
+              const extendsLeft = (tickPos === 'left' || tickPos === 'right') && yAxisSettings.position === 'left';
+              const extendsRight = (tickPos === 'left' || tickPos === 'right') && yAxisSettings.position === 'right';
+              const axisX1 = extendsLeft ? marginLeft - yAxisWidth : marginLeft;
+              const axisX2 = extendsRight ? marginLeft + chartWidth + yAxisWidth : marginLeft + chartWidth;
+              return (
+                <line
+                  x1={axisX1}
+                  y1={marginTop + chartHeight}
+                  x2={axisX2}
+                  y2={marginTop + chartHeight}
+                  stroke={xAxisSettings.axisLine?.color || '#666666'}
+                  strokeWidth={xAxisSettings.axisLine?.width || 1}
+                />
+              );
+            })()}
             {/* Category labels + tick marks */}
             {xTicksToShow.map((catIdx) => {
               const x = marginLeft + xScale(catIdx);
@@ -847,14 +864,13 @@ export function LineChart({
 
                 let position: 'above' | 'below' = (labelSettings.lineDataPointPosition as 'above' | 'below') ?? 'above';
                 if (labelSettings.lineDataPointPosition === 'custom') {
-                  const customMode = labelSettings.lineDataPointCustomMode || 'column';
-                  if (customMode === 'column') {
-                    const colName = valueColumns[si];
-                    position = labelSettings.lineDataPointSeriesPositions?.[colName] ?? 'above';
-                  } else {
-                    const rowName = categories[pi];
-                    position = labelSettings.lineDataPointRowPositions?.[rowName] ?? 'above';
-                  }
+                  // Column position is the base, row position overrides if set
+                  const colName = valueColumns[si];
+                  const colPos = labelSettings.lineDataPointSeriesPositions?.[colName];
+                  const rowName = categories[pi];
+                  const rowPos = labelSettings.lineDataPointRowPositions?.[rowName];
+                  // Row override takes priority over column
+                  position = rowPos ?? colPos ?? 'above';
                 }
 
                 const labelText = formatNumber(val, nf);

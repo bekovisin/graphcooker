@@ -245,6 +245,8 @@ export interface XAxisSettings {
   lastLabelPadding: number;
   lastTickPadding: number;
   labelAxisPadding: number;
+  startPadding: number;
+  endPadding: number;
   tickMarks: TickMarksSettings;
   axisLine: AxisLineSettings;
   zeroLine: AxisLineSettings;
