@@ -132,6 +132,30 @@ export function NumberFormattingSection() {
           </div>
         </div>
       )}
+
+      {/* Y Axis custom decimals */}
+      <SettingRow label="Y axis custom decimals" variant="inline">
+        <Switch
+          checked={settings.yAxisCustomDecimals ?? false}
+          onCheckedChange={(checked) => update({ yAxisCustomDecimals: checked })}
+        />
+      </SettingRow>
+
+      {settings.yAxisCustomDecimals && (
+        <div className="grid grid-cols-2 gap-1.5">
+          <div>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">Y axis decimals</label>
+            <Input
+              type="number"
+              value={settings.yAxisDecimalPlaces ?? 0}
+              onChange={(e) => update({ yAxisDecimalPlaces: parseInt(e.target.value) || 0 })}
+              className="h-7 text-xs w-full"
+              min={0}
+              max={10}
+            />
+          </div>
+        </div>
+      )}
     </AccordionSection>
   );
 }

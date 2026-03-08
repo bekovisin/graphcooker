@@ -104,6 +104,37 @@ function getCurveFactory(curve: string): CurveFactory {
   }
 }
 
+/** Generate nice tick values for Y axis */
+function generateNiceTicks(min: number, max: number, desiredCount = 5): number[] {
+  if (max <= min) return [0];
+  const range = max - min;
+  const roughStep = range / desiredCount;
+  const mag = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  let step: number;
+  const normalized = roughStep / mag;
+  if (normalized <= 1.5) step = 1 * mag;
+  else if (normalized <= 3) step = 2 * mag;
+  else if (normalized <= 7) step = 5 * mag;
+  else step = 10 * mag;
+  const niceMin = Math.floor(min / step) * step;
+  const niceMax = Math.ceil(max / step) * step;
+  const ticks: number[] = [];
+  for (let v = niceMin; v <= niceMax + step * 0.001; v += step) {
+    ticks.push(Math.round(v * 1e10) / 1e10);
+  }
+  return ticks;
+}
+
+function generateCustomStepTicks(min: number, max: number, step: number): number[] {
+  if (step <= 0 || max <= min) return [0];
+  const niceMin = Math.floor(min / step) * step;
+  const ticks: number[] = [];
+  for (let v = niceMin; v <= max + step * 0.001; v += step) {
+    ticks.push(Math.round(v * 1e10) / 1e10);
+  }
+  return ticks;
+}
+
 // ─── Component ────────────────────────────────────────────────────────
 export function LineChart({
   data,
@@ -166,6 +197,18 @@ export function LineChart({
     }));
   }, [valueColumns, data, colors, seriesNameMap]);
 
+  // Settings aliases
+  const lineSettings = settings.lineDotsAreas;
+  const labelSettings = settings.labels;
+  const nf = settings.numberFormatting;
+  const plotBg = settings.plotBackground;
+  const legendSettings = settings.legend;
+  const xAxisSettings = settings.xAxis;
+  const yAxisSettings = settings.yAxis;
+
+  // Y axis custom decimals
+  const yAxisDecimals = nf.yAxisCustomDecimals ? nf.yAxisDecimalPlaces : undefined;
+
   // Compute Y range
   const { yMin, yMax } = useMemo(() => {
     let min = Infinity;
@@ -182,34 +225,118 @@ export function LineChart({
     if (min === max) { min -= 1; max += 1; }
 
     // User overrides
-    const userMin = settings.yAxis.min ? Number(settings.yAxis.min) : undefined;
-    const userMax = settings.yAxis.max ? Number(settings.yAxis.max) : undefined;
+    const userMin = yAxisSettings.min ? Number(yAxisSettings.min) : undefined;
+    const userMax = yAxisSettings.max ? Number(yAxisSettings.max) : undefined;
     if (userMin !== undefined && !isNaN(userMin)) min = userMin;
     if (userMax !== undefined && !isNaN(userMax)) max = userMax;
 
     // Edge padding
-    const edgePad = (settings.yAxis.edgePadding ?? 10) / 100;
+    const edgePad = (yAxisSettings.edgePadding ?? 10) / 100;
     const range = max - min;
     if (userMin === undefined) min -= range * edgePad;
     if (userMax === undefined) max += range * edgePad;
 
-    // Flip
-    if (settings.yAxis.flipAxis) {
-      return { yMin: max, yMax: min };
-    }
     return { yMin: min, yMax: max };
-  }, [series, settings.yAxis]);
+  }, [series, yAxisSettings.min, yAxisSettings.max, yAxisSettings.edgePadding]);
 
-  // Settings aliases
-  const lineSettings = settings.lineDotsAreas;
-  const labelSettings = settings.labels;
-  const nf = settings.numberFormatting;
-  const plotBg = settings.plotBackground;
-  const legendSettings = settings.legend;
-  const xAxisSettings = settings.xAxis;
-  const yAxisSettings = settings.yAxis;
+  // Y tick values — support auto/number/custom modes
+  const yAxisVisible = yAxisSettings.position !== 'hidden';
+  const yTickFontMemo = useMemo(() => {
+    return yAxisSettings.tickStyling || { fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 'normal', color: '#666666' };
+  }, [yAxisSettings.tickStyling]);
 
-  // Layout
+  const yTickValues = useMemo(() => {
+    const tickMode = yAxisSettings.ticksToShowMode ?? 'auto';
+    const realMin = yAxisSettings.flipAxis ? yMax : yMin;
+    const realMax = yAxisSettings.flipAxis ? yMin : yMax;
+    const lo = Math.min(realMin, realMax);
+    const hi = Math.max(realMin, realMax);
+
+    let ticks: number[];
+    if (tickMode === 'number') {
+      ticks = generateNiceTicks(lo, hi, yAxisSettings.ticksToShowNumber ?? 6);
+    } else if (tickMode === 'custom') {
+      const step = yAxisSettings.ticksToShowNumber ?? 10;
+      ticks = generateCustomStepTicks(lo, hi, step);
+    } else {
+      ticks = generateNiceTicks(lo, hi, 6);
+    }
+    // Filter to actual range
+    return ticks.filter((t) => t >= lo - 1e-9 && t <= hi + 1e-9);
+  }, [yMin, yMax, yAxisSettings.flipAxis, yAxisSettings.ticksToShowMode, yAxisSettings.ticksToShowNumber]);
+
+  const yAxisWidth = useMemo(() => {
+    if (!yAxisVisible) return 0;
+    if (yAxisSettings.spaceMode === 'fixed') return yAxisSettings.spaceModeValue;
+    let maxW = 0;
+    for (const v of yTickValues) {
+      const txt = formatNumber(v, nf, yAxisDecimals);
+      const w = measureTextWidth(txt, yTickFontMemo.fontSize, yTickFontMemo.fontFamily, yTickFontMemo.fontWeight);
+      if (w > maxW) maxW = w;
+    }
+    return maxW + 12;
+  }, [yAxisVisible, yAxisSettings.spaceMode, yAxisSettings.spaceModeValue, yTickValues, nf, yAxisDecimals, yTickFontMemo]);
+
+  // X axis
+  const xAxisHidden = xAxisSettings.position === 'hidden';
+  const xTickStyle = useMemo(() => {
+    return xAxisSettings.tickStyling || { fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 'normal', color: '#666666' };
+  }, [xAxisSettings.tickStyling]);
+
+  // X axis label visibility (tick label count mode + hidden labels)
+  const visibleCategories = useMemo(() => {
+    const hiddenSet = new Set(xAxisSettings.hiddenTickLabels || []);
+    let indices = categories.map((_, i) => i);
+
+    // Custom label count: evenly reduce visible labels
+    if (xAxisSettings.tickLabelCountMode === 'custom' && xAxisSettings.tickLabelCount > 0 && xAxisSettings.tickLabelCount < categories.length) {
+      const count = xAxisSettings.tickLabelCount;
+      const step = (categories.length - 1) / (count - 1);
+      const visibleIndicesSet = new Set<number>();
+      for (let i = 0; i < count; i++) {
+        visibleIndicesSet.add(Math.round(i * step));
+      }
+      indices = indices.filter((i) => visibleIndicesSet.has(i));
+    }
+
+    // Filter out individually hidden labels
+    if (hiddenSet.size > 0) {
+      indices = indices.filter((i) => !hiddenSet.has(categories[i]));
+    }
+
+    return indices;
+  }, [categories, xAxisSettings.tickLabelCountMode, xAxisSettings.tickLabelCount, xAxisSettings.hiddenTickLabels]);
+
+  // X axis ticks to show
+  const xTicksToShow = useMemo(() => {
+    if (xAxisSettings.ticksToShowMode === 'custom' && xAxisSettings.tickStep > 0) {
+      const step = xAxisSettings.tickStep;
+      return categories.map((_, i) => i).filter((i) => i % step === 0);
+    }
+    return visibleCategories;
+  }, [xAxisSettings.ticksToShowMode, xAxisSettings.tickStep, visibleCategories, categories]);
+
+  // X axis tick angle and height computation
+  const tickAngle = xAxisSettings.tickAngle || 0;
+  const hasAngle = tickAngle !== 0;
+  const labelAxisPad = xAxisSettings.labelAxisPadding || 0;
+
+  const xAxisHeight = useMemo(() => {
+    if (xAxisHidden) return 0;
+    if (!hasAngle) return xTickStyle.fontSize + 10 + labelAxisPad;
+    const maxLabel = categories.reduce((longest, cat) => cat.length > longest.length ? cat : longest, '');
+    const maxW = measureTextWidth(maxLabel, xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
+    const rad = Math.abs(tickAngle) * (Math.PI / 180);
+    return Math.ceil(maxW * Math.sin(rad) + xTickStyle.fontSize * Math.cos(rad)) + 10 + labelAxisPad;
+  }, [xAxisHidden, hasAngle, tickAngle, categories, xTickStyle, labelAxisPad]);
+
+  // X axis title height
+  const xAxisTitleHeight = xAxisSettings.titleType === 'custom' && xAxisSettings.titleText ? xAxisSettings.titleStyling.fontSize + 10 : 0;
+
+  // Legend
+  const legendHeight = legendSettings.show && legendSettings.position !== 'overlay' ? 30 + legendSettings.marginTop : 0;
+
+  // Layout padding
   const padding = {
     top: (settings.layout.paddingTop || 0) + 10,
     right: (settings.layout.paddingRight || 0) + 10,
@@ -217,45 +344,18 @@ export function LineChart({
     left: (settings.layout.paddingLeft || 0) + 10,
   };
 
-  // Y axis label width
-  const yAxisVisible = yAxisSettings.position !== 'hidden';
-  const yTickFont = yAxisSettings.tickStyling || { fontFamily: 'Inter, sans-serif', fontSize: 11, fontWeight: 'normal', color: '#666666' };
-  const tickCount = yAxisSettings.ticksToShowNumber ?? 6;
+  // Extra padding for first/last data points to prevent clipping
+  const dotRadius = lineSettings.dotRadius * 10;
+  const finalDotRadius = dotRadius * (lineSettings.finalDotScale / 100);
+  const maxDotR = Math.max(dotRadius, finalDotRadius, 4);
+  // Line label right margin
+  const lineLabelRightMargin = (labelSettings.showLineLabels ?? true) ? (labelSettings.lineLabelMaxWidth ?? 4) * 12 : 0;
 
-  const yTickValues = useMemo(() => {
-    const count = tickCount;
-    const ticks: number[] = [];
-    const range = yMax - yMin;
-    for (let i = 0; i < count; i++) {
-      ticks.push(yMin + (range * i) / (count - 1));
-    }
-    return ticks;
-  }, [yMin, yMax, tickCount]);
-
-  const yAxisWidth = useMemo(() => {
-    if (!yAxisVisible) return 0;
-    if (yAxisSettings.spaceMode === 'fixed') return yAxisSettings.spaceModeValue;
-    let maxW = 0;
-    for (const v of yTickValues) {
-      const txt = formatNumber(v, nf);
-      const w = measureTextWidth(txt, yTickFont.fontSize, yTickFont.fontFamily, yTickFont.fontWeight);
-      if (w > maxW) maxW = w;
-    }
-    return maxW + 12;
-  }, [yAxisVisible, yAxisSettings.spaceMode, yAxisSettings.spaceModeValue, yTickValues, nf, yTickFont]);
-
-  // X axis
-  const xAxisHeight = xAxisSettings.position === 'hidden' ? 0 : 30;
-
-  // Legend
-  const legendHeight = legendSettings.show && legendSettings.position !== 'overlay' ? 30 + legendSettings.marginTop : 0;
-
-  // Chart area
-  const marginLeft = padding.left + (yAxisSettings.position === 'left' ? yAxisWidth : 0);
-  const marginRight = padding.right + (yAxisSettings.position === 'right' ? yAxisWidth : 0) +
-    ((labelSettings.showLineLabels ?? true) ? (labelSettings.lineLabelMaxWidth ?? 4) * 12 : 0);
-  const marginTop = padding.top + (legendSettings.position === 'above' ? legendHeight : 0);
-  const marginBottom = padding.bottom + xAxisHeight + (legendSettings.position === 'below' ? legendHeight : 0);
+  // Chart area margins
+  const marginLeft = padding.left + (yAxisSettings.position === 'left' ? yAxisWidth : 0) + maxDotR;
+  const marginRight = padding.right + (yAxisSettings.position === 'right' ? yAxisWidth : 0) + lineLabelRightMargin + maxDotR;
+  const marginTop = padding.top + (legendSettings.position === 'above' ? legendHeight : 0) + maxDotR;
+  const marginBottom = padding.bottom + xAxisHeight + xAxisTitleHeight + (legendSettings.position === 'below' ? legendHeight : 0) + maxDotR;
 
   const chartWidth = Math.max(100, width - marginLeft - marginRight);
   const computedHeight = propHeight || Math.max(200, chartWidth * 0.5);
@@ -269,10 +369,12 @@ export function LineChart({
   }, [categories.length, chartWidth]);
 
   const yScale = useCallback((v: number) => {
-    const range = yMax - yMin;
+    const min = yAxisSettings.flipAxis ? yMax : yMin;
+    const max = yAxisSettings.flipAxis ? yMin : yMax;
+    const range = max - min;
     if (range === 0) return chartHeight / 2;
-    return chartHeight - ((v - yMin) / range) * chartHeight;
-  }, [yMin, yMax, chartHeight]);
+    return chartHeight - ((v - min) / range) * chartHeight;
+  }, [yMin, yMax, yAxisSettings.flipAxis, chartHeight]);
 
   // Build line paths
   const curveFactory = getCurveFactory(lineSettings.lineCurve);
@@ -287,7 +389,6 @@ export function LineChart({
           if (lineSettings.missingDataMode === 'gaps') {
             if (current.length > 0) { segments.push(current); current = []; }
           }
-          // 'continue' mode: skip null points
         } else {
           current.push([xScale(i), yScale(val * animProgress)]);
         }
@@ -355,13 +456,18 @@ export function LineChart({
     if (mode === 'off') return 'none' as const;
     if (mode === 'on') return 'all' as const;
     if (mode === 'final_only') return 'final' as const;
-    // auto: show all if few points, final only if many
     return categories.length <= 15 ? 'all' as const : 'final' as const;
   }, [lineSettings.dotMode, categories.length]);
 
   // Gridlines
   const showGridlines = yAxisSettings.gridlines;
   const gridlineStyle = yAxisSettings.gridlineStyle ?? 'solid';
+
+  // X axis tick marks
+  const tickMarksShow = xAxisSettings.tickMarks.show && !xAxisHidden;
+
+  // Unique clip ID per instance
+  const clipId = useMemo(() => `line-chart-clip-${Math.random().toString(36).slice(2, 9)}`, []);
 
   // Render
   return (
@@ -370,7 +476,7 @@ export function LineChart({
         ref={svgRef}
         width={width}
         height={svgHeight}
-        style={{ overflow: 'visible' }}
+        style={{ overflow: 'hidden' }}
       >
         {/* Plot background */}
         <rect
@@ -430,22 +536,39 @@ export function LineChart({
             {/* Tick labels */}
             {yTickValues.map((v, i) => {
               const y = marginTop + yScale(v);
-              const txt = formatNumber(v, nf);
+              const txt = formatNumber(v, nf, yAxisDecimals);
+
+              // tickPosition: 'left' = above the line, 'right' = below the line, 'default' = centered
+              const tickPos = yAxisSettings.tickPosition || 'default';
+              const tickPad = yAxisSettings.tickPadding || 0;
+              let labelY = y;
+              let baseline: 'auto' | 'central' | 'hanging' = 'central';
+              if (tickPos === 'left') {
+                // Above
+                labelY = y - tickPad - 2;
+                baseline = 'auto';
+              } else if (tickPos === 'right') {
+                // Below
+                labelY = y + tickPad + 2;
+                baseline = 'hanging';
+              }
+
               const xPos = yAxisSettings.position === 'right'
                 ? marginLeft + chartWidth + 8
                 : marginLeft - 8;
               const anchor = yAxisSettings.position === 'right' ? 'start' : 'end';
+
               return (
                 <text
                   key={`ytick-${i}`}
                   x={xPos}
-                  y={y}
+                  y={labelY}
                   textAnchor={anchor}
-                  dominantBaseline="central"
-                  fill={yTickFont.color}
-                  fontSize={yTickFont.fontSize}
-                  fontFamily={yTickFont.fontFamily}
-                  fontWeight={yTickFont.fontWeight}
+                  dominantBaseline={baseline}
+                  fill={yTickFontMemo.color}
+                  fontSize={yTickFontMemo.fontSize}
+                  fontFamily={yTickFontMemo.fontFamily}
+                  fontWeight={yAxisSettings.labelWeight === 'bold' ? 'bold' : yTickFontMemo.fontWeight}
                 >
                   {txt}
                 </text>
@@ -478,7 +601,7 @@ export function LineChart({
         )}
 
         {/* X axis */}
-        {xAxisSettings.position !== 'hidden' && (
+        {!xAxisHidden && (
           <g>
             {/* Axis line */}
             {xAxisSettings.axisLine?.show !== false && (
@@ -491,24 +614,74 @@ export function LineChart({
                 strokeWidth={xAxisSettings.axisLine?.width || 1}
               />
             )}
-            {/* Category labels */}
-            {categories.map((cat, i) => {
-              const x = marginLeft + xScale(i);
+            {/* Category labels + tick marks */}
+            {xTicksToShow.map((catIdx) => {
+              const x = marginLeft + xScale(catIdx);
+              const cat = categories[catIdx];
+              const isFirst = catIdx === 0;
+              const isLast = catIdx === categories.length - 1;
+
+              // First/last label padding
+              const firstPad = isFirst ? (xAxisSettings.firstLabelPadding || 0) : 0;
+              const lastPad = isLast ? -(xAxisSettings.lastLabelPadding || 0) : 0;
+              const labelPad = firstPad + lastPad;
+
+              // First/last tick padding
+              const firstTickPad = isFirst ? (xAxisSettings.firstTickPadding || 0) : 0;
+              const lastTickPad = isLast ? -(xAxisSettings.lastTickPadding || 0) : 0;
+              const tickPadOffset = firstTickPad + lastTickPad;
+
+              // Tick mark positions
+              const tickLen = xAxisSettings.tickMarks.length;
+              const tickMarkPos = xAxisSettings.tickMarks.position || 'outside';
+              const baseY = marginTop + chartHeight;
+              let tmY1 = baseY;
+              let tmY2 = baseY + tickLen;
+              if (tickMarkPos === 'inside') {
+                tmY1 = baseY - tickLen;
+                tmY2 = baseY;
+              } else if (tickMarkPos === 'cross') {
+                tmY1 = baseY - tickLen / 2;
+                tmY2 = baseY + tickLen / 2;
+              }
+
+              // Label position
+              const labelY = baseY + (tickMarksShow ? tickLen : 0) + xTickStyle.fontSize + 4 + labelAxisPad;
+
               return (
-                <text
-                  key={`xcat-${i}`}
-                  x={x}
-                  y={marginTop + chartHeight + 16}
-                  textAnchor="middle"
-                  dominantBaseline="hanging"
-                  fill={xAxisSettings.tickStyling?.color || '#666666'}
-                  fontSize={xAxisSettings.tickStyling?.fontSize || 11}
-                  fontFamily={xAxisSettings.tickStyling?.fontFamily || 'Inter, sans-serif'}
-                  fontWeight={xAxisSettings.tickStyling?.fontWeight || 'normal'}
-                  transform={xAxisSettings.tickAngle ? `rotate(${xAxisSettings.tickAngle}, ${x}, ${marginTop + chartHeight + 16})` : undefined}
-                >
-                  {cat}
-                </text>
+                <g key={`xcat-${catIdx}`}>
+                  {/* Tick mark */}
+                  {tickMarksShow && (
+                    <line
+                      x1={x + tickPadOffset}
+                      y1={tmY1}
+                      x2={x + tickPadOffset}
+                      y2={tmY2}
+                      stroke={xAxisSettings.tickMarks.color}
+                      strokeWidth={xAxisSettings.tickMarks.width}
+                    />
+                  )}
+                  {/* Label */}
+                  <text
+                    x={x + labelPad}
+                    y={hasAngle
+                      ? baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad
+                      : labelY
+                    }
+                    textAnchor={hasAngle ? (tickAngle > 0 ? 'start' : 'end') : 'middle'}
+                    dominantBaseline={hasAngle ? 'hanging' : 'auto'}
+                    transform={hasAngle
+                      ? `rotate(${tickAngle}, ${x + labelPad}, ${baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad})`
+                      : undefined
+                    }
+                    fill={xTickStyle.color}
+                    fontSize={xTickStyle.fontSize}
+                    fontFamily={xTickStyle.fontFamily}
+                    fontWeight={xTickStyle.fontWeight}
+                  >
+                    {cat}
+                  </text>
+                </g>
               );
             })}
           </g>
@@ -518,7 +691,7 @@ export function LineChart({
         {xAxisSettings.titleType === 'custom' && xAxisSettings.titleText && (
           <text
             x={marginLeft + chartWidth / 2}
-            y={marginTop + chartHeight + xAxisHeight - 2}
+            y={marginTop + chartHeight + xAxisHeight + xAxisTitleHeight - 2}
             textAnchor="middle"
             fill={xAxisSettings.titleStyling.color}
             fontSize={xAxisSettings.titleStyling.fontSize}
@@ -529,15 +702,20 @@ export function LineChart({
           </text>
         )}
 
-        {/* Chart area clip */}
+        {/* Chart area clip — expanded by dot radius to prevent clipping at edges */}
         <defs>
-          <clipPath id="line-chart-clip">
-            <rect x={0} y={0} width={chartWidth} height={chartHeight} />
+          <clipPath id={clipId}>
+            <rect
+              x={-maxDotR - 2}
+              y={-maxDotR - 2}
+              width={chartWidth + maxDotR * 2 + 4}
+              height={chartHeight + maxDotR * 2 + 4}
+            />
           </clipPath>
         </defs>
 
         {/* Main chart group */}
-        <g transform={`translate(${marginLeft}, ${marginTop})`} clipPath="url(#line-chart-clip)">
+        <g transform={`translate(${marginLeft}, ${marginTop})`} clipPath={`url(#${clipId})`}>
           {/* Shade between lines */}
           {shadePaths.map((area, i) => (
             <path
@@ -551,21 +729,7 @@ export function LineChart({
           {/* Lines */}
           {series.map((s, si) => (
             <g key={`line-${si}`}>
-              {linePaths[si].map((pathD, pi) => (
-                <path
-                  key={`line-${si}-${pi}`}
-                  d={pathD}
-                  fill="none"
-                  stroke={s.color}
-                  strokeWidth={lineSettings.lineWidth * 10}
-                  strokeOpacity={lineSettings.lineOpacity * animProgress}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeDasharray={lineSettings.dashedLines ? `${lineSettings.dashWidth} ${lineSettings.dashSpaceWidth}` : undefined}
-                />
-              ))}
-
-              {/* Line outline */}
+              {/* Line outline (behind) */}
               {lineSettings.lineOutline && linePaths[si].map((pathD, pi) => (
                 <path
                   key={`outline-${si}-${pi}`}
@@ -579,6 +743,20 @@ export function LineChart({
                   style={{ pointerEvents: 'none' }}
                 />
               ))}
+              {/* Main line */}
+              {linePaths[si].map((pathD, pi) => (
+                <path
+                  key={`line-${si}-${pi}`}
+                  d={pathD}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={lineSettings.lineWidth * 10}
+                  strokeOpacity={lineSettings.lineOpacity * animProgress}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeDasharray={lineSettings.dashedLines ? `${lineSettings.dashWidth} ${lineSettings.dashSpaceWidth}` : undefined}
+                />
+              ))}
             </g>
           ))}
 
@@ -588,7 +766,6 @@ export function LineChart({
               {s.points.map((val, pi) => {
                 if (val === null) return null;
                 if (showDots === 'final' && pi !== s.points.length - 1) {
-                  // Check if this is the last non-null point
                   const isLastNonNull = s.points.slice(pi + 1).every((v) => v === null);
                   if (!isLastNonNull) return null;
                 }
@@ -624,7 +801,6 @@ export function LineChart({
               {s.points.map((val, pi) => {
                 if (val === null) return null;
 
-                // Show mode filter
                 const showMode = labelSettings.dataPointShowMode ?? 'all';
                 if (showMode === 'last') {
                   const isLast = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
@@ -640,7 +816,6 @@ export function LineChart({
                 const cx = xScale(pi);
                 const cy = yScale(val * animProgress);
 
-                // Determine position (above/below)
                 let position: 'above' | 'below' = (labelSettings.lineDataPointPosition as 'above' | 'below') ?? 'above';
                 if (labelSettings.lineDataPointPosition === 'custom') {
                   const customMode = labelSettings.lineDataPointCustomMode || 'column';
@@ -685,9 +860,8 @@ export function LineChart({
           ))}
         </g>
 
-        {/* Line labels (at end of each series) */}
+        {/* Line labels (at end of each series) — outside clip */}
         {(labelSettings.showLineLabels ?? true) && series.map((s, si) => {
-          // Find last non-null point
           let lastIdx = -1;
           let lastVal: number | null = null;
           for (let i = s.points.length - 1; i >= 0; i--) {
@@ -727,7 +901,7 @@ export function LineChart({
           <g transform={`translate(${marginLeft}, ${
             legendSettings.position === 'above'
               ? padding.top + legendSettings.marginTop
-              : marginTop + chartHeight + xAxisHeight + 8 + legendSettings.marginTop
+              : marginTop + chartHeight + xAxisHeight + xAxisTitleHeight + 8 + legendSettings.marginTop
           })`}>
             {series.map((s, i) => {
               const xOff = i * (measureTextWidth(s.name, legendSettings.size, legendSettings.fontFamily, legendSettings.textWeight) + legendSettings.swatchWidth + legendSettings.swatchPadding + 16);

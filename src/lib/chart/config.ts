@@ -214,6 +214,8 @@ export const defaultChartSettings: ChartSettings = {
     roundDecimal: true,
     xAxisCustomDecimals: false,
     xAxisDecimalPlaces: 0,
+    yAxisCustomDecimals: false,
+    yAxisDecimalPlaces: 0,
   },
   legend: {
     show: true,

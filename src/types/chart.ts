@@ -317,6 +317,8 @@ export interface NumberFormattingSettings {
   roundDecimal: boolean;
   xAxisCustomDecimals: boolean;
   xAxisDecimalPlaces: number;
+  yAxisCustomDecimals: boolean;
+  yAxisDecimalPlaces: number;
 }
 
 // Legend
