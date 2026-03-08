@@ -88,6 +88,7 @@ export interface LineDotsAreasSettings {
   finalDotScale: number;
   dotHollow: boolean;
   dotInnerColor: string;
+  dotInnerOpacity: number;
 }
 
 // Labels

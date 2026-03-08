@@ -637,7 +637,7 @@ export function LineChart({
                   x={xPos}
                   y={labelY}
                   textAnchor={anchor}
-                  dominantBaseline={baseline}
+                  dy={baseline === 'central' ? '0.35em' : baseline === 'hanging' ? '0.85em' : undefined}
                   fill={yTickFontMemo.color}
                   fontSize={yTickFontMemo.fontSize}
                   fontFamily={yTickFontMemo.fontFamily}
@@ -749,7 +749,7 @@ export function LineChart({
                       : labelY
                     }
                     textAnchor={hasAngle ? (tickAngle > 0 ? 'start' : 'end') : (isLast ? 'end' : (isFirst ? 'start' : 'middle'))}
-                    dominantBaseline={hasAngle ? 'hanging' : 'auto'}
+                    dominantBaseline={hasAngle ? 'hanging' : undefined}
                     transform={hasAngle
                       ? `rotate(${tickAngle}, ${x + labelPad}, ${baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad})`
                       : undefined
@@ -843,6 +843,35 @@ export function LineChart({
 
         {/* Dots & data-point labels — UNCLIPPED so they render ON TOP of axes/gridlines */}
         <g transform={`translate(${marginLeft}, ${marginTop})`}>
+          {/* Line-masking circles — prevent line from showing through hollow/transparent dots */}
+          {showDots !== 'none' && series.map((s, si) => (
+            <g key={`dot-mask-${si}`}>
+              {s.points.map((val, pi) => {
+                if (val === null) return null;
+                if (showDots === 'final' && pi !== s.points.length - 1) {
+                  const isLastNonNull = s.points.slice(pi + 1).every((v) => v === null);
+                  if (!isLastNonNull) return null;
+                }
+                const cx = xScale(pi);
+                const cy = yScale(val * animProgress);
+                const baseRadius = lineSettings.dotRadius * 10;
+                const isFinalDot = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
+                const radius = isFinalDot ? baseRadius * (lineSettings.finalDotScale / 100) : baseRadius;
+                return (
+                  <circle
+                    key={`mask-${si}-${pi}`}
+                    cx={cx}
+                    cy={cy}
+                    r={Math.max(0.5, radius)}
+                    fill={plotBg.backgroundColor}
+                    fillOpacity={plotBg.backgroundOpacity / 100}
+                    stroke="none"
+                  />
+                );
+              })}
+            </g>
+          ))}
+
           {/* Dots */}
           {showDots !== 'none' && series.map((s, si) => (
             <g key={`dots-${si}`}>
@@ -858,6 +887,7 @@ export function LineChart({
                 const baseRadius = lineSettings.dotRadius * 10;
                 const isFinalDot = pi === s.points.length - 1 || s.points.slice(pi + 1).every((v) => v === null);
                 const radius = isFinalDot ? baseRadius * (lineSettings.finalDotScale / 100) : baseRadius;
+                const innerOpacity = (lineSettings.dotInnerOpacity ?? 100) / 100;
 
                 return (
                   <circle
@@ -868,7 +898,8 @@ export function LineChart({
                     fill={lineSettings.dotHollow ? (lineSettings.dotInnerColor || '#ffffff') : s.color}
                     stroke={s.color}
                     strokeWidth={lineSettings.dotHollow ? 2 : 0}
-                    fillOpacity={lineSettings.dotOpacity}
+                    fillOpacity={lineSettings.dotHollow ? innerOpacity : lineSettings.dotOpacity}
+                    strokeOpacity={lineSettings.dotOpacity}
                     style={{ cursor: 'pointer' }}
                     onMouseEnter={(e) => handleDotEnter(e, categories[pi], s.name, val, s.color)}
                     onMouseLeave={handleDotLeave}
@@ -967,7 +998,7 @@ export function LineChart({
                     x={cx + padLeft}
                     y={cy + offset + padTop}
                     textAnchor="middle"
-                    dominantBaseline={centerOnDot ? 'central' : (position === 'above' ? 'auto' : 'hanging')}
+                    dy={centerOnDot ? '0.35em' : (position === 'below' ? '0.85em' : undefined)}
                     fill={labelColor}
                     fontSize={labelSettings.dataPointFontSize || 12}
                     fontWeight={labelSettings.dataPointFontWeight || 'normal'}
@@ -1078,7 +1109,7 @@ export function LineChart({
                   <text
                     x={legendSettings.swatchWidth + legendSettings.swatchPadding}
                     y={0}
-                    dominantBaseline="central"
+                    dy="0.35em"
                     fill={legendSettings.color}
                     fontSize={legendSettings.size}
                     fontFamily={legendSettings.fontFamily}

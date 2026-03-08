@@ -278,6 +278,15 @@ export function LineDotsAreasSection() {
                 onChange={(color) => update({ dotInnerColor: color })}
                 allowTransparent
               />
+              <SliderWithInput
+                label="Inner opacity"
+                value={settings.dotInnerOpacity ?? 100}
+                onChange={(v) => update({ dotInnerOpacity: v })}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+              />
             </div>
           )}
         </>

@@ -805,6 +805,9 @@ export async function renderChartOffscreen(
           dotInnerColor: settings.lineDotsAreas.dotInnerColor === '#ffffff' || settings.lineDotsAreas.dotInnerColor === 'white'
             ? 'transparent'
             : settings.lineDotsAreas.dotInnerColor,
+          dotInnerOpacity: settings.lineDotsAreas.dotInnerColor === '#ffffff' || settings.lineDotsAreas.dotInnerColor === 'white'
+            ? 0
+            : settings.lineDotsAreas.dotInnerOpacity,
         },
       }
     : settings;

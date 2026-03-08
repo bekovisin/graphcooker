@@ -113,7 +113,7 @@ function inlineStyles(svgEl: SVGSVGElement) {
         el.setAttribute('y', String(currentY + fontSize * 0.35));
       } else if (db === 'hanging') {
         // Shift alphabetic baseline down so the text top aligns with the original y
-        el.setAttribute('y', String(currentY + fontSize * 0.71));
+        el.setAttribute('y', String(currentY + fontSize * 0.8));
       }
       el.removeAttribute('dominant-baseline');
     }

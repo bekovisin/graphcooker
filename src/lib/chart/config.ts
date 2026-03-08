@@ -58,6 +58,7 @@ export const defaultChartSettings: ChartSettings = {
     finalDotScale: 100,
     dotHollow: true,
     dotInnerColor: '#ffffff',
+    dotInnerOpacity: 100,
   },
   labels: {
     barLabelStyle: 'axis',
