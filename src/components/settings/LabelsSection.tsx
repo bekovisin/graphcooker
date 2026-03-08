@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
@@ -14,6 +15,14 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Settings2 } from 'lucide-react';
 import type {
   BarLabelStyle,
   DataPointLabelPosition,
@@ -78,6 +87,7 @@ export function LabelsSection() {
   const settings = useEditorStore((s) => s.settings.labels);
   const seriesNames = useEditorStore((s) => s.columnMapping.values || []);
   const updateSettings = useEditorStore((s) => s.updateSettings);
+  const [showPositionModal, setShowPositionModal] = useState(false);
 
   const update = (updates: Partial<LabelsSettings>) => {
     updateSettings('labels', updates);
@@ -157,19 +167,72 @@ export function LabelsSection() {
 
       {settings.showDataPointLabels && (
         <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-          {/* Position - 3-button tab menu */}
+          {/* Position - 5-button tab menu */}
           <SettingRow label="Position">
             <TabMenu
               value={settings.dataPointPosition}
-              onChange={(v) => update({ dataPointPosition: v as DataPointLabelPosition })}
+              onChange={(v) => update({ dataPointPosition: v as DataPointLabelPosition | 'custom' })}
               options={[
                 { value: 'left', label: 'Left' },
                 { value: 'center', label: 'Center' },
                 { value: 'right', label: 'Right' },
                 { value: 'outside_right', label: 'Outside' },
+                { value: 'custom', label: 'Custom' },
               ]}
             />
           </SettingRow>
+
+          {/* Per-series position modal */}
+          {settings.dataPointPosition === 'custom' && (
+            <>
+              <button
+                onClick={() => setShowPositionModal(true)}
+                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+                Configure per-series positions...
+              </button>
+
+              <Dialog open={showPositionModal} onOpenChange={setShowPositionModal}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Per-Series Label Positions</DialogTitle>
+                    <DialogDescription>
+                      Set the data point label position for each series independently.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                    {seriesNames.map((name) => (
+                      <div key={name} className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                          {name}
+                        </span>
+                        <div className="flex-shrink-0 w-[220px]">
+                          <TabMenu
+                            value={settings.dataPointSeriesPositions?.[name] || 'center'}
+                            onChange={(v) => {
+                              update({
+                                dataPointSeriesPositions: {
+                                  ...settings.dataPointSeriesPositions,
+                                  [name]: v as DataPointLabelPosition,
+                                },
+                              });
+                            }}
+                            options={[
+                              { value: 'left', label: 'Left' },
+                              { value: 'center', label: 'Center' },
+                              { value: 'right', label: 'Right' },
+                              { value: 'outside_right', label: 'Outside' },
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
 
           <SettingRow label="Custom padding" variant="inline">
             <Switch
@@ -223,7 +286,9 @@ export function LabelsSection() {
           )}
 
           {/* Outside label padding (distance from bar) */}
-          {settings.dataPointPosition === 'outside_right' && (
+          {(settings.dataPointPosition === 'outside_right' ||
+            (settings.dataPointPosition === 'custom' &&
+              Object.values(settings.dataPointSeriesPositions || {}).includes('outside_right'))) && (
             <NumberInput
               label="Outside label padding"
               value={settings.outsideLabelPadding ?? 6}

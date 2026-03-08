@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FolderOpen, MoreHorizontal, Copy, Pencil, FolderInput, Trash2 } from 'lucide-react';
+import { FolderOpen, MoreVertical, Copy, Pencil, FolderInput, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,73 +94,6 @@ export function FolderCard({
         if (!isNaN(vizId)) onDrop(vizId);
       }}
     >
-      {/* Context menu button */}
-      {hasMenu && (
-        <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-gray-100">
-                <MoreHorizontal className="w-4 h-4 text-gray-500" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              {onRename && (
-                <DropdownMenuItem onClick={() => { setEditName(folder.name); setIsEditing(true); }}>
-                  <Pencil className="w-3.5 h-3.5 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-              )}
-              {onDuplicate && (
-                <DropdownMenuItem onClick={() => onDuplicate(folder.id)}>
-                  <Copy className="w-3.5 h-3.5 mr-2" />
-                  Duplicate
-                </DropdownMenuItem>
-              )}
-              {onMove && moveTargets.length > 0 && (
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <FolderInput className="w-3.5 h-3.5 mr-2" />
-                    Move to folder
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="w-44">
-                    {folder.parentId && (
-                      <DropdownMenuItem onClick={() => onMove(folder.id, null)}>
-                        No folder (root)
-                      </DropdownMenuItem>
-                    )}
-                    {folder.parentId && moveTargets.length > 0 && <DropdownMenuSeparator />}
-                    {moveTargets.map((target) => (
-                      <DropdownMenuItem
-                        key={target.id}
-                        onClick={() => onMove(folder.id, target.id)}
-                      >
-                        {target.name}
-                        {folder.parentId === target.id && (
-                          <span className="ml-auto text-xs text-gray-400">current</span>
-                        )}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              )}
-              {onMove && !folder.parentId && moveTargets.length === 0 ? null : null}
-              {onDelete && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => onDelete(folder.id)}
-                    className="text-red-600 focus:text-red-600"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
-
       {/* Folder visual */}
       <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gray-50 rounded-t-lg border-b border-gray-100">
         <FolderOpen className={`w-12 h-12 ${isDragOver ? 'text-blue-400' : 'text-gray-300'} transition-colors`} />
@@ -169,7 +102,7 @@ export function FolderCard({
         </span>
       </div>
 
-      {/* Name */}
+      {/* Name + menu */}
       <div className="px-3 py-2.5">
         {isEditing ? (
           <input
@@ -185,7 +118,73 @@ export function FolderCard({
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <p className="text-sm font-medium text-gray-900 truncate">{folder.name}</p>
+          <div className="flex items-center justify-between gap-1">
+            <p className="text-sm font-medium text-gray-900 truncate">{folder.name}</p>
+            {hasMenu && (
+              <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    {onRename && (
+                      <DropdownMenuItem onClick={() => { setEditName(folder.name); setIsEditing(true); }}>
+                        <Pencil className="w-3.5 h-3.5 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                    )}
+                    {onDuplicate && (
+                      <DropdownMenuItem onClick={() => onDuplicate(folder.id)}>
+                        <Copy className="w-3.5 h-3.5 mr-2" />
+                        Duplicate
+                      </DropdownMenuItem>
+                    )}
+                    {onMove && moveTargets.length > 0 && (
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <FolderInput className="w-3.5 h-3.5 mr-2" />
+                          Move to folder
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-44">
+                          {folder.parentId && (
+                            <DropdownMenuItem onClick={() => onMove(folder.id, null)}>
+                              No folder (root)
+                            </DropdownMenuItem>
+                          )}
+                          {folder.parentId && moveTargets.length > 0 && <DropdownMenuSeparator />}
+                          {moveTargets.map((target) => (
+                            <DropdownMenuItem
+                              key={target.id}
+                              onClick={() => onMove(folder.id, target.id)}
+                            >
+                              {target.name}
+                              {folder.parentId === target.id && (
+                                <span className="ml-auto text-xs text-gray-400">current</span>
+                              )}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    )}
+                    {onDelete && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => onDelete(folder.id)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

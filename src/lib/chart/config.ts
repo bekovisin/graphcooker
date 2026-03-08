@@ -56,6 +56,7 @@ export const defaultChartSettings: ChartSettings = {
     dataPointColor: '#333333',
     dataPointSeriesColors: {},
     dataPointPosition: 'center',
+    dataPointSeriesPositions: {},
     dataPointCustomPadding: false,
     dataPointPaddingTop: 0,
     dataPointPaddingRight: 0,

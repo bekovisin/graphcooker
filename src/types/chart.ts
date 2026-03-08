@@ -86,7 +86,8 @@ export interface LabelsSettings {
   dataPointColorMode: DataPointLabelColorMode;
   dataPointColor: string;
   dataPointSeriesColors: Record<string, string>;
-  dataPointPosition: DataPointLabelPosition;
+  dataPointPosition: DataPointLabelPosition | 'custom';
+  dataPointSeriesPositions: Record<string, DataPointLabelPosition>;
   dataPointCustomPadding: boolean;
   dataPointPaddingTop: number;
   dataPointPaddingRight: number;
