@@ -87,7 +87,8 @@ export function useUnsavedChangesGuard(isDirty: boolean): UnsavedChangesGuardRet
     const href = pendingHrefRef.current;
     pendingHrefRef.current = null;
     if (href) {
-      // Use window.location for reliable navigation after confirmation
+      // Clear dirty flag so beforeunload doesn't block the navigation
+      isDirtyRef.current = false;
       window.location.href = href;
     }
   }, []);
