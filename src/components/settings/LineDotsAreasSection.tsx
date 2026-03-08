@@ -3,6 +3,7 @@
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
+import { ColorPicker } from '@/components/shared/ColorPicker';
 import { SettingRow } from '@/components/shared/SettingRow';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -268,6 +269,17 @@ export function LineDotsAreasSection() {
               onCheckedChange={(checked) => update({ dotHollow: checked })}
             />
           </SettingRow>
+
+          {settings.dotHollow && (
+            <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+              <ColorPicker
+                label="Dot inner color"
+                value={settings.dotInnerColor || '#ffffff'}
+                onChange={(color) => update({ dotInnerColor: color })}
+                allowTransparent
+              />
+            </div>
+          )}
         </>
       )}
     </AccordionSection>

@@ -794,11 +794,18 @@ export async function renderChartOffscreen(
   wrapper.appendChild(container);
 
   // When transparent, force all backgrounds off so the chart renders without any bg rects
+  // Also set dot inner color to transparent so hollow dots don't have white fill
   const renderSettings = options.transparent
     ? {
         ...settings,
         layout: { ...settings.layout, backgroundColor: 'transparent', backgroundOpacity: 0 },
         plotBackground: { ...settings.plotBackground, backgroundColor: 'transparent', backgroundOpacity: 0 },
+        lineDotsAreas: {
+          ...settings.lineDotsAreas,
+          dotInnerColor: settings.lineDotsAreas.dotInnerColor === '#ffffff' || settings.lineDotsAreas.dotInnerColor === 'white'
+            ? 'transparent'
+            : settings.lineDotsAreas.dotInnerColor,
+        },
       }
     : settings;
 

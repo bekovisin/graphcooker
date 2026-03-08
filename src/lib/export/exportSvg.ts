@@ -99,6 +99,20 @@ function inlineStyles(svgEl: SVGSVGElement) {
       if (!style && htmlEl.hasAttribute('font-size')) {
         // Already has individual attributes, skip
       }
+      // Ensure dominant-baseline is properly set for export compatibility
+      // Some SVG viewers need the attribute to be explicitly present
+      const db = htmlEl.getAttribute('dominant-baseline');
+      if (db) {
+        htmlEl.setAttribute('dominant-baseline', db);
+      }
+    }
+    // For circles (dots), ensure fill attributes are preserved correctly
+    if (el.tagName === 'circle') {
+      const fill = htmlEl.getAttribute('fill');
+      if (fill === 'transparent') {
+        htmlEl.setAttribute('fill', 'none');
+        htmlEl.setAttribute('fill-opacity', '0');
+      }
     }
   });
 }

@@ -87,6 +87,7 @@ export interface LineDotsAreasSettings {
   dotRadius: number;
   finalDotScale: number;
   dotHollow: boolean;
+  dotInnerColor: string;
 }
 
 // Labels
@@ -155,6 +156,10 @@ export interface LabelsSettings {
   lineLabelLineHeight?: number;
   lineLabelMaxLines?: number;
   lineLabelWeight?: FontWeight;
+  lineLabelFontFamily?: string;
+  lineLabelFontStyle?: FontStyle;
+  lineLabelColorMode?: 'auto' | 'fixed' | 'custom';
+  lineLabelSeriesColors?: Record<string, string>;
 
   // Line chart — Connector Lines
   connectorLineMode?: ConnectorLineMode;
@@ -176,10 +181,12 @@ export interface LabelsSettings {
   dataPointOutlineOn?: boolean;
   dataPointOutlineSize?: number;
 
-  // Line chart — Data Point Label custom colors (per-series)
+  // Line chart — Data Point Label custom colors (per-series or per-row)
   lineDataPointColorMode?: 'auto' | 'match_data' | 'fixed' | 'custom';
   lineDataPointColorFixed?: string;
   lineDataPointSeriesColors?: Record<string, string>;
+  lineDataPointColorCustomMode?: 'column' | 'row';
+  lineDataPointRowColors?: Record<string, Record<string, string>>;
 
   // Line chart — Data Point Position (above/below)
   lineDataPointPosition?: LineDataPointPosition | 'custom';
@@ -537,4 +544,5 @@ export interface ColumnMapping {
   chartsGrid?: string;
   rowFilter?: string;
   infoPopups?: string[];
+  seriesNames?: Record<string, string>;
 }

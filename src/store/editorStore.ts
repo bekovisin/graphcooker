@@ -320,6 +320,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       columnOrder: deriveColumnOrder(viz.data),
       settings: mergeSettings(viz.settings),
       columnMapping: viz.columnMapping,
+      seriesNames: viz.columnMapping?.seriesNames || {},
       isDirty: false,
       lastSavedAt: new Date(),
     }),

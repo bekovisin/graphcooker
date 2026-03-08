@@ -30,6 +30,7 @@ import type {
   StackLabelMode,
   LabelsSettings,
   FontWeight,
+  FontStyle,
   LineOverlapMode,
   ConnectorLineMode,
   ConnectorLineStyle,
@@ -37,6 +38,7 @@ import type {
   DataPointLabelContent,
   LineDataPointPosition,
 } from '@/types/chart';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 function SubHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -108,6 +110,9 @@ export function LabelsSection() {
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [showLinePositionModal, setShowLinePositionModal] = useState(false);
   const [showLineColorModal, setShowLineColorModal] = useState(false);
+  const [showLineLabelColorModal, setShowLineLabelColorModal] = useState(false);
+  const [showLineRowColorModal, setShowLineRowColorModal] = useState(false);
+  const [dataPointStylingOpen, setDataPointStylingOpen] = useState(true);
   const isLineChart = chartType === 'line_chart';
   const isRowMode = settings.dataPointCustomMode === 'row';
   const customNames = isRowMode ? categoryNames : seriesNames;
@@ -230,20 +235,147 @@ export function LabelsSection() {
           <>
             <SubHeader>Text</SubHeader>
             <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-              <ColorPicker
-                label="Color"
-                value={settings.lineLabelColor ?? '#333333'}
-                onChange={(color) => update({ lineLabelColor: color })}
-              />
+              {/* Font family */}
+              <SettingRow label="Font family">
+                <Select
+                  value={settings.lineLabelFontFamily || 'Inter, sans-serif'}
+                  onValueChange={(v) => update({ lineLabelFontFamily: v })}
+                >
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fontFamilyOptions.map((font) => (
+                      <SelectItem key={font} value={font} className="text-xs">
+                        {font}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingRow>
 
-              <NumberInput
-                label="Size"
-                value={settings.lineLabelSize ?? 0.7}
-                onChange={(v) => update({ lineLabelSize: v })}
-                min={0.1}
-                max={5}
-                step={0.1}
-              />
+              {/* Font styling grid: weight, style, size */}
+              <div className="space-y-1.5">
+                <span className="text-xs text-gray-600 font-medium">Font styling</span>
+                <div className="grid grid-cols-3 gap-1.5 items-end">
+                  <Select
+                    value={settings.lineLabelWeight ?? 'bold'}
+                    onValueChange={(v) => update({ lineLabelWeight: v as FontWeight })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                      <SelectItem value="300" className="text-xs">Light</SelectItem>
+                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                      <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                      <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                      <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                      <SelectItem value="900" className="text-xs">Black</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={settings.lineLabelFontStyle || 'normal'}
+                    onValueChange={(v) => update({ lineLabelFontStyle: v as FontStyle })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                      <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={settings.lineLabelSize ?? 0.7}
+                      onChange={(e) => {
+                        const num = parseFloat(e.target.value);
+                        if (!isNaN(num)) update({ lineLabelSize: Math.max(0.1, Math.min(5, num)) });
+                      }}
+                      min={0.1}
+                      max={5}
+                      step={0.1}
+                      className="h-8 text-xs w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Color mode */}
+              <SettingRow label="Color mode">
+                <Select
+                  value={settings.lineLabelColorMode ?? 'fixed'}
+                  onValueChange={(v) => update({ lineLabelColorMode: v as 'auto' | 'fixed' | 'custom' })}
+                >
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed" className="text-xs">Fixed</SelectItem>
+                    <SelectItem value="custom" className="text-xs">Custom per-series</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+
+              {(settings.lineLabelColorMode ?? 'fixed') === 'fixed' && (
+                <ColorPicker
+                  label="Color"
+                  value={settings.lineLabelColor ?? '#333333'}
+                  onChange={(color) => update({ lineLabelColor: color })}
+                />
+              )}
+
+              {settings.lineLabelColorMode === 'custom' && (
+                <>
+                  <ColorPicker
+                    label="Default color"
+                    value={settings.lineLabelColor ?? '#333333'}
+                    onChange={(color) => update({ lineLabelColor: color })}
+                  />
+                  <button
+                    onClick={() => setShowLineLabelColorModal(true)}
+                    className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                  >
+                    <Settings2 className="w-3.5 h-3.5" />
+                    Configure per-series colors...
+                  </button>
+                  <Dialog open={showLineLabelColorModal} onOpenChange={setShowLineLabelColorModal}>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Per-Series Line Label Colors</DialogTitle>
+                        <DialogDescription>
+                          Set the line label color for each series independently.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                        {seriesNames.map((name) => (
+                          <div key={name} className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                              {name}
+                            </span>
+                            <div className="flex-shrink-0">
+                              <ColorPicker
+                                value={settings.lineLabelSeriesColors?.[name] || settings.lineLabelColor || '#333333'}
+                                onChange={(color) => {
+                                  update({
+                                    lineLabelSeriesColors: {
+                                      ...settings.lineLabelSeriesColors,
+                                      [name]: color,
+                                    },
+                                  });
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
 
               <ColorPicker
                 label="Outline"
@@ -268,23 +400,6 @@ export function LabelsSection() {
                 max={3}
                 step={0.1}
               />
-
-              <SettingRow label="Weight">
-                <Select
-                  value={settings.lineLabelWeight ?? 'bold'}
-                  onValueChange={(v) => update({ lineLabelWeight: v as FontWeight })}
-                >
-                  <SelectTrigger className="h-8 text-xs w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                    <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                    <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                    <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-                  </SelectContent>
-                </Select>
-              </SettingRow>
             </div>
           </>
         )}
@@ -417,190 +532,258 @@ export function LabelsSection() {
               </Select>
             </SettingRow>
 
-            {/* ── Font styling (like X/Y axis) ── */}
-            <SettingRow label="Font family">
-              <Select
-                value={settings.dataPointFontFamily || 'Inter, sans-serif'}
-                onValueChange={(v) => update({ dataPointFontFamily: v })}
-              >
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {fontFamilyOptions.map((font) => (
-                    <SelectItem key={font} value={font} className="text-xs">
-                      {font}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </SettingRow>
+            {/* ── Collapsible Styling section ── */}
+            <button
+              onClick={() => setDataPointStylingOpen(!dataPointStylingOpen)}
+              className="flex items-center gap-1.5 text-xs text-gray-700 font-semibold py-1 w-full hover:text-gray-900 transition-colors"
+            >
+              {dataPointStylingOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+              Styling
+            </button>
 
-            <div className="space-y-1.5">
-              <span className="text-xs text-gray-600 font-medium">Font styling</span>
-              <div className="grid grid-cols-3 gap-1.5 items-end">
-                <Select
-                  value={settings.dataPointFontWeight}
-                  onValueChange={(v) => update({ dataPointFontWeight: v as FontWeight })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
-                    <SelectItem value="300" className="text-xs">Light</SelectItem>
-                    <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                    <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                    <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                    <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-                    <SelectItem value="900" className="text-xs">Black</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={settings.dataPointFontStyle || 'normal'}
-                  onValueChange={(v) => update({ dataPointFontStyle: v as 'normal' | 'italic' })}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                    <SelectItem value="italic" className="text-xs">Italic</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    value={settings.dataPointFontSize}
-                    onChange={(e) => {
-                      const num = parseFloat(e.target.value);
-                      if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(48, num)) });
-                    }}
-                    min={6}
-                    max={48}
-                    step={1}
-                    className="h-8 text-xs w-full"
-                  />
-                  <span className="text-xs text-gray-400 shrink-0">px</span>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Color mode ── */}
-            <SettingRow label="Color mode">
-              <Select
-                value={settings.lineDataPointColorMode ?? 'auto'}
-                onValueChange={(v) => update({ lineDataPointColorMode: v as 'auto' | 'match_data' | 'fixed' | 'custom' })}
-              >
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto" className="text-xs">Auto</SelectItem>
-                  <SelectItem value="match_data" className="text-xs">Match data</SelectItem>
-                  <SelectItem value="fixed" className="text-xs">Fixed</SelectItem>
-                  <SelectItem value="custom" className="text-xs">Custom per-series</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-
-            {settings.lineDataPointColorMode === 'fixed' && (
-              <ColorPicker
-                label="Text color"
-                value={settings.lineDataPointColorFixed ?? '#333333'}
-                onChange={(color) => update({ lineDataPointColorFixed: color })}
-              />
-            )}
-
-            {settings.lineDataPointColorMode === 'custom' && (
-              <>
-                <ColorPicker
-                  label="Default color"
-                  value={settings.lineDataPointColorFixed ?? '#333333'}
-                  onChange={(color) => update({ lineDataPointColorFixed: color })}
-                />
-                <button
-                  onClick={() => setShowLineColorModal(true)}
-                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
-                >
-                  <Settings2 className="w-3.5 h-3.5" />
-                  Configure per-series colors...
-                </button>
-                <Dialog open={showLineColorModal} onOpenChange={setShowLineColorModal}>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Per-Series Label Colors</DialogTitle>
-                      <DialogDescription>
-                        Set the data point label color for each series independently.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                      {seriesNames.map((name) => (
-                        <div key={name} className="flex items-center justify-between gap-3">
-                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
-                            {name}
-                          </span>
-                          <div className="flex-shrink-0">
-                            <ColorPicker
-                              value={settings.lineDataPointSeriesColors?.[name] || settings.lineDataPointColorFixed || '#333333'}
-                              onChange={(color) => {
-                                update({
-                                  lineDataPointSeriesColors: {
-                                    ...settings.lineDataPointSeriesColors,
-                                    [name]: color,
-                                  },
-                                });
-                              }}
-                            />
-                          </div>
-                        </div>
+            {dataPointStylingOpen && (
+              <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+                {/* Font family */}
+                <SettingRow label="Font family">
+                  <Select
+                    value={settings.dataPointFontFamily || 'Inter, sans-serif'}
+                    onValueChange={(v) => update({ dataPointFontFamily: v })}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fontFamilyOptions.map((font) => (
+                        <SelectItem key={font} value={font} className="text-xs">
+                          {font}
+                        </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                </SettingRow>
+
+                {/* Font styling grid: weight, style, size */}
+                <div className="space-y-1.5">
+                  <span className="text-xs text-gray-600 font-medium">Font styling</span>
+                  <div className="grid grid-cols-3 gap-1.5 items-end">
+                    <Select
+                      value={settings.dataPointFontWeight}
+                      onValueChange={(v) => update({ dataPointFontWeight: v as FontWeight })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                        <SelectItem value="300" className="text-xs">Light</SelectItem>
+                        <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                        <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                        <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                        <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                        <SelectItem value="900" className="text-xs">Black</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={settings.dataPointFontStyle || 'normal'}
+                      onValueChange={(v) => update({ dataPointFontStyle: v as 'normal' | 'italic' })}
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                        <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={settings.dataPointFontSize}
+                        onChange={(e) => {
+                          const num = parseFloat(e.target.value);
+                          if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(48, num)) });
+                        }}
+                        min={6}
+                        max={48}
+                        step={1}
+                        className="h-8 text-xs w-full"
+                      />
+                      <span className="text-xs text-gray-400 shrink-0">px</span>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </>
-            )}
+                  </div>
+                </div>
 
-            {/* Size mode */}
-            <SettingRow label="Size mode">
-              <TabMenu
-                value={settings.dataPointSizeMode ?? 'fixed'}
-                onChange={(v) => update({ dataPointSizeMode: v as 'auto' | 'fixed' })}
-                options={[
-                  { value: 'auto', label: 'Auto' },
-                  { value: 'fixed', label: 'Fixed' },
-                ]}
-              />
-            </SettingRow>
+                {/* ── Color mode ── */}
+                <SettingRow label="Color mode">
+                  <Select
+                    value={settings.lineDataPointColorMode ?? 'auto'}
+                    onValueChange={(v) => update({ lineDataPointColorMode: v as 'auto' | 'match_data' | 'fixed' | 'custom' })}
+                  >
+                    <SelectTrigger className="h-8 text-xs w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto" className="text-xs">Auto</SelectItem>
+                      <SelectItem value="match_data" className="text-xs">Match data</SelectItem>
+                      <SelectItem value="fixed" className="text-xs">Fixed</SelectItem>
+                      <SelectItem value="custom" className="text-xs">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingRow>
 
-            {(settings.dataPointSizeMode ?? 'fixed') === 'fixed' && (
-              <NumberInput
-                label="Size"
-                value={settings.dataPointSizeFixed ?? 1.2}
-                onChange={(v) => update({ dataPointSizeFixed: v })}
-                min={0.1}
-                max={5}
-                step={0.1}
-              />
-            )}
+                {settings.lineDataPointColorMode === 'fixed' && (
+                  <ColorPicker
+                    label="Text color"
+                    value={settings.lineDataPointColorFixed ?? '#333333'}
+                    onChange={(color) => update({ lineDataPointColorFixed: color })}
+                  />
+                )}
 
-            {/* Outline */}
-            <SettingRow label="Outline" variant="inline">
-              <Switch
-                checked={settings.dataPointOutlineOn ?? true}
-                onCheckedChange={(checked) => update({ dataPointOutlineOn: checked })}
-              />
-            </SettingRow>
+                {settings.lineDataPointColorMode === 'custom' && (
+                  <>
+                    <ColorPicker
+                      label="Default color"
+                      value={settings.lineDataPointColorFixed ?? '#333333'}
+                      onChange={(color) => update({ lineDataPointColorFixed: color })}
+                    />
 
-            {(settings.dataPointOutlineOn ?? true) && (
-              <NumberInput
-                label="Outline size"
-                value={settings.dataPointOutlineSize ?? 3}
-                onChange={(v) => update({ dataPointOutlineSize: v })}
-                min={0}
-                max={20}
-                step={1}
-              />
+                    <SettingRow label="Custom by">
+                      <Select
+                        value={settings.lineDataPointColorCustomMode || 'column'}
+                        onValueChange={(v) => update({ lineDataPointColorCustomMode: v as 'column' | 'row' })}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="column">By Column (series)</SelectItem>
+                          <SelectItem value="row">By Row</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </SettingRow>
+
+                    {(settings.lineDataPointColorCustomMode || 'column') === 'column' && (
+                      <>
+                        <button
+                          onClick={() => setShowLineColorModal(true)}
+                          className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                        >
+                          <Settings2 className="w-3.5 h-3.5" />
+                          Configure per-series colors...
+                        </button>
+                        <Dialog open={showLineColorModal} onOpenChange={setShowLineColorModal}>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Per-Series Label Colors</DialogTitle>
+                              <DialogDescription>
+                                Set the data point label color for each series independently.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                              {seriesNames.map((name) => (
+                                <div key={name} className="flex items-center justify-between gap-3">
+                                  <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                                    {name}
+                                  </span>
+                                  <div className="flex-shrink-0">
+                                    <ColorPicker
+                                      value={settings.lineDataPointSeriesColors?.[name] || settings.lineDataPointColorFixed || '#333333'}
+                                      onChange={(color) => {
+                                        update({
+                                          lineDataPointSeriesColors: {
+                                            ...settings.lineDataPointSeriesColors,
+                                            [name]: color,
+                                          },
+                                        });
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    )}
+
+                    {settings.lineDataPointColorCustomMode === 'row' && (
+                      <>
+                        <button
+                          onClick={() => setShowLineRowColorModal(true)}
+                          className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                        >
+                          <Settings2 className="w-3.5 h-3.5" />
+                          Configure per-row colors...
+                        </button>
+                        <Dialog open={showLineRowColorModal} onOpenChange={setShowLineRowColorModal}>
+                          <DialogContent className="max-w-lg">
+                            <DialogHeader>
+                              <DialogTitle>Per-Row Label Colors</DialogTitle>
+                              <DialogDescription>
+                                Set the data point label color for each series within each row.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                              {categoryNames.map((rowName) => (
+                                <div key={rowName} className="space-y-2">
+                                  <span className="text-sm font-semibold text-gray-800">{rowName}</span>
+                                  <div className="space-y-1.5 pl-3 border-l-2 border-gray-200">
+                                    {seriesNames.map((colName) => {
+                                      const rowColors = settings.lineDataPointRowColors?.[rowName] || {};
+                                      return (
+                                        <div key={colName} className="flex items-center justify-between gap-3">
+                                          <span className="text-xs text-gray-600 truncate min-w-0 flex-shrink">
+                                            {colName}
+                                          </span>
+                                          <div className="flex-shrink-0">
+                                            <ColorPicker
+                                              value={rowColors[colName] || settings.lineDataPointColorFixed || '#333333'}
+                                              onChange={(color) => {
+                                                update({
+                                                  lineDataPointRowColors: {
+                                                    ...settings.lineDataPointRowColors,
+                                                    [rowName]: {
+                                                      ...(settings.lineDataPointRowColors?.[rowName] || {}),
+                                                      [colName]: color,
+                                                    },
+                                                  },
+                                                });
+                                              }}
+                                            />
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* Outline */}
+                <SettingRow label="Outline" variant="inline">
+                  <Switch
+                    checked={settings.dataPointOutlineOn ?? true}
+                    onCheckedChange={(checked) => update({ dataPointOutlineOn: checked })}
+                  />
+                </SettingRow>
+
+                {(settings.dataPointOutlineOn ?? true) && (
+                  <NumberInput
+                    label="Outline size"
+                    value={settings.dataPointOutlineSize ?? 3}
+                    onChange={(v) => update({ dataPointOutlineSize: v })}
+                    min={0}
+                    max={20}
+                    step={1}
+                  />
+                )}
+              </div>
             )}
 
             {/* Position (above/below/custom) */}
@@ -682,7 +865,7 @@ export function LabelsSection() {
                   </Dialog>
                 )}
 
-                {/* Per-row position dialog — each row shows per-series position */}
+                {/* Per-row position dialog */}
                 {isLineRowMode && (
                   <Dialog open={showLinePositionModal} onOpenChange={setShowLinePositionModal}>
                     <DialogContent className="max-w-lg">
@@ -741,7 +924,7 @@ export function LabelsSection() {
               </>
             )}
 
-            {/* Custom padding */}
+            {/* Custom padding (no min limit) */}
             <SettingRow label="Custom padding" variant="inline">
               <Switch
                 checked={settings.dataPointCustomPadding}
@@ -756,32 +939,32 @@ export function LabelsSection() {
                     label="T"
                     value={settings.dataPointPaddingTop}
                     onChange={(v) => update({ dataPointPaddingTop: v })}
-                    min={-50}
-                    max={50}
+                    min={-999}
+                    max={999}
                     step={1}
                   />
                   <NumberInput
                     label="R"
                     value={settings.dataPointPaddingRight}
                     onChange={(v) => update({ dataPointPaddingRight: v })}
-                    min={-50}
-                    max={50}
+                    min={-999}
+                    max={999}
                     step={1}
                   />
                   <NumberInput
                     label="B"
                     value={settings.dataPointPaddingBottom}
                     onChange={(v) => update({ dataPointPaddingBottom: v })}
-                    min={-50}
-                    max={50}
+                    min={-999}
+                    max={999}
                     step={1}
                   />
                   <NumberInput
                     label="L"
                     value={settings.dataPointPaddingLeft}
                     onChange={(v) => update({ dataPointPaddingLeft: v })}
-                    min={-50}
-                    max={50}
+                    min={-999}
+                    max={999}
                     step={1}
                   />
                 </div>

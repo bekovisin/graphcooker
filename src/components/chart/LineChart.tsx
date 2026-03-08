@@ -741,14 +741,14 @@ export function LineChart({
                       strokeWidth={xAxisSettings.tickMarks.width}
                     />
                   )}
-                  {/* Label */}
+                  {/* Label — last category right-aligned so it doesn't extend past the last data point */}
                   <text
                     x={x + labelPad}
                     y={hasAngle
                       ? baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad
                       : labelY
                     }
-                    textAnchor={hasAngle ? (tickAngle > 0 ? 'start' : 'end') : 'middle'}
+                    textAnchor={hasAngle ? (tickAngle > 0 ? 'start' : 'end') : (isLast ? 'end' : (isFirst ? 'start' : 'middle'))}
                     dominantBaseline={hasAngle ? 'hanging' : 'auto'}
                     transform={hasAngle
                       ? `rotate(${tickAngle}, ${x + labelPad}, ${baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad})`
@@ -862,7 +862,7 @@ export function LineChart({
                     cx={cx}
                     cy={cy}
                     r={Math.max(0.5, radius)}
-                    fill={lineSettings.dotHollow ? 'white' : s.color}
+                    fill={lineSettings.dotHollow ? (lineSettings.dotInnerColor || '#ffffff') : s.color}
                     stroke={s.color}
                     strokeWidth={lineSettings.dotHollow ? 2 : 0}
                     fillOpacity={lineSettings.dotOpacity}
@@ -923,10 +923,13 @@ export function LineChart({
                 const actualDotR = showDots !== 'none'
                   ? (isFinal ? baseR * (lineSettings.finalDotScale / 100) : baseR)
                   : 0;
+                const centerOnDot = labelSettings.dataPointCenterOnDot ?? false;
                 const labelGap = 4; // px gap between dot edge and label
-                const offset = position === 'above'
-                  ? -(actualDotR + labelGap)
-                  : (actualDotR + labelGap);
+                const offset = centerOnDot
+                  ? 0
+                  : (position === 'above'
+                    ? -(actualDotR + labelGap)
+                    : (actualDotR + labelGap));
 
                 const customPadding = labelSettings.dataPointCustomPadding;
                 const padTop = customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0;
@@ -940,9 +943,20 @@ export function LineChart({
                 } else if (colorMode === 'fixed') {
                   labelColor = labelSettings.lineDataPointColorFixed || '#333333';
                 } else if (colorMode === 'custom') {
-                  const colName = valueColumns[si];
-                  labelColor = labelSettings.lineDataPointSeriesColors?.[colName] || labelSettings.lineDataPointColorFixed || '#333333';
+                  const colorCustomMode = labelSettings.lineDataPointColorCustomMode ?? 'column';
+                  if (colorCustomMode === 'row') {
+                    const rowName = categories[pi];
+                    const rowColors = labelSettings.lineDataPointRowColors?.[rowName];
+                    const colName = valueColumns[si];
+                    labelColor = rowColors?.[colName] || labelSettings.lineDataPointColorFixed || '#333333';
+                  } else {
+                    const colName = valueColumns[si];
+                    labelColor = labelSettings.lineDataPointSeriesColors?.[colName] || labelSettings.lineDataPointColorFixed || '#333333';
+                  }
                 }
+
+                const dpOutline = labelSettings.dataPointOutlineOn ?? true;
+                const dpOutlineSize = (labelSettings.dataPointOutlineSize ?? 3) / 10;
 
                 return (
                   <text
@@ -950,13 +964,19 @@ export function LineChart({
                     x={cx + padLeft}
                     y={cy + offset + padTop}
                     textAnchor="middle"
-                    dominantBaseline={position === 'above' ? 'auto' : 'hanging'}
+                    dominantBaseline={centerOnDot ? 'central' : (position === 'above' ? 'auto' : 'hanging')}
                     fill={labelColor}
-                    fontSize={(labelSettings.dataPointSizeFixed ?? 1.2) * 10}
+                    fontSize={labelSettings.dataPointFontSize || 12}
                     fontWeight={labelSettings.dataPointFontWeight || 'normal'}
                     fontFamily={labelSettings.dataPointFontFamily || 'Inter, sans-serif'}
                     fontStyle={labelSettings.dataPointFontStyle || 'normal'}
                     opacity={animProgress}
+                    style={dpOutline ? {
+                      paintOrder: 'stroke',
+                      stroke: '#ffffff',
+                      strokeWidth: dpOutlineSize,
+                      strokeLinejoin: 'round',
+                    } : undefined}
                   >
                     {labelText}
                   </text>
@@ -980,7 +1000,8 @@ export function LineChart({
           const labelX = cx + (labelSettings.lineLabelDistance ?? 0.9) * 10;
           const llFontSize = (labelSettings.lineLabelSize ?? 0.7) * 14;
           const llFontWeight = labelSettings.lineLabelWeight ?? 'bold';
-          const llFontFamily = 'Inter, sans-serif';
+          const llFontFamily = labelSettings.lineLabelFontFamily || 'Inter, sans-serif';
+          const llFontStyle = labelSettings.lineLabelFontStyle || 'normal';
           const llMaxLines = labelSettings.lineLabelMaxLines ?? 3;
           const llLineHeight = (labelSettings.lineLabelLineHeight ?? 1) * llFontSize;
           const llMaxWidth = lineLabelSpaceMode === 'fixed'
@@ -991,14 +1012,24 @@ export function LineChart({
           const totalHeight = lines.length * llLineHeight;
           const startY = cy - totalHeight / 2 + llFontSize / 2;
 
+          // Resolve line label color (fixed vs per-series)
+          const llColorMode = labelSettings.lineLabelColorMode ?? 'fixed';
+          let llColor = labelSettings.lineLabelColor ?? '#333333';
+          if (llColorMode === 'custom') {
+            const colName = valueColumns[si];
+            llColor = labelSettings.lineLabelSeriesColors?.[colName] || llColor;
+          }
+
           return (
             <text
               key={`ll-${si}`}
               x={labelX}
               textAnchor="start"
-              fill={labelSettings.lineLabelColor ?? '#333333'}
+              fill={llColor}
               fontSize={llFontSize}
               fontWeight={llFontWeight}
+              fontFamily={llFontFamily}
+              fontStyle={llFontStyle}
               opacity={animProgress}
               style={{
                 paintOrder: 'stroke',

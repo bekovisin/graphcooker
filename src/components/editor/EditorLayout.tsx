@@ -116,11 +116,16 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   const saveVisualization = useCallback(async () => {
     setIsSaving(true);
     try {
+      // Persist seriesNames inside columnMapping so they survive save/load
+      const mappingWithSeriesNames = {
+        ...columnMapping,
+        seriesNames: Object.keys(seriesNames).length > 0 ? seriesNames : undefined,
+      };
       const body: Record<string, unknown> = {
         name: visualizationName,
         data,
         settings,
-        columnMapping,
+        columnMapping: mappingWithSeriesNames,
       };
 
       const res = await fetch(`/api/visualizations/${visualizationId}`, {
@@ -148,7 +153,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
         }).catch(() => {});
       }
     });
-  }, [visualizationId, visualizationName, data, settings, columnMapping, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
+  }, [visualizationId, visualizationName, data, settings, columnMapping, seriesNames, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
 
   // Debounced auto-save
   useEffect(() => {
