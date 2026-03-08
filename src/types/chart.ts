@@ -64,6 +64,7 @@ export interface BarsSettings {
   outline: boolean;
   outlineColor: string;
   outlineWidth: number;
+  borderRadius: Record<string, { tl: number; tr: number; bl: number; br: number }>;
 }
 
 // Labels
@@ -87,7 +88,9 @@ export interface LabelsSettings {
   dataPointColor: string;
   dataPointSeriesColors: Record<string, string>;
   dataPointPosition: DataPointLabelPosition | 'custom';
+  dataPointCustomMode: 'column' | 'row';
   dataPointSeriesPositions: Record<string, DataPointLabelPosition>;
+  dataPointRowPositions: Record<string, DataPointLabelPosition>;
   dataPointCustomPadding: boolean;
   dataPointPaddingTop: number;
   dataPointPaddingRight: number;

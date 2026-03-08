@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
@@ -16,7 +17,15 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import type { EmptyRowLineStyle } from '@/types/chart';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Settings2 } from 'lucide-react';
+import type { EmptyRowLineStyle, BarsSettings } from '@/types/chart';
 
 interface SliderWithInputProps {
   label: string;
@@ -64,9 +73,11 @@ function SliderWithInput({ label, value, onChange, min, max, step, suffix }: Sli
 
 export function BarsSection() {
   const settings = useEditorStore((s) => s.settings.bars);
+  const seriesNames = useEditorStore((s) => s.columnMapping.values || []);
   const updateSettings = useEditorStore((s) => s.updateSettings);
+  const [showRadiusModal, setShowRadiusModal] = useState(false);
 
-  const update = (updates: Partial<typeof settings>) => {
+  const update = (updates: Partial<BarsSettings>) => {
     updateSettings('bars', updates);
   };
 
@@ -215,6 +226,54 @@ export function BarsSection() {
             suffix="px"
           />
         </div>
+      )}
+
+      {/* Border Radius */}
+      {seriesNames.length > 0 && (
+        <>
+          <button
+            onClick={() => setShowRadiusModal(true)}
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1 mt-2"
+          >
+            <Settings2 className="w-3.5 h-3.5" />
+            Configure per-series border radius...
+          </button>
+
+          <Dialog open={showRadiusModal} onOpenChange={setShowRadiusModal}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Per-Series Border Radius</DialogTitle>
+                <DialogDescription>
+                  Set the corner radius for each series independently (TL, TR, BR, BL).
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                {seriesNames.map((name) => {
+                  const r = settings.borderRadius?.[name] || { tl: 0, tr: 0, bl: 0, br: 0 };
+                  const updateRadius = (corner: 'tl' | 'tr' | 'bl' | 'br', val: number) => {
+                    update({
+                      borderRadius: {
+                        ...settings.borderRadius,
+                        [name]: { ...r, [corner]: val },
+                      },
+                    });
+                  };
+                  return (
+                    <div key={name} className="space-y-1.5">
+                      <span className="text-sm text-gray-700 font-medium">{name}</span>
+                      <div className="grid grid-cols-4 gap-2">
+                        <NumberInput label="TL" value={r.tl} onChange={(v) => updateRadius('tl', v)} min={0} max={50} step={1} />
+                        <NumberInput label="TR" value={r.tr} onChange={(v) => updateRadius('tr', v)} min={0} max={50} step={1} />
+                        <NumberInput label="BR" value={r.br} onChange={(v) => updateRadius('br', v)} min={0} max={50} step={1} />
+                        <NumberInput label="BL" value={r.bl} onChange={(v) => updateRadius('bl', v)} min={0} max={50} step={1} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
       )}
     </AccordionSection>
   );

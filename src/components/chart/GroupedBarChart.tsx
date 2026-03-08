@@ -5,6 +5,28 @@ import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { getPaletteColors, extendColors } from '@/lib/chart/palettes';
 
+// ─── Rounded rect helper ──────────────────────────────────────────────
+function roundedRectPath(
+  x: number, y: number, w: number, h: number,
+  tl: number, tr: number, br: number, bl: number,
+): string {
+  const max = Math.min(w, h) / 2;
+  tl = Math.min(tl, max); tr = Math.min(tr, max);
+  br = Math.min(br, max); bl = Math.min(bl, max);
+  return [
+    `M${x + tl},${y}`,
+    `H${x + w - tr}`,
+    tr ? `A${tr},${tr},0,0,1,${x + w},${y + tr}` : `L${x + w},${y}`,
+    `V${y + h - br}`,
+    br ? `A${br},${br},0,0,1,${x + w - br},${y + h}` : `L${x + w},${y + h}`,
+    `H${x + bl}`,
+    bl ? `A${bl},${bl},0,0,1,${x},${y + h - bl}` : `L${x},${y + h}`,
+    `V${y + tl}`,
+    tl ? `A${tl},${tl},0,0,1,${x + tl},${y}` : `L${x},${y}`,
+    'Z',
+  ].join(' ');
+}
+
 // ─── Types ────────────────────────────────────────────────────────────
 interface SeriesData {
   name: string;
@@ -901,28 +923,43 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
             const renderedW = Math.max(0, barW);
             const barFill = colorByRow ? categoryColors[ci] : s.color;
             const groupedBarY = numSeries > 1 ? barY + si * (subBarH + groupSpacing) : barY;
+            const radius = settings.bars.borderRadius?.[s.name];
+            const hasRadius = radius && (radius.tl || radius.tr || radius.bl || radius.br);
+            const barSharedProps = {
+              fill: barFill,
+              fillOpacity: settings.bars.barOpacity,
+              stroke: settings.bars.outline ? settings.bars.outlineColor : 'none',
+              strokeWidth: settings.bars.outline ? settings.bars.outlineWidth : 0,
+              style: { cursor: 'pointer' as const, transition: 'fill-opacity 0.15s' },
+              onMouseMove: (e: React.MouseEvent) => handleBarHover(e, cat, s.name, rawValue, barFill),
+              onMouseLeave: handleBarLeave,
+            };
             barElements.push(
-              <rect
-                key={`bar-${ci}-${si}`}
-                x={padding.left + barX}
-                y={groupedBarY}
-                width={renderedW}
-                height={actualBarH}
-                fill={barFill}
-                fillOpacity={settings.bars.barOpacity}
-                stroke={settings.bars.outline ? settings.bars.outlineColor : 'none'}
-                strokeWidth={settings.bars.outline ? settings.bars.outlineWidth : 0}
-                style={{ cursor: 'pointer', transition: 'fill-opacity 0.15s' }}
-                onMouseMove={(e) => handleBarHover(e, cat, s.name, rawValue, barFill)}
-                onMouseLeave={handleBarLeave}
-              />
+              hasRadius ? (
+                <path
+                  key={`bar-${ci}-${si}`}
+                  d={roundedRectPath(padding.left + barX, groupedBarY, renderedW, actualBarH, radius.tl, radius.tr, radius.br, radius.bl)}
+                  {...barSharedProps}
+                />
+              ) : (
+                <rect
+                  key={`bar-${ci}-${si}`}
+                  x={padding.left + barX}
+                  y={groupedBarY}
+                  width={renderedW}
+                  height={actualBarH}
+                  {...barSharedProps}
+                />
+              )
             );
 
             // Data point labels
             if (settings.labels.showDataPointLabels && rawValue !== 0) {
               const labelText = formatNumber(rawValue, settings.numberFormatting);
               const labelPos = settings.labels.dataPointPosition === 'custom'
-                ? (settings.labels.dataPointSeriesPositions?.[s.name] || 'center')
+                ? (settings.labels.dataPointCustomMode === 'row'
+                  ? (settings.labels.dataPointRowPositions?.[cat] || 'center')
+                  : (settings.labels.dataPointSeriesPositions?.[s.name] || 'center'))
                 : settings.labels.dataPointPosition;
               let labelX: number;
               let anchor: 'start' | 'middle' | 'end';

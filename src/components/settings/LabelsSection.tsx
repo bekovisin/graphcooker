@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
@@ -86,8 +86,23 @@ const fontFamilyOptions = [
 export function LabelsSection() {
   const settings = useEditorStore((s) => s.settings.labels);
   const seriesNames = useEditorStore((s) => s.columnMapping.values || []);
+  const data = useEditorStore((s) => s.data);
+  const labelsColumn = useEditorStore((s) => s.columnMapping.labels);
+  const categoryNames = useMemo(() => {
+    if (!labelsColumn || !data.length) return [];
+    const seen = new Set<string>();
+    return data.reduce<string[]>((acc, row) => {
+      const name = String(row[labelsColumn] || '');
+      if (name && !seen.has(name)) { seen.add(name); acc.push(name); }
+      return acc;
+    }, []);
+  }, [data, labelsColumn]);
   const updateSettings = useEditorStore((s) => s.updateSettings);
   const [showPositionModal, setShowPositionModal] = useState(false);
+  const isRowMode = settings.dataPointCustomMode === 'row';
+  const customNames = isRowMode ? categoryNames : seriesNames;
+  const customPositions = isRowMode ? settings.dataPointRowPositions : settings.dataPointSeriesPositions;
+  const customPositionKey = isRowMode ? 'dataPointRowPositions' : 'dataPointSeriesPositions';
 
   const update = (updates: Partial<LabelsSettings>) => {
     updateSettings('labels', updates);
@@ -182,41 +197,56 @@ export function LabelsSection() {
             />
           </SettingRow>
 
-          {/* Per-series position modal */}
+          {/* Per-series/row position modal */}
           {settings.dataPointPosition === 'custom' && (
             <>
+              <SettingRow label="Custom by">
+                <Select
+                  value={settings.dataPointCustomMode || 'column'}
+                  onValueChange={(v) => update({ dataPointCustomMode: v as 'column' | 'row' })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="column">By Column</SelectItem>
+                    <SelectItem value="row">By Row</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+
               <button
                 onClick={() => setShowPositionModal(true)}
                 className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
               >
                 <Settings2 className="w-3.5 h-3.5" />
-                Configure per-series positions...
+                Configure per-{isRowMode ? 'row' : 'column'} positions...
               </button>
 
               <Dialog open={showPositionModal} onOpenChange={setShowPositionModal}>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Per-Series Label Positions</DialogTitle>
+                    <DialogTitle>Per-{isRowMode ? 'Row' : 'Column'} Label Positions</DialogTitle>
                     <DialogDescription>
-                      Set the data point label position for each series independently.
+                      Set the data point label position for each {isRowMode ? 'row' : 'column'} independently.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                    {seriesNames.map((name) => (
+                    {customNames.map((name) => (
                       <div key={name} className="flex items-center justify-between gap-3">
                         <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
                           {name}
                         </span>
                         <div className="flex-shrink-0 w-[220px]">
                           <TabMenu
-                            value={settings.dataPointSeriesPositions?.[name] || 'center'}
+                            value={customPositions?.[name] || 'center'}
                             onChange={(v) => {
                               update({
-                                dataPointSeriesPositions: {
-                                  ...settings.dataPointSeriesPositions,
+                                [customPositionKey]: {
+                                  ...customPositions,
                                   [name]: v as DataPointLabelPosition,
                                 },
-                              });
+                              } as Partial<LabelsSettings>);
                             }}
                             options={[
                               { value: 'left', label: 'Left' },
@@ -244,7 +274,7 @@ export function LabelsSection() {
           {/* Custom padding - 4 inputs side by side */}
           {settings.dataPointCustomPadding && (
             <div className="space-y-1.5 pl-2 border-l-2 border-gray-100">
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-4 gap-2">
                 <NumberInput
                   label="T"
                   value={settings.dataPointPaddingTop}
@@ -252,7 +282,6 @@ export function LabelsSection() {
                   min={-50}
                   max={50}
                   step={1}
-                  suffix="px"
                 />
                 <NumberInput
                   label="R"
@@ -261,7 +290,6 @@ export function LabelsSection() {
                   min={-50}
                   max={50}
                   step={1}
-                  suffix="px"
                 />
                 <NumberInput
                   label="B"
@@ -270,7 +298,6 @@ export function LabelsSection() {
                   min={-50}
                   max={50}
                   step={1}
-                  suffix="px"
                 />
                 <NumberInput
                   label="L"
@@ -279,7 +306,6 @@ export function LabelsSection() {
                   min={-50}
                   max={50}
                   step={1}
-                  suffix="px"
                 />
               </div>
             </div>
@@ -288,7 +314,8 @@ export function LabelsSection() {
           {/* Outside label padding (distance from bar) */}
           {(settings.dataPointPosition === 'outside_right' ||
             (settings.dataPointPosition === 'custom' &&
-              Object.values(settings.dataPointSeriesPositions || {}).includes('outside_right'))) && (
+              (Object.values(settings.dataPointSeriesPositions || {}).includes('outside_right') ||
+               Object.values(settings.dataPointRowPositions || {}).includes('outside_right')))) && (
             <NumberInput
               label="Outside label padding"
               value={settings.outsideLabelPadding ?? 6}

@@ -879,7 +879,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
             if (settings.labels.showDataPointLabels && rawValue !== 0) {
               const labelText = formatNumber(rawValue, settings.numberFormatting);
               const labelPos = settings.labels.dataPointPosition === 'custom'
-                ? (settings.labels.dataPointSeriesPositions?.[s.name] || 'center')
+                ? (settings.labels.dataPointCustomMode === 'row'
+                  ? (settings.labels.dataPointRowPositions?.[cat] || 'center')
+                  : (settings.labels.dataPointSeriesPositions?.[s.name] || 'center'))
                 : settings.labels.dataPointPosition;
               let labelX: number;
               let anchor: 'start' | 'middle' | 'end';
