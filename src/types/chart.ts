@@ -176,11 +176,21 @@ export interface LabelsSettings {
   dataPointOutlineOn?: boolean;
   dataPointOutlineSize?: number;
 
+  // Line chart — Data Point Label custom colors (per-series)
+  lineDataPointColorMode?: 'auto' | 'match_data' | 'fixed' | 'custom';
+  lineDataPointColorFixed?: string;
+  lineDataPointSeriesColors?: Record<string, string>;
+
   // Line chart — Data Point Position (above/below)
   lineDataPointPosition?: LineDataPointPosition | 'custom';
   lineDataPointCustomMode?: 'column' | 'row';
   lineDataPointSeriesPositions?: Record<string, LineDataPointPosition>;
-  lineDataPointRowPositions?: Record<string, LineDataPointPosition>;
+  // Row positions: each row maps to per-series position overrides
+  lineDataPointRowPositions?: Record<string, Record<string, LineDataPointPosition>>;
+
+  // Line chart — Line Label space mode
+  lineLabelSpaceMode?: 'auto' | 'fixed';
+  lineLabelSpaceValue?: number;
 }
 
 // Axis shared types

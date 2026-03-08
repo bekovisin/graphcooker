@@ -95,6 +95,8 @@ export const defaultChartSettings: ChartSettings = {
     // Line chart label defaults
     showLineLabels: true,
     lineLabelMaxWidth: 4,
+    lineLabelSpaceMode: 'auto',
+    lineLabelSpaceValue: 80,
     lineLabelOverlap: 'spread',
     lineLabelSpacing: 1.2,
     lineLabelDistance: 0.9,
@@ -122,6 +124,9 @@ export const defaultChartSettings: ChartSettings = {
     dataPointSizeFixed: 1.2,
     dataPointOutlineOn: true,
     dataPointOutlineSize: 3,
+    lineDataPointColorMode: 'auto',
+    lineDataPointColorFixed: '#333333',
+    lineDataPointSeriesColors: {},
     lineDataPointPosition: 'above',
     lineDataPointCustomMode: 'column',
     lineDataPointSeriesPositions: {},

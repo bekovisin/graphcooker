@@ -34,7 +34,6 @@ import type {
   ConnectorLineMode,
   ConnectorLineStyle,
   DataPointShowMode,
-  DataPointTextColor,
   DataPointLabelContent,
   LineDataPointPosition,
 } from '@/types/chart';
@@ -108,14 +107,15 @@ export function LabelsSection() {
   const updateSettings = useEditorStore((s) => s.updateSettings);
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [showLinePositionModal, setShowLinePositionModal] = useState(false);
-  const [showLineRowPositionModal, setShowLineRowPositionModal] = useState(false);
+  const [showLineColorModal, setShowLineColorModal] = useState(false);
   const isLineChart = chartType === 'line_chart';
   const isRowMode = settings.dataPointCustomMode === 'row';
   const customNames = isRowMode ? categoryNames : seriesNames;
   const customPositions = isRowMode ? settings.dataPointRowPositions : settings.dataPointSeriesPositions;
   const customPositionKey = isRowMode ? 'dataPointRowPositions' : 'dataPointSeriesPositions';
 
-  // Line chart position modal state — both column and row modals available
+  // Line chart custom position mode
+  const isLineRowMode = (settings.lineDataPointCustomMode ?? 'column') === 'row';
 
   const update = (updates: Partial<LabelsSettings>) => {
     updateSettings('labels', updates);
@@ -136,13 +136,48 @@ export function LabelsSection() {
 
         {(settings.showLineLabels ?? true) && (
           <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+            {/* Space mode (auto/fixed) */}
+            <SettingRow label="Space mode">
+              <TabMenu
+                value={settings.lineLabelSpaceMode ?? 'auto'}
+                onChange={(v) => update({ lineLabelSpaceMode: v as 'auto' | 'fixed' })}
+                options={[
+                  { value: 'auto', label: 'Auto' },
+                  { value: 'fixed', label: 'Fixed' },
+                ]}
+              />
+            </SettingRow>
+
+            {(settings.lineLabelSpaceMode ?? 'auto') === 'fixed' && (
+              <NumberInput
+                label="Label width"
+                value={settings.lineLabelSpaceValue ?? 80}
+                onChange={(v) => update({ lineLabelSpaceValue: v })}
+                min={0}
+                max={400}
+                step={1}
+                suffix="px"
+              />
+            )}
+
+            {(settings.lineLabelSpaceMode ?? 'auto') === 'auto' && (
+              <NumberInput
+                label="Max width"
+                value={settings.lineLabelMaxWidth ?? 4}
+                onChange={(v) => update({ lineLabelMaxWidth: v })}
+                min={1}
+                max={20}
+                step={0.5}
+              />
+            )}
+
             <NumberInput
-              label="Max width"
-              value={settings.lineLabelMaxWidth ?? 4}
-              onChange={(v) => update({ lineLabelMaxWidth: v })}
+              label="Max lines"
+              value={settings.lineLabelMaxLines ?? 3}
+              onChange={(v) => update({ lineLabelMaxLines: v })}
               min={1}
-              max={20}
-              step={0.5}
+              max={10}
+              step={1}
             />
 
             <SettingRow label="Overlaps">
@@ -232,15 +267,6 @@ export function LabelsSection() {
                 min={0.5}
                 max={3}
                 step={0.1}
-              />
-
-              <NumberInput
-                label="Max lines"
-                value={settings.lineLabelMaxLines ?? 3}
-                onChange={(v) => update({ lineLabelMaxLines: v })}
-                min={1}
-                max={10}
-                step={1}
               />
 
               <SettingRow label="Weight">
@@ -373,50 +399,6 @@ export function LabelsSection() {
               />
             </SettingRow>
 
-            {/* Text color mode */}
-            <SettingRow label="Text color">
-              <Select
-                value={settings.dataPointTextColorMode ?? 'auto'}
-                onValueChange={(v) => update({ dataPointTextColorMode: v as DataPointTextColor })}
-              >
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto" className="text-xs">Auto</SelectItem>
-                  <SelectItem value="match_data" className="text-xs">Match data</SelectItem>
-                  <SelectItem value="contrast" className="text-xs">Contrast</SelectItem>
-                  <SelectItem value="fixed" className="text-xs">Fixed</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-
-            {(settings.dataPointTextColorMode === 'fixed') && (
-              <ColorPicker
-                label="Text color"
-                value={settings.dataPointTextColorFixed ?? '#333333'}
-                onChange={(color) => update({ dataPointTextColorFixed: color })}
-              />
-            )}
-
-            {/* Font weight */}
-            <SettingRow label="Weight">
-              <Select
-                value={settings.dataPointFontWeight}
-                onValueChange={(v) => update({ dataPointFontWeight: v as FontWeight })}
-              >
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                  <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                  <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-
             {/* Label content */}
             <SettingRow label="Label content">
               <Select
@@ -434,6 +416,150 @@ export function LabelsSection() {
                 </SelectContent>
               </Select>
             </SettingRow>
+
+            {/* ── Font styling (like X/Y axis) ── */}
+            <SettingRow label="Font family">
+              <Select
+                value={settings.dataPointFontFamily || 'Inter, sans-serif'}
+                onValueChange={(v) => update({ dataPointFontFamily: v })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fontFamilyOptions.map((font) => (
+                    <SelectItem key={font} value={font} className="text-xs">
+                      {font}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            <div className="space-y-1.5">
+              <span className="text-xs text-gray-600 font-medium">Font styling</span>
+              <div className="grid grid-cols-3 gap-1.5 items-end">
+                <Select
+                  value={settings.dataPointFontWeight}
+                  onValueChange={(v) => update({ dataPointFontWeight: v as FontWeight })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                    <SelectItem value="300" className="text-xs">Light</SelectItem>
+                    <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                    <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                    <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                    <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                    <SelectItem value="900" className="text-xs">Black</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={settings.dataPointFontStyle || 'normal'}
+                  onValueChange={(v) => update({ dataPointFontStyle: v as 'normal' | 'italic' })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                    <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={settings.dataPointFontSize}
+                    onChange={(e) => {
+                      const num = parseFloat(e.target.value);
+                      if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(48, num)) });
+                    }}
+                    min={6}
+                    max={48}
+                    step={1}
+                    className="h-8 text-xs w-full"
+                  />
+                  <span className="text-xs text-gray-400 shrink-0">px</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Color mode ── */}
+            <SettingRow label="Color mode">
+              <Select
+                value={settings.lineDataPointColorMode ?? 'auto'}
+                onValueChange={(v) => update({ lineDataPointColorMode: v as 'auto' | 'match_data' | 'fixed' | 'custom' })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto" className="text-xs">Auto</SelectItem>
+                  <SelectItem value="match_data" className="text-xs">Match data</SelectItem>
+                  <SelectItem value="fixed" className="text-xs">Fixed</SelectItem>
+                  <SelectItem value="custom" className="text-xs">Custom per-series</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {settings.lineDataPointColorMode === 'fixed' && (
+              <ColorPicker
+                label="Text color"
+                value={settings.lineDataPointColorFixed ?? '#333333'}
+                onChange={(color) => update({ lineDataPointColorFixed: color })}
+              />
+            )}
+
+            {settings.lineDataPointColorMode === 'custom' && (
+              <>
+                <ColorPicker
+                  label="Default color"
+                  value={settings.lineDataPointColorFixed ?? '#333333'}
+                  onChange={(color) => update({ lineDataPointColorFixed: color })}
+                />
+                <button
+                  onClick={() => setShowLineColorModal(true)}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                  Configure per-series colors...
+                </button>
+                <Dialog open={showLineColorModal} onOpenChange={setShowLineColorModal}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Per-Series Label Colors</DialogTitle>
+                      <DialogDescription>
+                        Set the data point label color for each series independently.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                      {seriesNames.map((name) => (
+                        <div key={name} className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                            {name}
+                          </span>
+                          <div className="flex-shrink-0">
+                            <ColorPicker
+                              value={settings.lineDataPointSeriesColors?.[name] || settings.lineDataPointColorFixed || '#333333'}
+                              onChange={(color) => {
+                                update({
+                                  lineDataPointSeriesColors: {
+                                    ...settings.lineDataPointSeriesColors,
+                                    [name]: color,
+                                  },
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
 
             {/* Size mode */}
             <SettingRow label="Size mode">
@@ -490,100 +616,128 @@ export function LabelsSection() {
               />
             </SettingRow>
 
-            {/* Per-series AND per-row position modals for line chart */}
+            {/* Custom position: column/row dropdown + modal */}
             {settings.lineDataPointPosition === 'custom' && (
               <>
+                <SettingRow label="Custom by">
+                  <Select
+                    value={settings.lineDataPointCustomMode || 'column'}
+                    onValueChange={(v) => update({ lineDataPointCustomMode: v as 'column' | 'row' })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="column">By Column</SelectItem>
+                      <SelectItem value="row">By Row</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingRow>
+
                 <button
                   onClick={() => setShowLinePositionModal(true)}
                   className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
                 >
                   <Settings2 className="w-3.5 h-3.5" />
-                  Configure per-column positions...
-                </button>
-
-                <button
-                  onClick={() => setShowLineRowPositionModal(true)}
-                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
-                >
-                  <Settings2 className="w-3.5 h-3.5" />
-                  Configure per-row positions...
+                  Configure per-{isLineRowMode ? 'row' : 'column'} positions...
                 </button>
 
                 {/* Per-column position dialog */}
-                <Dialog open={showLinePositionModal} onOpenChange={setShowLinePositionModal}>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Per-Column Label Positions</DialogTitle>
-                      <DialogDescription>
-                        Set the data point label position for each column (series) independently.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                      {seriesNames.map((name) => (
-                        <div key={name} className="flex items-center justify-between gap-3">
-                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
-                            {name}
-                          </span>
-                          <div className="flex-shrink-0 w-[180px]">
-                            <TabMenu
-                              value={settings.lineDataPointSeriesPositions?.[name] || 'above'}
-                              onChange={(v) => {
-                                update({
-                                  lineDataPointSeriesPositions: {
-                                    ...settings.lineDataPointSeriesPositions,
-                                    [name]: v as LineDataPointPosition,
-                                  },
-                                });
-                              }}
-                              options={[
-                                { value: 'above', label: 'Above' },
-                                { value: 'below', label: 'Below' },
-                              ]}
-                            />
+                {!isLineRowMode && (
+                  <Dialog open={showLinePositionModal} onOpenChange={setShowLinePositionModal}>
+                    <DialogContent className="max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Per-Column Label Positions</DialogTitle>
+                        <DialogDescription>
+                          Set the data point label position for each column (series) independently.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                        {seriesNames.map((name) => (
+                          <div key={name} className="flex items-center justify-between gap-3">
+                            <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                              {name}
+                            </span>
+                            <div className="flex-shrink-0 w-[180px]">
+                              <TabMenu
+                                value={settings.lineDataPointSeriesPositions?.[name] || 'above'}
+                                onChange={(v) => {
+                                  update({
+                                    lineDataPointSeriesPositions: {
+                                      ...settings.lineDataPointSeriesPositions,
+                                      [name]: v as LineDataPointPosition,
+                                    },
+                                  });
+                                }}
+                                options={[
+                                  { value: 'above', label: 'Above' },
+                                  { value: 'below', label: 'Below' },
+                                ]}
+                              />
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
 
-                {/* Per-row position dialog */}
-                <Dialog open={showLineRowPositionModal} onOpenChange={setShowLineRowPositionModal}>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Per-Row Label Positions</DialogTitle>
-                      <DialogDescription>
-                        Set the data point label position for each row (category) independently. Row overrides take priority over column settings.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                      {categoryNames.map((name) => (
-                        <div key={name} className="flex items-center justify-between gap-3">
-                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
-                            {name}
-                          </span>
-                          <div className="flex-shrink-0 w-[180px]">
-                            <TabMenu
-                              value={settings.lineDataPointRowPositions?.[name] || 'above'}
-                              onChange={(v) => {
-                                update({
-                                  lineDataPointRowPositions: {
-                                    ...settings.lineDataPointRowPositions,
-                                    [name]: v as LineDataPointPosition,
-                                  },
-                                });
-                              }}
-                              options={[
-                                { value: 'above', label: 'Above' },
-                                { value: 'below', label: 'Below' },
-                              ]}
-                            />
+                {/* Per-row position dialog — each row shows per-series position */}
+                {isLineRowMode && (
+                  <Dialog open={showLinePositionModal} onOpenChange={setShowLinePositionModal}>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Per-Row Label Positions</DialogTitle>
+                        <DialogDescription>
+                          Set the data point label position for each series within each row.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                        {categoryNames.map((rowName) => (
+                          <div key={rowName} className="space-y-2">
+                            <span className="text-sm font-semibold text-gray-800">{rowName}</span>
+                            <div className="space-y-1.5 pl-3 border-l-2 border-gray-200">
+                              {seriesNames.map((colName) => {
+                                const rowPositions = settings.lineDataPointRowPositions?.[rowName] || {};
+                                const currentPos = (typeof rowPositions === 'object' && rowPositions !== null && typeof rowPositions !== 'string')
+                                  ? (rowPositions as Record<string, LineDataPointPosition>)[colName] || 'above'
+                                  : 'above';
+                                return (
+                                  <div key={colName} className="flex items-center justify-between gap-3">
+                                    <span className="text-xs text-gray-600 truncate min-w-0 flex-shrink">
+                                      {colName}
+                                    </span>
+                                    <div className="flex-shrink-0 w-[140px]">
+                                      <TabMenu
+                                        value={currentPos}
+                                        onChange={(v) => {
+                                          const existingRow = settings.lineDataPointRowPositions?.[rowName] || {};
+                                          const updatedRow = typeof existingRow === 'object' && existingRow !== null && typeof existingRow !== 'string'
+                                            ? { ...(existingRow as Record<string, LineDataPointPosition>), [colName]: v as LineDataPointPosition }
+                                            : { [colName]: v as LineDataPointPosition };
+                                          update({
+                                            lineDataPointRowPositions: {
+                                              ...settings.lineDataPointRowPositions,
+                                              [rowName]: updatedRow,
+                                            },
+                                          });
+                                        }}
+                                        options={[
+                                          { value: 'above', label: 'Above' },
+                                          { value: 'below', label: 'Below' },
+                                        ]}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </>
             )}
 

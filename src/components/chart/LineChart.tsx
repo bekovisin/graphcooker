@@ -92,6 +92,37 @@ function measureTextWidth(text: string, fontSize: number, fontFamily: string, fo
   return ctx.measureText(text).width;
 }
 
+/** Word-wrap text into lines that fit within maxWidth px */
+function wrapText(text: string, maxWidth: number, fontSize: number, fontFamily: string, fontWeight: string, maxLines: number): string[] {
+  const words = text.split(/\s+/);
+  if (words.length === 0) return [text];
+  const lines: string[] = [];
+  let currentLine = words[0];
+  for (let i = 1; i < words.length; i++) {
+    const testLine = currentLine + ' ' + words[i];
+    const testWidth = measureTextWidth(testLine, fontSize, fontFamily, fontWeight);
+    if (testWidth > maxWidth && currentLine.length > 0) {
+      lines.push(currentLine);
+      currentLine = words[i];
+      if (lines.length >= maxLines) break;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (lines.length < maxLines) {
+    lines.push(currentLine);
+  }
+  // Truncate last line with ellipsis if needed
+  if (lines.length === maxLines && lines.length < words.length) {
+    const lastLine = lines[maxLines - 1];
+    const ellipsis = lastLine + '…';
+    if (measureTextWidth(ellipsis, fontSize, fontFamily, fontWeight) > maxWidth) {
+      lines[maxLines - 1] = lastLine.slice(0, -2) + '…';
+    }
+  }
+  return lines.slice(0, maxLines);
+}
+
 function getCurveFactory(curve: string): CurveFactory {
   switch (curve) {
     case 'linear': return curveLinear;
@@ -375,7 +406,10 @@ export function LineChart({
   const finalDotRadius = dotRadius * (lineSettings.finalDotScale / 100);
   const maxDotR = Math.max(dotRadius, finalDotRadius, 4);
   // Line label right margin
-  const lineLabelRightMargin = (labelSettings.showLineLabels ?? true) ? (labelSettings.lineLabelMaxWidth ?? 4) * 12 : 0;
+  const lineLabelSpaceMode = labelSettings.lineLabelSpaceMode ?? 'auto';
+  const lineLabelRightMargin = (labelSettings.showLineLabels ?? true)
+    ? (lineLabelSpaceMode === 'fixed' ? (labelSettings.lineLabelSpaceValue ?? 80) : (labelSettings.lineLabelMaxWidth ?? 4) * 12)
+    : 0;
 
   // Chart area margins
   const marginLeft = padding.left + (yAxisSettings.position === 'left' ? yAxisWidth : 0) + maxDotR;
@@ -864,13 +898,21 @@ export function LineChart({
 
                 let position: 'above' | 'below' = (labelSettings.lineDataPointPosition as 'above' | 'below') ?? 'above';
                 if (labelSettings.lineDataPointPosition === 'custom') {
-                  // Column position is the base, row position overrides if set
-                  const colName = valueColumns[si];
-                  const colPos = labelSettings.lineDataPointSeriesPositions?.[colName];
-                  const rowName = categories[pi];
-                  const rowPos = labelSettings.lineDataPointRowPositions?.[rowName];
-                  // Row override takes priority over column
-                  position = rowPos ?? colPos ?? 'above';
+                  const customMode = labelSettings.lineDataPointCustomMode ?? 'column';
+                  if (customMode === 'row') {
+                    // Row mode: each row has per-series positions
+                    const rowName = categories[pi];
+                    const rowMap = labelSettings.lineDataPointRowPositions?.[rowName];
+                    if (rowMap && typeof rowMap === 'object' && typeof rowMap !== 'string') {
+                      const colName = valueColumns[si];
+                      position = (rowMap as Record<string, 'above' | 'below'>)[colName] ?? 'above';
+                    }
+                  } else {
+                    // Column mode: per-series positions
+                    const colName = valueColumns[si];
+                    const colPos = labelSettings.lineDataPointSeriesPositions?.[colName];
+                    position = colPos ?? 'above';
+                  }
                 }
 
                 const labelText = formatNumber(val, nf);
@@ -890,6 +932,18 @@ export function LineChart({
                 const padTop = customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0;
                 const padLeft = customPadding ? (labelSettings.dataPointPaddingLeft || 0) : 0;
 
+                // Resolve color based on lineDataPointColorMode
+                const colorMode = labelSettings.lineDataPointColorMode ?? 'auto';
+                let labelColor = '#333333';
+                if (colorMode === 'match_data') {
+                  labelColor = s.color;
+                } else if (colorMode === 'fixed') {
+                  labelColor = labelSettings.lineDataPointColorFixed || '#333333';
+                } else if (colorMode === 'custom') {
+                  const colName = valueColumns[si];
+                  labelColor = labelSettings.lineDataPointSeriesColors?.[colName] || labelSettings.lineDataPointColorFixed || '#333333';
+                }
+
                 return (
                   <text
                     key={`dp-${si}-${pi}`}
@@ -897,14 +951,11 @@ export function LineChart({
                     y={cy + offset + padTop}
                     textAnchor="middle"
                     dominantBaseline={position === 'above' ? 'auto' : 'hanging'}
-                    fill={
-                      (labelSettings.dataPointTextColorMode === 'match_data') ? s.color :
-                      (labelSettings.dataPointTextColorMode === 'fixed') ? (labelSettings.dataPointTextColorFixed || '#333333') :
-                      '#333333'
-                    }
+                    fill={labelColor}
                     fontSize={(labelSettings.dataPointSizeFixed ?? 1.2) * 10}
                     fontWeight={labelSettings.dataPointFontWeight || 'normal'}
                     fontFamily={labelSettings.dataPointFontFamily || 'Inter, sans-serif'}
+                    fontStyle={labelSettings.dataPointFontStyle || 'normal'}
                     opacity={animProgress}
                   >
                     {labelText}
@@ -927,17 +978,27 @@ export function LineChart({
           const cx = marginLeft + xScale(lastIdx);
           const cy = marginTop + yScale(lastVal * animProgress);
           const labelX = cx + (labelSettings.lineLabelDistance ?? 0.9) * 10;
+          const llFontSize = (labelSettings.lineLabelSize ?? 0.7) * 14;
+          const llFontWeight = labelSettings.lineLabelWeight ?? 'bold';
+          const llFontFamily = 'Inter, sans-serif';
+          const llMaxLines = labelSettings.lineLabelMaxLines ?? 3;
+          const llLineHeight = (labelSettings.lineLabelLineHeight ?? 1) * llFontSize;
+          const llMaxWidth = lineLabelSpaceMode === 'fixed'
+            ? (labelSettings.lineLabelSpaceValue ?? 80)
+            : (labelSettings.lineLabelMaxWidth ?? 4) * 12;
+
+          const lines = wrapText(s.name, llMaxWidth, llFontSize, llFontFamily, llFontWeight, llMaxLines);
+          const totalHeight = lines.length * llLineHeight;
+          const startY = cy - totalHeight / 2 + llFontSize / 2;
 
           return (
             <text
               key={`ll-${si}`}
               x={labelX}
-              y={cy}
               textAnchor="start"
-              dominantBaseline="central"
               fill={labelSettings.lineLabelColor ?? '#333333'}
-              fontSize={(labelSettings.lineLabelSize ?? 0.7) * 14}
-              fontWeight={labelSettings.lineLabelWeight ?? 'bold'}
+              fontSize={llFontSize}
+              fontWeight={llFontWeight}
               opacity={animProgress}
               style={{
                 paintOrder: 'stroke',
@@ -946,7 +1007,15 @@ export function LineChart({
                 strokeLinejoin: 'round',
               }}
             >
-              {s.name}
+              {lines.map((line, li) => (
+                <tspan
+                  key={li}
+                  x={labelX}
+                  y={startY + li * llLineHeight}
+                >
+                  {line}
+                </tspan>
+              ))}
             </text>
           );
         })}
