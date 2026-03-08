@@ -12,6 +12,7 @@ import { ChartTypeSection } from '@/components/settings/ChartTypeSection';
 import { ControlsFiltersSection } from '@/components/settings/ControlsFiltersSection';
 import { ColorsSection } from '@/components/settings/ColorsSection';
 import { BarsSection } from '@/components/settings/BarsSection';
+import { LineDotsAreasSection } from '@/components/settings/LineDotsAreasSection';
 import { LabelsSection } from '@/components/settings/LabelsSection';
 import { XAxisSection } from '@/components/settings/XAxisSection';
 import { YAxisSection } from '@/components/settings/YAxisSection';
@@ -27,7 +28,7 @@ import { HeaderSection } from '@/components/settings/HeaderSection';
 import { FooterSection } from '@/components/settings/FooterSection';
 import { AccessibilitySection } from '@/components/settings/AccessibilitySection';
 
-const sections = [
+const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
   { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
   { id: 'colors', title: 'Colors', Component: ColorsSection },
@@ -48,11 +49,34 @@ const sections = [
   { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
 ];
 
+const lineSections = [
+  { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
+  { id: 'colors', title: 'Colors', Component: ColorsSection },
+  { id: 'line-dots-areas', title: 'Lines, dots and areas', Component: LineDotsAreasSection },
+  { id: 'labels', title: 'Labels', Component: LabelsSection },
+  { id: 'x-axis', title: 'X axis', Component: XAxisSection },
+  { id: 'y-axis', title: 'Y axis', Component: YAxisSection },
+  { id: 'plot-background', title: 'Plot background', Component: PlotBackgroundSection },
+  { id: 'number-formatting', title: 'Number formatting', Component: NumberFormattingSection },
+  { id: 'legend', title: 'Legend', Component: LegendSection },
+  { id: 'popups-panels', title: 'Popups & panels', Component: PopupsPanelsSection },
+  { id: 'annotations', title: 'Annotations', Component: AnnotationsSection },
+  { id: 'animations', title: 'Animations', Component: AnimationsSection },
+  { id: 'layout', title: 'Layout', Component: LayoutSection },
+  { id: 'question', title: 'Question', Component: QuestionSection },
+  { id: 'header', title: 'Header', Component: HeaderSection },
+  { id: 'footer', title: 'Footer', Component: FooterSection },
+  { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
+];
+
 export function SettingsPanel() {
   const { settingsSearchQuery } = useEditorStore();
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const { presets, activePresetId, setActivePreset } = useSettingsPresetStore();
   const [mode, setMode] = useState<'advanced' | 'custom'>('advanced');
 
+  const sections = chartType === 'line_chart' ? lineSections : barSections;
   const activePreset = presets.find((p) => p.id === activePresetId);
 
   // Filter by search query first

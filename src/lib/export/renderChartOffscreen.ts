@@ -806,10 +806,12 @@ export async function renderChartOffscreen(
   const React = await import('react');
   const { createRoot } = await import('react-dom/client');
 
-  const isGrouped = renderSettings.chartType.chartType === 'bar_grouped';
-  const ChartComponent = isGrouped
-    ? (await import('@/components/chart/GroupedBarChart')).GroupedBarChart
-    : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
+  const chartType = renderSettings.chartType.chartType;
+  const ChartComponent = chartType === 'line_chart'
+    ? (await import('@/components/chart/LineChart')).LineChart
+    : chartType === 'bar_grouped'
+      ? (await import('@/components/chart/GroupedBarChart')).GroupedBarChart
+      : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
 
   const reactRoot = createRoot(container);
   reactRoot.render(

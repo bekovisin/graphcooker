@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/shared/NumberInput';
 import type {
   YAxisPosition,
   ScaleType,
@@ -22,6 +23,7 @@ import type {
   AxisStyling,
   YAxisSettings,
   FontWeight,
+  TicksToShowMode,
 } from '@/types/chart';
 
 // ── Reusable TabMenu ──
@@ -157,7 +159,9 @@ function SubHeader({ children }: { children: React.ReactNode }) {
 
 export function YAxisSection() {
   const settings = useEditorStore((s) => s.settings.yAxis);
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const updateSettings = useEditorStore((s) => s.updateSettings);
+  const isLineChart = chartType === 'line_chart';
 
   const update = (updates: Partial<YAxisSettings>) => {
     updateSettings('yAxis', updates);
@@ -178,6 +182,333 @@ export function YAxisSection() {
   const updateGridlineStyling = (updates: Partial<YAxisSettings['gridlineStyling']>) => {
     update({ gridlineStyling: { ...settings.gridlineStyling, ...updates } });
   };
+
+  if (isLineChart) {
+    return (
+      <AccordionSection id="y-axis" title="Y axis">
+        {/* Axis visible/hidden */}
+        <SettingRow label="Position">
+          <TabMenu
+            value={settings.position}
+            onChange={(v) => update({ position: v as YAxisPosition })}
+            options={[
+              { value: 'left', label: 'Left' },
+              { value: 'right', label: 'Right' },
+              { value: 'hidden', label: 'Hidden' },
+            ]}
+          />
+        </SettingRow>
+
+        {/* SCALE */}
+        <SubHeader>Scale</SubHeader>
+        <div className="flex items-center gap-2">
+          <div className="w-[120px] shrink-0">
+            <TabMenu
+              value={settings.scaleType}
+              onChange={(v) => update({ scaleType: v as ScaleType })}
+              options={[
+                { value: 'linear', label: 'Linear' },
+                { value: 'log', label: 'Log' },
+              ]}
+            />
+          </div>
+          <Input
+            value={settings.min}
+            onChange={(e) => update({ min: e.target.value })}
+            placeholder="Min"
+            className="h-8 text-xs flex-1"
+          />
+          <Input
+            value={settings.max}
+            onChange={(e) => update({ max: e.target.value })}
+            placeholder="Max"
+            className="h-8 text-xs flex-1"
+          />
+        </div>
+
+        <SettingRow label="Flip axis" variant="inline">
+          <Switch
+            checked={settings.flipAxis ?? false}
+            onCheckedChange={(checked) => update({ flipAxis: checked })}
+          />
+        </SettingRow>
+
+        <SettingRow label="Configure default min/max" variant="inline">
+          <Switch
+            checked={settings.configureDefaultMinMax ?? false}
+            onCheckedChange={(checked) => update({ configureDefaultMinMax: checked })}
+          />
+        </SettingRow>
+
+        {/* AXIS TITLE */}
+        <SubHeader>Axis Title</SubHeader>
+        <SettingRow label="Show title" variant="inline">
+          <Switch
+            checked={settings.titleType !== 'auto' || !!settings.titleText}
+            onCheckedChange={(checked) => {
+              if (checked) update({ titleType: 'custom' });
+              else update({ titleType: 'auto', titleText: '' });
+            }}
+          />
+        </SettingRow>
+
+        {settings.titleType === 'custom' && (
+          <>
+            <Input
+              value={settings.titleText}
+              onChange={(e) => update({ titleText: e.target.value })}
+              placeholder="Enter title..."
+              className="h-8 text-xs w-full"
+            />
+
+            <SettingRow label="Position">
+              <TabMenu
+                value={settings.axisTitlePosition ?? 'side'}
+                onChange={(v) => update({ axisTitlePosition: v as 'side' | 'top_bottom' })}
+                options={[
+                  { value: 'side', label: 'Side' },
+                  { value: 'top_bottom', label: 'Top/Bottom' },
+                ]}
+              />
+            </SettingRow>
+
+            <SettingRow label="Styling" variant="inline">
+              <Switch
+                checked={settings.showTitleStyling}
+                onCheckedChange={(checked) => update({ showTitleStyling: checked })}
+              />
+            </SettingRow>
+
+            {settings.showTitleStyling && (
+              <InlineStylingPanel styling={settings.titleStyling} onChange={updateTitleStyling} />
+            )}
+          </>
+        )}
+
+        {/* LABELS */}
+        <SubHeader>Labels</SubHeader>
+
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <TabMenu
+              value={settings.tickPosition}
+              onChange={(v) => update({ tickPosition: v as TickPosition })}
+              options={[
+                { value: 'default', label: 'Default' },
+                { value: 'left', label: 'Above' },
+                { value: 'right', label: 'Below' },
+              ]}
+            />
+          </div>
+          <div className="w-[72px] shrink-0">
+            <Input
+              type="number"
+              value={settings.tickPadding}
+              onChange={(e) => update({ tickPadding: parseInt(e.target.value) || 0 })}
+              className="h-8 text-xs w-full"
+              min={0}
+              max={40}
+            />
+          </div>
+        </div>
+
+        <SettingRow label="Styling" variant="inline">
+          <Switch
+            checked={settings.showTickStyling}
+            onCheckedChange={(checked) => update({ showTickStyling: checked })}
+          />
+        </SettingRow>
+
+        {settings.showTickStyling && (
+          <InlineStylingPanel styling={settings.tickStyling} onChange={updateTickStyling} />
+        )}
+
+        <SettingRow label="Weight">
+          <TabMenu
+            value={settings.labelWeight ?? 'normal'}
+            onChange={(v) => update({ labelWeight: v as 'bold' | 'normal' })}
+            options={[
+              { value: 'normal', label: 'Regular' },
+              { value: 'bold', label: 'Bold' },
+            ]}
+          />
+        </SettingRow>
+
+        <NumberInput
+          label="Max lines"
+          value={settings.labelMaxLines ?? 1}
+          onChange={(v) => update({ labelMaxLines: v })}
+          min={1}
+          max={5}
+          step={1}
+        />
+
+        <NumberInput
+          label="Line height"
+          value={settings.labelLineHeight ?? 0.5}
+          onChange={(v) => update({ labelLineHeight: v })}
+          min={0.5}
+          max={3}
+          step={0.1}
+        />
+
+        {/* Space mode */}
+        <SettingRow label="Space mode">
+          <div className="flex items-center gap-2 w-full">
+            <div className="flex-1">
+              <TabMenu
+                value={settings.spaceMode}
+                onChange={(v) => update({ spaceMode: v as YAxisSpaceMode })}
+                options={[
+                  { value: 'auto', label: 'Auto' },
+                  { value: 'fixed', label: 'Fixed' },
+                ]}
+              />
+            </div>
+            {settings.spaceMode === 'fixed' && (
+              <div className="w-[72px] shrink-0">
+                <Input
+                  type="number"
+                  value={settings.spaceModeValue}
+                  onChange={(e) => update({ spaceModeValue: parseInt(e.target.value) || 80 })}
+                  className="h-8 text-xs w-full"
+                  min={20}
+                  max={400}
+                />
+              </div>
+            )}
+          </div>
+        </SettingRow>
+
+        {/* TICKS TO SHOW */}
+        <SubHeader>Ticks to show</SubHeader>
+        <SettingRow label="Mode">
+          <TabMenu
+            value={settings.ticksToShowMode ?? 'auto'}
+            onChange={(v) => update({ ticksToShowMode: v as TicksToShowMode })}
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'number', label: 'Number' },
+              { value: 'custom', label: 'Custom' },
+            ]}
+          />
+        </SettingRow>
+
+        {(settings.ticksToShowMode === 'number') && (
+          <NumberInput
+            label="Number of ticks"
+            value={settings.ticksToShowNumber ?? 6}
+            onChange={(v) => update({ ticksToShowNumber: v })}
+            min={2}
+            max={20}
+            step={1}
+          />
+        )}
+
+        {/* TICK MARKS & AXIS LINE */}
+        <SubHeader>Axis Line</SubHeader>
+        <SettingRow label="Show axis line" variant="inline">
+          <Switch
+            checked={settings.axisLine?.show ?? true}
+            onCheckedChange={(checked) => updateAxisLine({ show: checked })}
+          />
+        </SettingRow>
+
+        {settings.axisLine?.show !== false && (
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Width</label>
+              <Input
+                type="number"
+                value={settings.axisLine?.width || 1}
+                onChange={(e) => updateAxisLine({ width: parseFloat(e.target.value) || 1 })}
+                className="h-7 text-xs w-full"
+                min={0.5}
+                max={5}
+                step={0.5}
+              />
+            </div>
+            <div className="shrink-0">
+              <ColorPicker
+                label="Color"
+                value={settings.axisLine?.color || '#666666'}
+                onChange={(color) => updateAxisLine({ color })}
+              />
+            </div>
+          </div>
+        )}
+
+        <NumberInput
+          label="Edge padding"
+          value={settings.edgePadding ?? 10}
+          onChange={(v) => update({ edgePadding: v })}
+          min={0}
+          max={50}
+          step={1}
+          suffix="%"
+        />
+
+        {/* GRIDLINES */}
+        <SubHeader>Gridlines</SubHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-700">Show gridlines</label>
+            <Switch
+              checked={settings.gridlines}
+              onCheckedChange={(v) => update({ gridlines: v })}
+            />
+          </div>
+          {settings.gridlines && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-500">Styling</label>
+              <Switch
+                checked={settings.showGridlineStyling}
+                onCheckedChange={(v) => update({ showGridlineStyling: v })}
+              />
+            </div>
+          )}
+        </div>
+
+        {settings.gridlines && settings.showGridlineStyling && (
+          <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+            <ColorPicker
+              label="Color"
+              value={settings.gridlineStyling.color}
+              onChange={(color) => updateGridlineStyling({ color })}
+            />
+
+            <SettingRow label="Style">
+              <TabMenu
+                value={settings.gridlineStyle ?? 'solid'}
+                onChange={(v) => update({ gridlineStyle: v as 'solid' | 'dashed' | 'dotted' })}
+                options={[
+                  { value: 'solid', label: 'Solid' },
+                  { value: 'dashed', label: 'Dashed' },
+                  { value: 'dotted', label: 'Dotted' },
+                ]}
+              />
+            </SettingRow>
+
+            <NumberInput
+              label="Width"
+              value={settings.gridlineStyling.width}
+              onChange={(v) => updateGridlineStyling({ width: v })}
+              min={0.5}
+              max={5}
+              step={0.5}
+            />
+
+            <SettingRow label="Between categories" variant="inline">
+              <Switch
+                checked={settings.gridlineBetweenCategories ?? false}
+                onCheckedChange={(checked) => update({ gridlineBetweenCategories: checked })}
+              />
+            </SettingRow>
+          </div>
+        )}
+      </AccordionSection>
+    );
+  }
 
   return (
     <AccordionSection id="y-axis" title="Y axis">

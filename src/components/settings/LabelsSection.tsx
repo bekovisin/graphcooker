@@ -30,6 +30,13 @@ import type {
   StackLabelMode,
   LabelsSettings,
   FontWeight,
+  LineOverlapMode,
+  ConnectorLineMode,
+  ConnectorLineStyle,
+  DataPointShowMode,
+  DataPointTextColor,
+  DataPointLabelContent,
+  LineDataPointPosition,
 } from '@/types/chart';
 
 function SubHeader({ children }: { children: React.ReactNode }) {
@@ -85,6 +92,7 @@ const fontFamilyOptions = [
 
 export function LabelsSection() {
   const settings = useEditorStore((s) => s.settings.labels);
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const seriesNames = useEditorStore((s) => s.columnMapping.values || []);
   const data = useEditorStore((s) => s.data);
   const labelsColumn = useEditorStore((s) => s.columnMapping.labels);
@@ -99,14 +107,508 @@ export function LabelsSection() {
   }, [data, labelsColumn]);
   const updateSettings = useEditorStore((s) => s.updateSettings);
   const [showPositionModal, setShowPositionModal] = useState(false);
+  const [showLinePositionModal, setShowLinePositionModal] = useState(false);
+  const isLineChart = chartType === 'line_chart';
   const isRowMode = settings.dataPointCustomMode === 'row';
   const customNames = isRowMode ? categoryNames : seriesNames;
   const customPositions = isRowMode ? settings.dataPointRowPositions : settings.dataPointSeriesPositions;
   const customPositionKey = isRowMode ? 'dataPointRowPositions' : 'dataPointSeriesPositions';
 
+  // Line chart position modal state
+  const isLineRowMode = (settings.lineDataPointCustomMode || 'column') === 'row';
+  const lineCustomNames = isLineRowMode ? categoryNames : seriesNames;
+  const lineCustomPositions = isLineRowMode ? settings.lineDataPointRowPositions : settings.lineDataPointSeriesPositions;
+  const lineCustomPositionKey = isLineRowMode ? 'lineDataPointRowPositions' : 'lineDataPointSeriesPositions';
+
   const update = (updates: Partial<LabelsSettings>) => {
     updateSettings('labels', updates);
   };
+
+  if (isLineChart) {
+    return (
+      <AccordionSection id="labels" title="Labels">
+        {/* ── LINE LABELS ── */}
+        <SubHeader>Line Labels</SubHeader>
+
+        <SettingRow label="Show line labels" variant="inline">
+          <Switch
+            checked={settings.showLineLabels ?? true}
+            onCheckedChange={(checked) => update({ showLineLabels: checked })}
+          />
+        </SettingRow>
+
+        {(settings.showLineLabels ?? true) && (
+          <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+            <NumberInput
+              label="Max width"
+              value={settings.lineLabelMaxWidth ?? 4}
+              onChange={(v) => update({ lineLabelMaxWidth: v })}
+              min={1}
+              max={20}
+              step={0.5}
+            />
+
+            <SettingRow label="Overlaps">
+              <Select
+                value={settings.lineLabelOverlap ?? 'spread'}
+                onValueChange={(v) => update({ lineLabelOverlap: v as LineOverlapMode })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="spread" className="text-xs">Spread to fit</SelectItem>
+                  <SelectItem value="hide" className="text-xs">Hide on overlap</SelectItem>
+                  <SelectItem value="nothing" className="text-xs">Do nothing</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            <NumberInput
+              label="Spacing"
+              value={settings.lineLabelSpacing ?? 1.2}
+              onChange={(v) => update({ lineLabelSpacing: v })}
+              min={0}
+              max={5}
+              step={0.1}
+            />
+
+            <NumberInput
+              label="Distance"
+              value={settings.lineLabelDistance ?? 0.9}
+              onChange={(v) => update({ lineLabelDistance: v })}
+              min={0}
+              max={5}
+              step={0.1}
+            />
+
+            <SettingRow label="Show only">
+              <Input
+                value={settings.lineLabelShowOnly ?? ''}
+                onChange={(e) => update({ lineLabelShowOnly: e.target.value })}
+                placeholder="e.g. Series 1, Series 2"
+                className="h-8 text-xs w-full"
+              />
+            </SettingRow>
+          </div>
+        )}
+
+        {/* ── TEXT (line label text styling) ── */}
+        {(settings.showLineLabels ?? true) && (
+          <>
+            <SubHeader>Text</SubHeader>
+            <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+              <ColorPicker
+                label="Color"
+                value={settings.lineLabelColor ?? '#333333'}
+                onChange={(color) => update({ lineLabelColor: color })}
+              />
+
+              <NumberInput
+                label="Size"
+                value={settings.lineLabelSize ?? 0.7}
+                onChange={(v) => update({ lineLabelSize: v })}
+                min={0.1}
+                max={5}
+                step={0.1}
+              />
+
+              <ColorPicker
+                label="Outline"
+                value={settings.lineLabelOutline ?? '#ffffff'}
+                onChange={(color) => update({ lineLabelOutline: color })}
+              />
+
+              <NumberInput
+                label="Outline width"
+                value={settings.lineLabelOutlineWidth ?? 25}
+                onChange={(v) => update({ lineLabelOutlineWidth: v })}
+                min={0}
+                max={100}
+                step={1}
+              />
+
+              <NumberInput
+                label="Line height"
+                value={settings.lineLabelLineHeight ?? 1}
+                onChange={(v) => update({ lineLabelLineHeight: v })}
+                min={0.5}
+                max={3}
+                step={0.1}
+              />
+
+              <NumberInput
+                label="Max lines"
+                value={settings.lineLabelMaxLines ?? 3}
+                onChange={(v) => update({ lineLabelMaxLines: v })}
+                min={1}
+                max={10}
+                step={1}
+              />
+
+              <SettingRow label="Weight">
+                <Select
+                  value={settings.lineLabelWeight ?? 'bold'}
+                  onValueChange={(v) => update({ lineLabelWeight: v as FontWeight })}
+                >
+                  <SelectTrigger className="h-8 text-xs w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                    <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                    <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                    <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+            </div>
+          </>
+        )}
+
+        {/* ── CONNECTOR LINES ── */}
+        <SubHeader>Lines</SubHeader>
+        <div className="space-y-3">
+          <SettingRow label="Mode">
+            <TabMenu
+              value={settings.connectorLineMode ?? 'auto'}
+              onChange={(v) => update({ connectorLineMode: v as ConnectorLineMode })}
+              options={[
+                { value: 'auto', label: 'Auto' },
+                { value: 'on', label: 'On' },
+                { value: 'off', label: 'Off' },
+              ]}
+            />
+          </SettingRow>
+
+          {(settings.connectorLineMode ?? 'auto') !== 'off' && (
+            <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+              <SettingRow label="Style">
+                <TabMenu
+                  value={settings.connectorLineStyle ?? 'straight'}
+                  onChange={(v) => update({ connectorLineStyle: v as ConnectorLineStyle })}
+                  options={[
+                    { value: 'straight', label: 'Straight' },
+                    { value: 'step', label: 'Step' },
+                  ]}
+                />
+              </SettingRow>
+
+              <ColorPicker
+                label="Color"
+                value={settings.connectorLineColor ?? '#999999'}
+                onChange={(color) => update({ connectorLineColor: color })}
+              />
+
+              <NumberInput
+                label="Width"
+                value={settings.connectorLineWidth ?? 0}
+                onChange={(v) => update({ connectorLineWidth: v })}
+                min={0}
+                max={5}
+                step={0.5}
+              />
+
+              <NumberInput
+                label="Length"
+                value={settings.connectorLineLength ?? 0}
+                onChange={(v) => update({ connectorLineLength: v })}
+                min={0}
+                max={100}
+                step={1}
+              />
+
+              <NumberInput
+                label="Padding"
+                value={settings.connectorLinePadding ?? 0.25}
+                onChange={(v) => update({ connectorLinePadding: v })}
+                min={0}
+                max={5}
+                step={0.05}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ── DATA POINT LABELS ── */}
+        <SubHeader>Data Point Labels</SubHeader>
+
+        <SettingRow label="Show data point labels" variant="inline">
+          <Switch
+            checked={settings.showDataPointLabels}
+            onCheckedChange={(checked) => update({ showDataPointLabels: checked })}
+          />
+        </SettingRow>
+
+        {settings.showDataPointLabels && (
+          <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+            {/* Show mode */}
+            <SettingRow label="Show mode">
+              <Select
+                value={settings.dataPointShowMode ?? 'all'}
+                onValueChange={(v) => update({ dataPointShowMode: v as DataPointShowMode })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">All</SelectItem>
+                  <SelectItem value="last" className="text-xs">Last</SelectItem>
+                  <SelectItem value="min_max" className="text-xs">Min & Max</SelectItem>
+                  <SelectItem value="custom" className="text-xs">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {/* Hide overlapping */}
+            <SettingRow label="Hide overlapping" variant="inline">
+              <Switch
+                checked={settings.dataPointHideOverlapping ?? false}
+                onCheckedChange={(checked) => update({ dataPointHideOverlapping: checked })}
+              />
+            </SettingRow>
+
+            {/* Center on dot */}
+            <SettingRow label="Center on dot" variant="inline">
+              <Switch
+                checked={settings.dataPointCenterOnDot ?? false}
+                onCheckedChange={(checked) => update({ dataPointCenterOnDot: checked })}
+              />
+            </SettingRow>
+
+            {/* Text color mode */}
+            <SettingRow label="Text color">
+              <Select
+                value={settings.dataPointTextColorMode ?? 'auto'}
+                onValueChange={(v) => update({ dataPointTextColorMode: v as DataPointTextColor })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto" className="text-xs">Auto</SelectItem>
+                  <SelectItem value="match_data" className="text-xs">Match data</SelectItem>
+                  <SelectItem value="contrast" className="text-xs">Contrast</SelectItem>
+                  <SelectItem value="fixed" className="text-xs">Fixed</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {(settings.dataPointTextColorMode === 'fixed') && (
+              <ColorPicker
+                label="Text color"
+                value={settings.dataPointTextColorFixed ?? '#333333'}
+                onChange={(color) => update({ dataPointTextColorFixed: color })}
+              />
+            )}
+
+            {/* Font weight */}
+            <SettingRow label="Weight">
+              <Select
+                value={settings.dataPointFontWeight}
+                onValueChange={(v) => update({ dataPointFontWeight: v as FontWeight })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                  <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                  <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {/* Label content */}
+            <SettingRow label="Label content">
+              <Select
+                value={settings.dataPointLabelContent ?? 'auto'}
+                onValueChange={(v) => update({ dataPointLabelContent: v as DataPointLabelContent })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto" className="text-xs">Auto</SelectItem>
+                  <SelectItem value="value" className="text-xs">Value</SelectItem>
+                  <SelectItem value="label" className="text-xs">Label</SelectItem>
+                  <SelectItem value="both" className="text-xs">Both</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {/* Size mode */}
+            <SettingRow label="Size mode">
+              <TabMenu
+                value={settings.dataPointSizeMode ?? 'fixed'}
+                onChange={(v) => update({ dataPointSizeMode: v as 'auto' | 'fixed' })}
+                options={[
+                  { value: 'auto', label: 'Auto' },
+                  { value: 'fixed', label: 'Fixed' },
+                ]}
+              />
+            </SettingRow>
+
+            {(settings.dataPointSizeMode ?? 'fixed') === 'fixed' && (
+              <NumberInput
+                label="Size"
+                value={settings.dataPointSizeFixed ?? 1.2}
+                onChange={(v) => update({ dataPointSizeFixed: v })}
+                min={0.1}
+                max={5}
+                step={0.1}
+              />
+            )}
+
+            {/* Outline */}
+            <SettingRow label="Outline" variant="inline">
+              <Switch
+                checked={settings.dataPointOutlineOn ?? true}
+                onCheckedChange={(checked) => update({ dataPointOutlineOn: checked })}
+              />
+            </SettingRow>
+
+            {(settings.dataPointOutlineOn ?? true) && (
+              <NumberInput
+                label="Outline size"
+                value={settings.dataPointOutlineSize ?? 3}
+                onChange={(v) => update({ dataPointOutlineSize: v })}
+                min={0}
+                max={20}
+                step={1}
+              />
+            )}
+
+            {/* Position (above/below/custom) */}
+            <SettingRow label="Position">
+              <TabMenu
+                value={settings.lineDataPointPosition ?? 'above'}
+                onChange={(v) => update({ lineDataPointPosition: v as LineDataPointPosition | 'custom' })}
+                options={[
+                  { value: 'above', label: 'Above' },
+                  { value: 'below', label: 'Below' },
+                  { value: 'custom', label: 'Custom' },
+                ]}
+              />
+            </SettingRow>
+
+            {/* Per-series/row position modal for line chart */}
+            {settings.lineDataPointPosition === 'custom' && (
+              <>
+                <SettingRow label="Custom by">
+                  <Select
+                    value={settings.lineDataPointCustomMode || 'column'}
+                    onValueChange={(v) => update({ lineDataPointCustomMode: v as 'column' | 'row' })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="column">By Column</SelectItem>
+                      <SelectItem value="row">By Row</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingRow>
+
+                <button
+                  onClick={() => setShowLinePositionModal(true)}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                  Configure per-{isLineRowMode ? 'row' : 'column'} positions...
+                </button>
+
+                <Dialog open={showLinePositionModal} onOpenChange={setShowLinePositionModal}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Per-{isLineRowMode ? 'Row' : 'Column'} Label Positions</DialogTitle>
+                      <DialogDescription>
+                        Set the data point label position for each {isLineRowMode ? 'row' : 'column'} independently.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                      {lineCustomNames.map((name) => (
+                        <div key={name} className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                            {name}
+                          </span>
+                          <div className="flex-shrink-0 w-[180px]">
+                            <TabMenu
+                              value={lineCustomPositions?.[name] || 'above'}
+                              onChange={(v) => {
+                                update({
+                                  [lineCustomPositionKey]: {
+                                    ...lineCustomPositions,
+                                    [name]: v as LineDataPointPosition,
+                                  },
+                                } as Partial<LabelsSettings>);
+                              }}
+                              options={[
+                                { value: 'above', label: 'Above' },
+                                { value: 'below', label: 'Below' },
+                              ]}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+
+            {/* Custom padding */}
+            <SettingRow label="Custom padding" variant="inline">
+              <Switch
+                checked={settings.dataPointCustomPadding}
+                onCheckedChange={(checked) => update({ dataPointCustomPadding: checked })}
+              />
+            </SettingRow>
+
+            {settings.dataPointCustomPadding && (
+              <div className="space-y-1.5 pl-2 border-l-2 border-gray-100">
+                <div className="grid grid-cols-4 gap-2">
+                  <NumberInput
+                    label="T"
+                    value={settings.dataPointPaddingTop}
+                    onChange={(v) => update({ dataPointPaddingTop: v })}
+                    min={-50}
+                    max={50}
+                    step={1}
+                  />
+                  <NumberInput
+                    label="R"
+                    value={settings.dataPointPaddingRight}
+                    onChange={(v) => update({ dataPointPaddingRight: v })}
+                    min={-50}
+                    max={50}
+                    step={1}
+                  />
+                  <NumberInput
+                    label="B"
+                    value={settings.dataPointPaddingBottom}
+                    onChange={(v) => update({ dataPointPaddingBottom: v })}
+                    min={-50}
+                    max={50}
+                    step={1}
+                  />
+                  <NumberInput
+                    label="L"
+                    value={settings.dataPointPaddingLeft}
+                    onChange={(v) => update({ dataPointPaddingLeft: v })}
+                    min={-50}
+                    max={50}
+                    step={1}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </AccordionSection>
+    );
+  }
 
   return (
     <AccordionSection id="labels" title="Labels">

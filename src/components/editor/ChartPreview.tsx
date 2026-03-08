@@ -5,6 +5,7 @@ import { useEditorStore } from '@/store/editorStore';
 import { ResponsiveToolbar } from './ResponsiveToolbar';
 import { CustomBarChart } from '@/components/chart/CustomBarChart';
 import { GroupedBarChart } from '@/components/chart/GroupedBarChart';
+import { LineChart } from '@/components/chart/LineChart';
 import type { QuestionSettings } from '@/types/chart';
 
 const deviceWidths: Record<string, string> = {
@@ -132,7 +133,17 @@ export function ChartPreview() {
     >
       <div style={{ width: '100%', height: hasFixedHeight ? '100%' : undefined }}>
         {data.length > 0 ? (
-          settings.chartType.chartType === 'bar_grouped' ? (
+          settings.chartType.chartType === 'line_chart' ? (
+            <LineChart
+              data={data}
+              columnMapping={columnMapping}
+              settings={settings}
+              width={chartAreaWidth}
+              height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+              columnOrder={columnOrder}
+              seriesNames={seriesNames}
+            />
+          ) : settings.chartType.chartType === 'bar_grouped' ? (
             <GroupedBarChart
               data={data}
               columnMapping={columnMapping}

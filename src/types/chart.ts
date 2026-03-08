@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked_custom' | 'bar_grouped';
+export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';
@@ -67,11 +67,42 @@ export interface BarsSettings {
   borderRadius: Record<string, { tl: number; tr: number; bl: number; br: number }>;
 }
 
+// Lines, Dots and Areas (Line chart)
+export type LineCurve = 'linear' | 'catmullRom' | 'natural' | 'step' | 'stepBefore' | 'stepAfter';
+export type MissingDataMode = 'continue' | 'gaps';
+export type DotMode = 'auto' | 'final_only' | 'on' | 'off';
+
+export interface LineDotsAreasSettings {
+  lineWidth: number;
+  lineOpacity: number;
+  lineOutline: boolean;
+  lineCurve: LineCurve;
+  dashedLines: boolean;
+  dashWidth: number;
+  dashSpaceWidth: number;
+  missingDataMode: MissingDataMode;
+  shadeBetweenLines: boolean;
+  dotMode: DotMode;
+  dotOpacity: number;
+  dotRadius: number;
+  finalDotScale: number;
+  dotHollow: boolean;
+}
+
 // Labels
 export type BarLabelStyle = 'above_bars' | 'axis';
 export type DataPointLabelPosition = 'left' | 'center' | 'right' | 'outside_right';
 export type DataPointLabelColorMode = 'auto' | 'custom';
 export type StackLabelMode = 'none' | 'net_sum' | 'separate';
+
+// Line chart label types
+export type LineOverlapMode = 'spread' | 'hide' | 'nothing';
+export type ConnectorLineMode = 'auto' | 'on' | 'off';
+export type ConnectorLineStyle = 'straight' | 'step';
+export type DataPointShowMode = 'all' | 'last' | 'min_max' | 'custom';
+export type DataPointTextColor = 'auto' | 'match_data' | 'contrast' | 'fixed';
+export type DataPointLabelContent = 'auto' | 'value' | 'label' | 'both';
+export type LineDataPointPosition = 'above' | 'below';
 
 export interface LabelsSettings {
   barLabelStyle: BarLabelStyle;
@@ -107,6 +138,49 @@ export interface LabelsSettings {
   percentPrefixPosition: 'left' | 'right';
   percentPrefixVerticalAlign: 'bottom' | 'center' | 'top';
   stackLabelMode: StackLabelMode;
+
+  // Line chart — Line Labels
+  showLineLabels?: boolean;
+  lineLabelMaxWidth?: number;
+  lineLabelOverlap?: LineOverlapMode;
+  lineLabelSpacing?: number;
+  lineLabelDistance?: number;
+  lineLabelShowOnly?: string;
+
+  // Line chart — Line Label Text
+  lineLabelColor?: string;
+  lineLabelSize?: number;
+  lineLabelOutline?: string;
+  lineLabelOutlineWidth?: number;
+  lineLabelLineHeight?: number;
+  lineLabelMaxLines?: number;
+  lineLabelWeight?: FontWeight;
+
+  // Line chart — Connector Lines
+  connectorLineMode?: ConnectorLineMode;
+  connectorLineStyle?: ConnectorLineStyle;
+  connectorLineColor?: string;
+  connectorLineWidth?: number;
+  connectorLineLength?: number;
+  connectorLinePadding?: number;
+
+  // Line chart — Data Point Labels extensions
+  dataPointShowMode?: DataPointShowMode;
+  dataPointHideOverlapping?: boolean;
+  dataPointCenterOnDot?: boolean;
+  dataPointTextColorMode?: DataPointTextColor;
+  dataPointTextColorFixed?: string;
+  dataPointLabelContent?: DataPointLabelContent;
+  dataPointSizeMode?: 'auto' | 'fixed';
+  dataPointSizeFixed?: number;
+  dataPointOutlineOn?: boolean;
+  dataPointOutlineSize?: number;
+
+  // Line chart — Data Point Position (above/below)
+  lineDataPointPosition?: LineDataPointPosition | 'custom';
+  lineDataPointCustomMode?: 'column' | 'row';
+  lineDataPointSeriesPositions?: Record<string, LineDataPointPosition>;
+  lineDataPointRowPositions?: Record<string, LineDataPointPosition>;
 }
 
 // Axis shared types
@@ -205,6 +279,19 @@ export interface YAxisSettings {
   gridlines: boolean;
   gridlineStyling: { color: string; width: number; dashArray: number };
   showGridlineStyling: boolean;
+
+  // Line chart extensions
+  flipAxis?: boolean;
+  configureDefaultMinMax?: boolean;
+  axisTitlePosition?: 'side' | 'top_bottom';
+  labelWeight?: 'bold' | 'normal';
+  labelMaxLines?: number;
+  labelLineHeight?: number;
+  ticksToShowMode?: TicksToShowMode;
+  ticksToShowNumber?: number;
+  edgePadding?: number;
+  gridlineStyle?: 'solid' | 'dashed' | 'dotted';
+  gridlineBetweenCategories?: boolean;
 }
 
 // Plot Background
@@ -410,6 +497,7 @@ export interface ChartSettings {
   controlsFilters: ControlsFiltersSettings;
   colors: ColorsSettings;
   bars: BarsSettings;
+  lineDotsAreas: LineDotsAreasSettings;
   labels: LabelsSettings;
   xAxis: XAxisSettings;
   yAxis: YAxisSettings;

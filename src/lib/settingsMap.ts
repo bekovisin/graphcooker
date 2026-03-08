@@ -67,6 +67,24 @@ export const settingsMap: SettingsSection[] = [
     ],
   },
   {
+    id: 'line-dots-areas',
+    title: 'Lines, dots and areas',
+    settings: [
+      { key: 'lineWidth', label: 'Line width' },
+      { key: 'lineOpacity', label: 'Line opacity' },
+      { key: 'lineOutline', label: 'Line outline' },
+      { key: 'lineCurve', label: 'Line curve' },
+      { key: 'dashedLines', label: 'Dashed lines' },
+      { key: 'missingDataMode', label: 'Missing data' },
+      { key: 'shadeBetweenLines', label: 'Shade between lines' },
+      { key: 'dotMode', label: 'Dot mode' },
+      { key: 'dotOpacity', label: 'Dot opacity' },
+      { key: 'dotRadius', label: 'Dot radius' },
+      { key: 'finalDotScale', label: 'Final dot scale' },
+      { key: 'dotHollow', label: 'Hollow dots' },
+    ],
+  },
+  {
     id: 'labels',
     title: 'Labels',
     settings: [

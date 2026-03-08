@@ -23,6 +23,7 @@ import type {
 const chartTypeOptions: { value: ChartType; label: string }[] = [
   { value: 'bar_stacked_custom', label: 'Bar chart stacked (custom)' },
   { value: 'bar_grouped', label: 'Bar chart grouped' },
+  { value: 'line_chart', label: 'Line chart' },
 ];
 
 function TabMenu<T extends string>({
