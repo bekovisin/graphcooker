@@ -315,12 +315,25 @@ export const useEditorStore = create<EditorState>((set) => ({
     // Extract persisted preview state from columnMapping (if any)
     const ps = viz.columnMapping?._previewState;
 
+    // Use persisted column order if available, otherwise derive from data.
+    // PostgreSQL JSONB does NOT preserve key insertion order, so we must
+    // persist columnOrder separately to avoid columns being shuffled.
+    const savedOrder = viz.columnMapping?._columnOrder;
+    const derivedOrder = deriveColumnOrder(viz.data);
+    // Validate: savedOrder must contain exactly the same columns as the data
+    const columnOrder =
+      Array.isArray(savedOrder) && savedOrder.length > 0 &&
+      savedOrder.length === derivedOrder.length &&
+      savedOrder.every((col: string) => derivedOrder.includes(col))
+        ? savedOrder
+        : derivedOrder;
+
     set({
       visualizationId: viz.id,
       visualizationName: viz.name,
       chartType: viz.chartType,
       data: viz.data,
-      columnOrder: deriveColumnOrder(viz.data),
+      columnOrder,
       settings: mergeSettings(viz.settings),
       columnMapping: viz.columnMapping,
       seriesNames: viz.columnMapping?.seriesNames || {},

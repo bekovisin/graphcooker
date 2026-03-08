@@ -147,7 +147,9 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
     setIsSaving(true);
     try {
-      // Persist seriesNames + preview state inside columnMapping
+      // Persist seriesNames, preview state, and column order inside columnMapping.
+      // Column order must be saved explicitly because PostgreSQL JSONB does not
+      // preserve object key insertion order, which would shuffle columns on reload.
       const mappingWithExtras = {
         ...state.columnMapping,
         seriesNames: Object.keys(state.seriesNames).length > 0 ? state.seriesNames : undefined,
@@ -157,6 +159,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           customPreviewHeight: state.customPreviewHeight,
           canvasBackgroundColor: state.canvasBackgroundColor,
         },
+        _columnOrder: state.columnOrder,
       };
       const body: Record<string, unknown> = {
         name: state.visualizationName,

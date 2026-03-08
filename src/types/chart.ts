@@ -563,4 +563,5 @@ export interface ColumnMapping {
   infoPopups?: string[];
   seriesNames?: Record<string, string>;
   _previewState?: PreviewState;
+  _columnOrder?: string[];
 }
