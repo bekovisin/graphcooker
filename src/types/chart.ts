@@ -93,7 +93,7 @@ export interface LineDotsAreasSettings {
 
 // Labels
 export type BarLabelStyle = 'above_bars' | 'axis';
-export type DataPointLabelPosition = 'left' | 'center' | 'right' | 'outside_right';
+export type DataPointLabelPosition = 'left' | 'center' | 'right' | 'outside_right' | 'fixed';
 export type DataPointLabelColorMode = 'auto' | 'custom';
 export type StackLabelMode = 'none' | 'net_sum' | 'separate';
 
@@ -130,6 +130,8 @@ export interface LabelsSettings {
   dataPointPaddingBottom: number;
   dataPointPaddingLeft: number;
   outsideLabelPadding: number;
+  fixedLabelAlignment: 'start' | 'center' | 'end';
+  dataPointLetterSpacing: number;
   showPercentPrefix: boolean;
   percentPrefixFontSize: number;
   percentPrefixFontWeight: FontWeight;
@@ -318,6 +320,8 @@ export interface YAxisSettings {
   edgePadding?: number;
   gridlineStyle?: 'solid' | 'dashed' | 'dotted';
   gridlineBetweenCategories?: boolean;
+  labelTextAlign?: 'start' | 'center' | 'end';
+  labelLetterSpacing?: number;
 }
 
 // Plot Background

@@ -721,6 +721,32 @@ export function YAxisSection() {
         <InlineStylingPanel styling={settings.tickStyling} onChange={updateTickStyling} />
       )}
 
+      {/* Label text alignment — bar_chart_custom_2 only */}
+      {chartType === 'bar_chart_custom_2' && (
+        <>
+          <SettingRow label="Label alignment">
+            <TabMenu
+              value={settings.labelTextAlign ?? 'end'}
+              onChange={(v) => update({ labelTextAlign: v as 'start' | 'center' | 'end' })}
+              options={[
+                { value: 'start', label: 'Left' },
+                { value: 'center', label: 'Center' },
+                { value: 'end', label: 'Right' },
+              ]}
+            />
+          </SettingRow>
+          <NumberInput
+            label="Letter spacing"
+            value={settings.labelLetterSpacing ?? 0}
+            onChange={(v) => update({ labelLetterSpacing: v })}
+            min={0}
+            max={20}
+            step={0.5}
+            suffix="px"
+          />
+        </>
+      )}
+
       {/* AXIS LINE — toggle, single row: width + color */}
       <SubHeader>Axis Line</SubHeader>
       <SettingRow label="Show axis line" variant="inline">

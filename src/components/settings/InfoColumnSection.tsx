@@ -24,6 +24,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Settings2, ChevronDown, ChevronRight } from 'lucide-react';
+import { LucideIconPicker, renderIconElements } from '@/components/shared/LucideIconPicker';
+import { LUCIDE_ICONS } from '@/lib/chart/lucideIconData';
 import type {
   InfoColumnSettings,
   InfoPosition,
@@ -89,6 +91,7 @@ export function InfoColumnSection() {
 
   const [showPerRowDialog, setShowPerRowDialog] = useState(false);
   const [iconOpen, setIconOpen] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [borderLeftOpen, setBorderLeftOpen] = useState(false);
   const [borderRightOpen, setBorderRightOpen] = useState(false);
 
@@ -345,16 +348,27 @@ export function InfoColumnSection() {
 
               {settings.icon.show && (
                 <>
-                  <SettingRow label="Icon name">
-                    <Input
-                      value={settings.icon.iconName}
-                      onChange={(e) =>
-                        update({ icon: { ...settings.icon, iconName: e.target.value } })
-                      }
-                      className="h-7 text-xs w-full"
-                      placeholder="e.g. circle, arrow-up"
-                    />
+                  <SettingRow label="Icon">
+                    <button
+                      onClick={() => setShowIconPicker(true)}
+                      className="flex items-center gap-2 h-7 px-2 text-xs border border-gray-300 rounded-md hover:bg-gray-50 w-full"
+                    >
+                      {LUCIDE_ICONS[settings.icon.iconName] && (
+                        <span className="shrink-0">
+                          {renderIconElements(LUCIDE_ICONS[settings.icon.iconName], 14, '#374151', 2)}
+                        </span>
+                      )}
+                      <span className="truncate text-left flex-1">{settings.icon.iconName || 'Select icon...'}</span>
+                    </button>
                   </SettingRow>
+                  <LucideIconPicker
+                    open={showIconPicker}
+                    onOpenChange={setShowIconPicker}
+                    value={settings.icon.iconName}
+                    onSelect={(name) =>
+                      update({ icon: { ...settings.icon, iconName: name } })
+                    }
+                  />
 
                   <NumberInput
                     label="Icon size"

@@ -84,6 +84,8 @@ export const defaultChartSettings: ChartSettings = {
     dataPointPaddingBottom: 0,
     dataPointPaddingLeft: 0,
     outsideLabelPadding: 6,
+    fixedLabelAlignment: 'start',
+    dataPointLetterSpacing: 0,
     showPercentPrefix: false,
     percentPrefixFontSize: 12,
     percentPrefixFontWeight: 'normal',
@@ -215,6 +217,8 @@ export const defaultChartSettings: ChartSettings = {
     edgePadding: 10,
     gridlineStyle: 'solid',
     gridlineBetweenCategories: false,
+    labelTextAlign: 'end',
+    labelLetterSpacing: 0,
   },
   plotBackground: {
     backgroundColor: '#ffffff',

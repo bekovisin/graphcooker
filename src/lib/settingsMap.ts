@@ -95,6 +95,8 @@ export const settingsMap: SettingsSection[] = [
       { key: 'dataPointCustomPadding', label: 'Data point custom padding' },
       { key: 'dataPointFont', label: 'Data point font' },
       { key: 'dataPointColorMode', label: 'Data point color mode' },
+      { key: 'fixedLabelAlignment', label: 'Fixed label alignment' },
+      { key: 'dataPointLetterSpacing', label: 'Data point letter spacing' },
       { key: 'stackLabelMode', label: 'Stack label mode' },
     ],
   },
@@ -136,6 +138,8 @@ export const settingsMap: SettingsSection[] = [
       { key: 'axisLine', label: 'Axis line' },
       { key: 'gridlines', label: 'Gridlines' },
       { key: 'gridlineStyling', label: 'Gridline styling' },
+      { key: 'labelTextAlign', label: 'Label text alignment' },
+      { key: 'labelLetterSpacing', label: 'Label letter spacing' },
     ],
   },
   {

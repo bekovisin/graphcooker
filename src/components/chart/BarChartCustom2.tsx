@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { getPaletteColors, extendColors } from '@/lib/chart/palettes';
+import { LUCIDE_ICONS } from '@/lib/chart/lucideIconData';
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface TooltipState {
@@ -164,25 +165,24 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
   return ticks;
 }
 
-// Common Lucide icon SVG paths (pre-extracted for inline SVG rendering)
-const LUCIDE_ICON_PATHS: Record<string, string> = {
-  'circle': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z',
-  'arrow-up': 'M12 19V5M5 12l7-7 7 7',
-  'arrow-down': 'M12 5v14M19 12l-7 7-7-7',
-  'triangle': 'M12 2l10 18H2z',
-  'star': 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  'check': 'M20 6L9 17l-5-5',
-  'x': 'M18 6L6 18M6 6l12 12',
-  'minus': 'M5 12h14',
-  'plus': 'M12 5v14M5 12h14',
-  'chevron-up': 'M18 15l-6-6-6 6',
-  'chevron-down': 'M6 9l6 6 6-6',
-  'trending-up': 'M22 7l-8.5 8.5-5-5L2 17',
-  'trending-down': 'M22 17l-8.5-8.5-5 5L2 7',
-  'info': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 16v-4M12 8h.01',
-  'alert-circle': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 8v4M12 16h.01',
-  'dot': 'M12 12m-2 0a2 2 0 1 0 4 0 2 2 0 1 0 -4 0',
-};
+// Icon rendering helper for multi-element Lucide icons
+function renderLucideIcon(iconName: string) {
+  const elements = LUCIDE_ICONS[iconName] || LUCIDE_ICONS['circle'];
+  if (!elements) return null;
+  return elements.map(([tag, attrs], i) => {
+    const props = { ...attrs, key: String(i) };
+    switch (tag) {
+      case 'path': return <path {...props} />;
+      case 'circle': return <circle {...props} />;
+      case 'rect': return <rect {...props} />;
+      case 'line': return <line {...props} />;
+      case 'polyline': return <polyline {...props} />;
+      case 'polygon': return <polygon {...props} />;
+      case 'ellipse': return <ellipse {...props} />;
+      default: return <path {...props} />;
+    }
+  });
+}
 
 function getDashArray(style: string, dashLength: number, width: number): string | undefined {
   if (style === 'dashed') return `${dashLength} ${dashLength}`;
@@ -315,11 +315,11 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     return maxW + iconSpace + info.padding * 2;
   }, [info, infoValues, categories]);
 
-  // ── Outside label width (when labels are outside_right) ──
+  // ── Outside label width (when labels are outside_right or fixed) ──
   const outsideLabelWidth = useMemo(() => {
     if (!settings.labels.showDataPointLabels) return 0;
     const pos = settings.labels.dataPointPosition;
-    if (pos !== 'outside_right') return 0;
+    if (pos !== 'outside_right' && pos !== 'fixed') return 0;
     let maxW = 0;
     for (const v of values) {
       const text = formatNumber(v, nf);
@@ -331,9 +331,9 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       const prefW = measureTextWidth(prefix.text, prefix.fontSize, settings.labels.dataPointFontFamily, prefix.fontWeight);
       maxW += prefW + (prefix.padding || 0);
     }
-    // Add connector width
+    // Add connector space (for vertical connector: only paddingBar + paddingLabel, length is vertical)
     if (connector.show) {
-      maxW += connector.paddingBar + connector.length + connector.paddingLabel;
+      maxW += connector.paddingBar + connector.paddingLabel;
     }
     return maxW + (settings.labels.outsideLabelPadding ?? 6);
   }, [settings.labels, values, nf, prefix, connector]);
@@ -701,10 +701,25 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
               {/* ── Y-axis labels ── */}
               {!yAxisHidden && (() => {
-                const labelX = yAxisRight
-                  ? padding.left + plotWidth + tickPadding + 4
-                  : padding.left - tickPadding - 4;
-                const anchor = yAxisRight ? 'start' : 'end';
+                // Compute label position based on labelTextAlign setting
+                const align = settings.yAxis.labelTextAlign ?? 'end';
+                const yLs = settings.yAxis.labelLetterSpacing ?? 0;
+                const yLsStyle = yLs > 0 ? `${yLs}px` : undefined;
+                let labelX: number;
+                let anchor: 'start' | 'middle' | 'end';
+                if (yAxisRight) {
+                  const areaLeft = padding.left + plotWidth + tickPadding + 4;
+                  const areaRight = areaLeft + yAxisLabelWidth;
+                  if (align === 'start') { labelX = areaLeft; anchor = 'start'; }
+                  else if (align === 'center') { labelX = (areaLeft + areaRight) / 2; anchor = 'middle'; }
+                  else { labelX = areaRight; anchor = 'end'; }
+                } else {
+                  const areaRight = padding.left - tickPadding - 4;
+                  const areaLeft = areaRight - yAxisLabelWidth;
+                  if (align === 'start') { labelX = areaLeft; anchor = 'start'; }
+                  else if (align === 'center') { labelX = (areaLeft + areaRight) / 2; anchor = 'middle'; }
+                  else { labelX = areaRight; anchor = 'end'; }
+                }
 
                 // Wrap or truncate
                 if (settings.yAxis.spaceMode === 'fixed' && settings.yAxis.spaceModeValue > 0) {
@@ -732,6 +747,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                           fontFamily: yTickStyle.fontFamily,
                           fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                           fill: yTickStyle.color,
+                          letterSpacing: yLsStyle,
                         }}
                       >
                         {line}
@@ -750,6 +766,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                         fontFamily: yTickStyle.fontFamily,
                         fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                         fill: yTickStyle.color,
+                        letterSpacing: yLsStyle,
                       }}
                     >
                       {display}
@@ -768,6 +785,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                       fontFamily: yTickStyle.fontFamily,
                       fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                       fill: yTickStyle.color,
+                      letterSpacing: yLsStyle,
                     }}
                   >
                     {cat}
@@ -779,6 +797,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
               {settings.labels.showDataPointLabels && rawValue !== 0 && (() => {
                 const labelText = formatNumber(rawValue, nf);
                 const barEndX = padding.left + barStartX + barW;
+                const dpLs = settings.labels.dataPointLetterSpacing ?? 0;
 
                 let labelX: number;
                 let anchor: 'start' | 'middle' | 'end';
@@ -790,35 +809,42 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   labelX = barEndX - 4;
                   anchor = 'end';
                 } else if (labelPos === 'outside_right') {
-                  // Connector + padding
+                  // Connector + padding (vertical connector: only paddingBar + paddingLabel)
                   const connectorSpace = connector.show
-                    ? connector.paddingBar + connector.length + connector.paddingLabel
+                    ? connector.paddingBar + connector.paddingLabel
                     : 0;
                   labelX = barEndX + (settings.labels.outsideLabelPadding ?? 6) + connectorSpace;
                   anchor = 'start';
+                } else if (labelPos === 'fixed') {
+                  // Fixed position: all labels at the same X coordinate (right edge of plot + padding + connector space)
+                  const connectorSpace = connector.show
+                    ? connector.paddingBar + connector.paddingLabel
+                    : 0;
+                  labelX = padding.left + plotWidth + (settings.labels.outsideLabelPadding ?? 6) + connectorSpace;
+                  const fixedAlign = settings.labels.fixedLabelAlignment ?? 'start';
+                  anchor = fixedAlign === 'center' ? 'middle' : fixedAlign;
                 } else {
                   labelX = padding.left + barStartX + barW / 2;
                   anchor = 'middle';
                 }
 
                 const labelColor = settings.labels.dataPointColorMode === 'auto'
-                  ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(barColor))
+                  ? ((labelPos === 'outside_right' || labelPos === 'fixed') ? '#333333' : getContrastColor(barColor))
                   : (settings.labels.dataPointSeriesColors[columnMapping.values[0]] || settings.labels.dataPointColor);
 
                 const labelCenterY = barY + barHeight / 2;
 
                 return (
                   <>
-                    {/* Connector border */}
-                    {connector.show && labelPos === 'outside_right' && (() => {
-                      const connStartX = barEndX + connector.paddingBar;
-                      const connEndX = connStartX + connector.length;
-                      let connY = labelCenterY;
-                      if (connector.alignment === 'top') connY = barY + 2;
-                      else if (connector.alignment === 'bottom') connY = barY + barHeight - 2;
+                    {/* Connector border (vertical) */}
+                    {connector.show && (labelPos === 'outside_right' || labelPos === 'fixed') && (() => {
+                      const connX = barEndX + connector.paddingBar;
+                      // Vertical line spanning bar height
+                      const connY1 = barY;
+                      const connY2 = barY + barHeight;
                       return (
                         <line
-                          x1={connStartX} y1={connY} x2={connEndX} y2={connY}
+                          x1={connX} y1={connY1} x2={connX} y2={connY2}
                           stroke={connector.color}
                           strokeWidth={connector.width}
                           strokeDasharray={getDashArray(connector.style, 4, connector.width)}
@@ -838,6 +864,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                         fontWeight: fontWeightToCSS(settings.labels.dataPointFontWeight),
                         fontStyle: settings.labels.dataPointFontStyle || 'normal',
                         fill: labelColor,
+                        letterSpacing: dpLs > 0 ? `${dpLs}px` : undefined,
                         pointerEvents: 'none',
                       }}
                     >
@@ -919,7 +946,6 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const iconSize = info.icon.size;
                 const iconSpace = info.icon.show ? iconSize + 4 : 0;
                 const iconColor = info.icon.perRowColors[cat] ?? info.icon.defaultColor;
-                const iconPath = LUCIDE_ICON_PATHS[info.icon.iconName] || LUCIDE_ICON_PATHS['circle'];
 
                 return (
                   <>
@@ -927,7 +953,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     {info.icon.show && (
                       <g transform={`translate(${infoAnchor === 'start' ? infoX : infoX - iconSize}, ${infoCenterY - iconSize / 2})`}>
                         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={info.icon.borderWidth} strokeLinecap="round" strokeLinejoin="round">
-                          <path d={iconPath} />
+                          {renderLucideIcon(info.icon.iconName)}
                         </svg>
                       </g>
                     )}

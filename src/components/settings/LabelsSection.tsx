@@ -1285,7 +1285,7 @@ export function LabelsSection() {
 
       {settings.showDataPointLabels && (
         <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-          {/* Position - 5-button tab menu */}
+          {/* Position - tab menu */}
           <SettingRow label="Position">
             <TabMenu
               value={settings.dataPointPosition}
@@ -1295,10 +1295,26 @@ export function LabelsSection() {
                 { value: 'center', label: 'Center' },
                 { value: 'right', label: 'Right' },
                 { value: 'outside_right', label: 'Outside' },
+                ...(chartType === 'bar_chart_custom_2' ? [{ value: 'fixed' as const, label: 'Fixed' }] : []),
                 { value: 'custom', label: 'Custom' },
               ]}
             />
           </SettingRow>
+
+          {/* Fixed label alignment */}
+          {settings.dataPointPosition === 'fixed' && (
+            <SettingRow label="Alignment">
+              <TabMenu
+                value={settings.fixedLabelAlignment || 'start'}
+                onChange={(v) => update({ fixedLabelAlignment: v as 'start' | 'center' | 'end' })}
+                options={[
+                  { value: 'start', label: 'Left' },
+                  { value: 'center', label: 'Center' },
+                  { value: 'end', label: 'Right' },
+                ]}
+              />
+            </SettingRow>
+          )}
 
           {/* Per-series/row position modal */}
           {settings.dataPointPosition === 'custom' && (
@@ -1501,6 +1517,19 @@ export function LabelsSection() {
               </div>
             </div>
           </div>
+
+          {/* Letter spacing */}
+          {chartType === 'bar_chart_custom_2' && (
+            <NumberInput
+              label="Letter spacing"
+              value={settings.dataPointLetterSpacing ?? 0}
+              onChange={(v) => update({ dataPointLetterSpacing: v })}
+              min={0}
+              max={20}
+              step={0.5}
+              suffix="px"
+            />
+          )}
 
           {/* Color mode - 2-button tab menu */}
           <SettingRow label="Color mode">

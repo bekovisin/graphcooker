@@ -16,36 +16,7 @@ import {
 import type {
   ConnectorBorderSettings,
   BorderLineStyle,
-  BorderAlignment,
 } from '@/types/chart';
-
-function TabMenu<T extends string>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T;
-  onChange: (v: T) => void;
-  options: { value: T; label: string }[];
-}) {
-  return (
-    <div className="flex rounded-md border border-gray-300 overflow-hidden w-full">
-      {options.map((opt, i) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
-            value === opt.value
-              ? 'bg-blue-500 text-white font-medium'
-              : 'bg-white text-gray-600 hover:bg-gray-50'
-          } ${i > 0 ? 'border-l border-gray-300' : ''}`}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export function ConnectorBorderSection() {
   const settings = useEditorStore((s) => s.settings.connectorBorder);
@@ -99,15 +70,7 @@ export function ConnectorBorderSection() {
             </Select>
           </SettingRow>
 
-          <NumberInput
-            label="Length"
-            value={settings.length}
-            onChange={(v) => update({ length: v })}
-            min={0}
-            max={100}
-            step={1}
-            suffix="px"
-          />
+          {/* Length is kept for backward compatibility but hidden since connector is now vertical */}
 
           <NumberInput
             label="Padding (bar side)"
@@ -129,17 +92,7 @@ export function ConnectorBorderSection() {
             suffix="px"
           />
 
-          <SettingRow label="Alignment">
-            <TabMenu
-              value={settings.alignment}
-              onChange={(v) => update({ alignment: v as BorderAlignment })}
-              options={[
-                { value: 'top', label: 'Top' },
-                { value: 'center', label: 'Center' },
-                { value: 'bottom', label: 'Bottom' },
-              ]}
-            />
-          </SettingRow>
+          {/* Alignment hidden — vertical connector always spans full bar height */}
         </>
       )}
     </AccordionSection>
