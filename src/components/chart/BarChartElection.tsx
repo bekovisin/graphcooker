@@ -310,7 +310,7 @@ export function BarChartElection({
   // ─── Render ───────────────────────────────────────────────────
   if (categories.length === 0) {
     return (
-      <svg width={width} height={100} ref={svgRef}>
+      <svg width={width} height={100} viewBox={`0 0 ${width} 100`} ref={svgRef}>
         <text x={width / 2} y={50} textAnchor="middle" fill="#999" fontSize={14}>
           No data to display
         </text>
@@ -325,6 +325,7 @@ export function BarChartElection({
       ref={svgRef}
       width={width}
       height={chartHeight}
+      viewBox={`0 0 ${width} ${chartHeight}`}
       style={{ display: 'block' }}
     >
       {/* Layout background */}
@@ -424,14 +425,12 @@ export function BarChartElection({
             x={labelX}
             y={labelY}
             textAnchor={anchor}
-            style={{
-              fontSize: style.fontSize,
-              fontFamily: style.fontFamily,
-              fontWeight: fontWeightToCSS(style.fontWeight),
-              fontStyle: style.fontStyle,
-              fill: style.color,
-              letterSpacing: style.letterSpacing,
-            }}
+            fontSize={style.fontSize}
+            fontFamily={style.fontFamily}
+            fontWeight={fontWeightToCSS(style.fontWeight)}
+            fontStyle={style.fontStyle}
+            fill={style.color}
+            letterSpacing={style.letterSpacing}
           >
             {seg.cat}
           </text>
@@ -480,22 +479,18 @@ export function BarChartElection({
               y={dpY}
               textAnchor={dpAnchor}
               dominantBaseline="central"
-              style={{
-                fontSize: style.fontSize,
-                fontFamily: style.fontFamily,
-                fontWeight: fontWeightToCSS(style.fontWeight),
-                fontStyle: style.fontStyle,
-                fill: dpColor,
-                letterSpacing: style.letterSpacing,
-              }}
+              fontSize={style.fontSize}
+              fontFamily={style.fontFamily}
+              fontWeight={fontWeightToCSS(style.fontWeight)}
+              fontStyle={style.fontStyle}
+              fill={dpColor}
+              letterSpacing={style.letterSpacing}
             >
               {prefix.show && prefix.position === 'left' && (
                 <tspan
-                  style={{
-                    fontSize: prefix.fontSize,
-                    fontWeight: fontWeightToCSS(prefix.fontWeight),
-                    fill: prefix.color === 'auto' ? getContrastColor(seg.color) : prefix.color,
-                  }}
+                  fontSize={prefix.fontSize}
+                  fontWeight={fontWeightToCSS(prefix.fontWeight)}
+                  fill={prefix.color === 'auto' ? getContrastColor(seg.color) : prefix.color}
                   dy={prefix.verticalAlign === 'top' ? -(style.fontSize - prefix.fontSize) * 0.5 : prefix.verticalAlign === 'bottom' ? (style.fontSize - prefix.fontSize) * 0.3 : 0}
                   dx={-prefix.padding}
                 >
@@ -505,11 +500,9 @@ export function BarChartElection({
               <tspan>{valueStr}</tspan>
               {prefix.show && prefix.position === 'right' && (
                 <tspan
-                  style={{
-                    fontSize: prefix.fontSize,
-                    fontWeight: fontWeightToCSS(prefix.fontWeight),
-                    fill: prefix.color === 'auto' ? getContrastColor(seg.color) : prefix.color,
-                  }}
+                  fontSize={prefix.fontSize}
+                  fontWeight={fontWeightToCSS(prefix.fontWeight)}
+                  fill={prefix.color === 'auto' ? getContrastColor(seg.color) : prefix.color}
                   dy={prefix.verticalAlign === 'top' ? -(style.fontSize - prefix.fontSize) * 0.5 : prefix.verticalAlign === 'bottom' ? (style.fontSize - prefix.fontSize) * 0.3 : 0}
                   dx={prefix.padding}
                 >
@@ -536,14 +529,12 @@ export function BarChartElection({
             x={infoX}
             y={infoY}
             textAnchor="middle"
-            style={{
-              fontSize: style.fontSize,
-              fontFamily: style.fontFamily,
-              fontWeight: fontWeightToCSS(style.fontWeight),
-              fontStyle: style.fontStyle,
-              fill: style.color,
-              letterSpacing: style.letterSpacing,
-            }}
+            fontSize={style.fontSize}
+            fontFamily={style.fontFamily}
+            fontWeight={fontWeightToCSS(style.fontWeight)}
+            fontStyle={style.fontStyle}
+            fill={style.color}
+            letterSpacing={style.letterSpacing}
           >
             {infoStr}
           </text>
@@ -601,13 +592,11 @@ export function BarChartElection({
                   x={startX + swW + 4}
                   y={itemY + swH / 2}
                   dominantBaseline="central"
-                  style={{
-                    fontSize,
-                    fontFamily,
-                    fontWeight: fontWeightToCSS(textWeight),
-                    fontStyle: legendSettings.textStyle || 'normal',
-                    fill: legendSettings.color,
-                  }}
+                  fontSize={fontSize}
+                  fontFamily={fontFamily}
+                  fontWeight={fontWeightToCSS(textWeight)}
+                  fontStyle={legendSettings.textStyle || 'normal'}
+                  fill={legendSettings.color}
                 >
                   {item.name}
                 </text>
@@ -664,13 +653,11 @@ export function BarChartElection({
                   x={rowX + swW + 4}
                   y={rowY + swH / 2}
                   dominantBaseline="central"
-                  style={{
-                    fontSize,
-                    fontFamily,
-                    fontWeight: fontWeightToCSS(textWeight),
-                    fontStyle: legendSettings.textStyle || 'normal',
-                    fill: legendSettings.color,
-                  }}
+                  fontSize={fontSize}
+                  fontFamily={fontFamily}
+                  fontWeight={fontWeightToCSS(textWeight)}
+                  fontStyle={legendSettings.textStyle || 'normal'}
+                  fill={legendSettings.color}
                 >
                   {item.name}
                 </text>

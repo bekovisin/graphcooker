@@ -20,6 +20,13 @@ export async function exportSvg(
     // Ensure overflow is hidden so content beyond the viewBox is clipped
     clonedSvg.setAttribute('overflow', 'hidden');
 
+    // Ensure viewBox is set for proper standalone rendering
+    if (!clonedSvg.getAttribute('viewBox')) {
+      const w = clonedSvg.getAttribute('width') || '800';
+      const h = clonedSvg.getAttribute('height') || '600';
+      clonedSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    }
+
     // If transparent requested, remove all background rects (layout bg + plot bg)
     if (options?.transparent) {
       const clearBgRect = (rect: Element) => {
@@ -119,7 +126,14 @@ function inlineStyles(svgEl: SVGSVGElement) {
     // modifying y would shift position along the wrong axis).
     const db = el.getAttribute('dominant-baseline');
     if (db && db !== 'auto' && db !== 'alphabetic' && !hasTransform) {
-      const fontSize = parseFloat(el.getAttribute('font-size') || '12');
+      // Read font-size from attribute first, then fall back to CSS style
+      let fontSize = parseFloat(el.getAttribute('font-size') || '0');
+      if (!fontSize) {
+        const styleStr = el.getAttribute('style') || '';
+        const fsMatch = styleStr.match(/font-size\s*:\s*([\d.]+)/);
+        if (fsMatch) fontSize = parseFloat(fsMatch[1]);
+      }
+      if (!fontSize) fontSize = 12;
       const currentY = parseFloat(el.getAttribute('y') || '0');
 
       if (db === 'central') {
@@ -134,6 +148,11 @@ function inlineStyles(svgEl: SVGSVGElement) {
 
     // Convert inline CSS `style` to SVG presentation attributes
     convertStyleToSvgAttrs(el);
+  });
+
+  // ── Process tspan elements (promote CSS styles to SVG attributes) ──
+  svgEl.querySelectorAll('tspan').forEach((tspanEl) => {
+    convertStyleToSvgAttrs(tspanEl as SVGElement);
   });
 
   // ── Split paint-order:stroke text into two layers for cross-viewer compatibility ──
@@ -205,6 +224,11 @@ function convertStyleToSvgAttrs(el: SVGElement) {
     'fill': 'fill',
     'fill-opacity': 'fill-opacity',
     'opacity': 'opacity',
+    'font-size': 'font-size',
+    'font-family': 'font-family',
+    'font-weight': 'font-weight',
+    'font-style': 'font-style',
+    'letter-spacing': 'letter-spacing',
   };
   const skipProps = new Set(['cursor', 'pointer-events']);
 
