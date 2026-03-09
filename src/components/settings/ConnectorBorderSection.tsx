@@ -76,9 +76,9 @@ export function ConnectorBorderSection() {
             label="Padding (bar side)"
             value={settings.paddingBar}
             onChange={(v) => update({ paddingBar: v })}
-            min={0}
+            min={-50}
             max={50}
-            step={1}
+            step={0.01}
             suffix="px"
           />
 
@@ -86,9 +86,9 @@ export function ConnectorBorderSection() {
             label="Padding (label side)"
             value={settings.paddingLabel}
             onChange={(v) => update({ paddingLabel: v })}
-            min={0}
+            min={-50}
             max={50}
-            step={1}
+            step={0.01}
             suffix="px"
           />
 

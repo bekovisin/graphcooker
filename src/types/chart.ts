@@ -322,6 +322,7 @@ export interface YAxisSettings {
   gridlineBetweenCategories?: boolean;
   labelTextAlign?: 'start' | 'center' | 'end';
   labelLetterSpacing?: number;
+  labelMargin?: number;
 }
 
 // Plot Background
@@ -580,6 +581,7 @@ export interface InfoIconSettings {
   borderWidth: number;
   defaultColor: string;
   perRowColors: Record<string, string>;
+  perRowIconNames: Record<string, string>;
   iconName: string;
 }
 

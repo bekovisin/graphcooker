@@ -739,9 +739,18 @@ export function YAxisSection() {
             label="Letter spacing"
             value={settings.labelLetterSpacing ?? 0}
             onChange={(v) => update({ labelLetterSpacing: v })}
-            min={0}
+            min={-10}
             max={20}
-            step={0.5}
+            step={0.01}
+            suffix="px"
+          />
+          <NumberInput
+            label="Label margin"
+            value={settings.labelMargin ?? 0}
+            onChange={(v) => update({ labelMargin: v })}
+            min={-20}
+            max={50}
+            step={0.01}
             suffix="px"
           />
         </>

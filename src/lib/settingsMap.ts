@@ -140,6 +140,7 @@ export const settingsMap: SettingsSection[] = [
       { key: 'gridlineStyling', label: 'Gridline styling' },
       { key: 'labelTextAlign', label: 'Label text alignment' },
       { key: 'labelLetterSpacing', label: 'Label letter spacing' },
+      { key: 'labelMargin', label: 'Label margin' },
     ],
   },
   {

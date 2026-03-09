@@ -92,6 +92,7 @@ export function InfoColumnSection() {
   const [showPerRowDialog, setShowPerRowDialog] = useState(false);
   const [iconOpen, setIconOpen] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [perRowIconPickerLabel, setPerRowIconPickerLabel] = useState<string | null>(null);
   const [borderLeftOpen, setBorderLeftOpen] = useState(false);
   const [borderRightOpen, setBorderRightOpen] = useState(false);
 
@@ -190,9 +191,9 @@ export function InfoColumnSection() {
             label="Letter spacing"
             value={settings.letterSpacing}
             onChange={(v) => update({ letterSpacing: v })}
-            min={-2}
-            max={10}
-            step={0.5}
+            min={-10}
+            max={20}
+            step={0.01}
             suffix="px"
           />
 
@@ -226,16 +227,16 @@ export function InfoColumnSection() {
               </DialogHeader>
               <div className="space-y-3 mt-2">
                 {rowLabels.map((label, i) => (
-                  <div key={i} className="space-y-1.5 p-2 rounded-md border border-gray-100">
+                  <div key={label || i} className="space-y-1.5 p-2 rounded-md border border-gray-100">
                     <Label className="text-xs font-medium">{label || `Row ${i + 1}`}</Label>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-[10px] text-gray-400 block mb-0.5">Color</label>
                         <ColorPicker
-                          value={settings.perRowColors[String(i)] || settings.color}
+                          value={settings.perRowColors[label] || settings.color}
                           onChange={(color) =>
                             update({
-                              perRowColors: { ...settings.perRowColors, [String(i)]: color },
+                              perRowColors: { ...settings.perRowColors, [label]: color },
                             })
                           }
                         />
@@ -244,12 +245,12 @@ export function InfoColumnSection() {
                         <label className="text-[10px] text-gray-400 block mb-0.5">Font size</label>
                         <Input
                           type="number"
-                          value={settings.perRowFontSizes[String(i)] ?? ''}
+                          value={settings.perRowFontSizes[label] ?? ''}
                           onChange={(e) => {
                             const v = parseInt(e.target.value);
                             if (!isNaN(v)) {
                               update({
-                                perRowFontSizes: { ...settings.perRowFontSizes, [String(i)]: v },
+                                perRowFontSizes: { ...settings.perRowFontSizes, [label]: v },
                               });
                             }
                           }}
@@ -260,12 +261,12 @@ export function InfoColumnSection() {
                       <div>
                         <label className="text-[10px] text-gray-400 block mb-0.5">Font weight</label>
                         <Select
-                          value={settings.perRowFontWeights[String(i)] || ''}
+                          value={settings.perRowFontWeights[label] || ''}
                           onValueChange={(v) =>
                             update({
                               perRowFontWeights: {
                                 ...settings.perRowFontWeights,
-                                [String(i)]: v as FontWeight,
+                                [label]: v as FontWeight,
                               },
                             })
                           }
@@ -286,19 +287,20 @@ export function InfoColumnSection() {
                         <label className="text-[10px] text-gray-400 block mb-0.5">Letter spacing</label>
                         <Input
                           type="number"
-                          value={settings.perRowLetterSpacings[String(i)] ?? ''}
+                          value={settings.perRowLetterSpacings[label] ?? ''}
                           onChange={(e) => {
                             const v = parseFloat(e.target.value);
                             if (!isNaN(v)) {
                               update({
                                 perRowLetterSpacings: {
                                   ...settings.perRowLetterSpacings,
-                                  [String(i)]: v,
+                                  [label]: v,
                                 },
                               });
                             }
                           }}
                           className="h-7 text-xs w-full"
+                          step="0.01"
                           placeholder={String(settings.letterSpacing)}
                         />
                       </div>
@@ -306,12 +308,12 @@ export function InfoColumnSection() {
                         <label className="text-[10px] text-gray-400 block mb-0.5">Padding</label>
                         <Input
                           type="number"
-                          value={settings.perRowPaddings[String(i)] ?? ''}
+                          value={settings.perRowPaddings[label] ?? ''}
                           onChange={(e) => {
                             const v = parseInt(e.target.value);
                             if (!isNaN(v)) {
                               update({
-                                perRowPaddings: { ...settings.perRowPaddings, [String(i)]: v },
+                                perRowPaddings: { ...settings.perRowPaddings, [label]: v },
                               });
                             }
                           }}
@@ -403,33 +405,66 @@ export function InfoColumnSection() {
                     />
                   </SettingRow>
 
-                  {/* Per-row icon colors */}
+                  {/* Per-row icon settings */}
                   {rowLabels.length > 0 && (
                     <div className="space-y-1 mt-1">
                       <Label className="text-[10px] text-gray-400 uppercase tracking-wider">
-                        Per-row icon colors
+                        Per-row icon overrides
                       </Label>
                       {rowLabels.map((label, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="text-[10px] text-gray-500 truncate flex-1 min-w-0">
+                        <div key={label || i} className="space-y-1 p-1.5 rounded border border-gray-100">
+                          <span className="text-[10px] text-gray-500 truncate block">
                             {label || `Row ${i + 1}`}
                           </span>
-                          <ColorPicker
-                            value={
-                              settings.icon.perRowColors[String(i)] ||
-                              settings.icon.defaultColor
-                            }
-                            onChange={(color) =>
+                          <div className="flex items-center gap-2">
+                            {/* Per-row icon picker */}
+                            <button
+                              onClick={() => setPerRowIconPickerLabel(label)}
+                              className="flex items-center gap-1 h-6 px-1.5 text-[10px] border border-gray-200 rounded hover:bg-gray-50 shrink-0"
+                              title="Change icon"
+                            >
+                              <span className="shrink-0">
+                                {renderIconElements(
+                                  LUCIDE_ICONS[settings.icon.perRowIconNames?.[label] ?? settings.icon.iconName] || LUCIDE_ICONS['circle'],
+                                  12, '#374151', 2
+                                )}
+                              </span>
+                            </button>
+                            {/* Per-row icon color */}
+                            <ColorPicker
+                              value={
+                                settings.icon.perRowColors[label] ||
+                                settings.icon.defaultColor
+                              }
+                              onChange={(color) =>
+                                update({
+                                  icon: {
+                                    ...settings.icon,
+                                    perRowColors: {
+                                      ...settings.icon.perRowColors,
+                                      [label]: color,
+                                    },
+                                  },
+                                })
+                              }
+                            />
+                          </div>
+                          <LucideIconPicker
+                            open={perRowIconPickerLabel === label}
+                            onOpenChange={(open) => { if (!open) setPerRowIconPickerLabel(null); }}
+                            value={settings.icon.perRowIconNames?.[label] ?? settings.icon.iconName}
+                            onSelect={(name) => {
                               update({
                                 icon: {
                                   ...settings.icon,
-                                  perRowColors: {
-                                    ...settings.icon.perRowColors,
-                                    [String(i)]: color,
+                                  perRowIconNames: {
+                                    ...settings.icon.perRowIconNames,
+                                    [label]: name,
                                   },
                                 },
-                              })
-                            }
+                              });
+                              setPerRowIconPickerLabel(null);
+                            }}
                           />
                         </div>
                       ))}

@@ -1291,12 +1291,12 @@ export function LabelsSection() {
               value={settings.dataPointPosition}
               onChange={(v) => update({ dataPointPosition: v as DataPointLabelPosition | 'custom' })}
               options={[
-                { value: 'left', label: 'Left' },
-                { value: 'center', label: 'Center' },
-                { value: 'right', label: 'Right' },
-                { value: 'outside_right', label: 'Outside' },
-                ...(chartType === 'bar_chart_custom_2' ? [{ value: 'fixed' as const, label: 'Fixed' }] : []),
-                { value: 'custom', label: 'Custom' },
+                { value: 'left', label: 'L' },
+                { value: 'center', label: 'C' },
+                { value: 'right', label: 'R' },
+                { value: 'outside_right', label: 'Out' },
+                ...(chartType === 'bar_chart_custom_2' ? [{ value: 'fixed' as const, label: 'Fix' }] : []),
+                { value: 'custom', label: 'Cst' },
               ]}
             />
           </SettingRow>
@@ -1308,9 +1308,9 @@ export function LabelsSection() {
                 value={settings.fixedLabelAlignment || 'start'}
                 onChange={(v) => update({ fixedLabelAlignment: v as 'start' | 'center' | 'end' })}
                 options={[
-                  { value: 'start', label: 'Left' },
-                  { value: 'center', label: 'Center' },
-                  { value: 'end', label: 'Right' },
+                  { value: 'start', label: 'L' },
+                  { value: 'center', label: 'C' },
+                  { value: 'end', label: 'R' },
                 ]}
               />
             </SettingRow>
@@ -1524,9 +1524,9 @@ export function LabelsSection() {
               label="Letter spacing"
               value={settings.dataPointLetterSpacing ?? 0}
               onChange={(v) => update({ dataPointLetterSpacing: v })}
-              min={0}
+              min={-10}
               max={20}
-              step={0.5}
+              step={0.01}
               suffix="px"
             />
           )}

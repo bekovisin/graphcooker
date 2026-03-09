@@ -219,6 +219,7 @@ export const defaultChartSettings: ChartSettings = {
     gridlineBetweenCategories: false,
     labelTextAlign: 'end',
     labelLetterSpacing: 0,
+    labelMargin: 0,
   },
   plotBackground: {
     backgroundColor: '#ffffff',
@@ -407,6 +408,7 @@ export const defaultChartSettings: ChartSettings = {
       borderWidth: 2,
       defaultColor: '#666666',
       perRowColors: {},
+      perRowIconNames: {},
       iconName: 'circle',
     },
     borderLeft: { show: false, color: '#e0e0e0', width: 1, style: 'solid' as const },

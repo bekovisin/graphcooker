@@ -286,6 +286,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
   const info = settings.infoColumn;
 
   // ── Y-axis label width ──
+  const yAxisLabelMargin = settings.yAxis.labelMargin ?? 0;
   const yAxisLabelWidth = useMemo(() => {
     if (yAxisHidden) return 0;
     if (settings.yAxis.spaceMode === 'fixed') return settings.yAxis.spaceModeValue;
@@ -294,8 +295,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       const w = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
       if (w > maxW) maxW = w;
     }
-    return maxW + 10;
-  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, yTickStyle]);
+    return maxW + 10 + yAxisLabelMargin;
+  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, yTickStyle, yAxisLabelMargin]);
 
   // ── Info column width ──
   const infoColumnWidth = useMemo(() => {
@@ -315,8 +316,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     return maxW + iconSpace + info.padding * 2;
   }, [info, infoValues, categories]);
 
-  // ── Outside label width (when labels are outside_right or fixed) ──
-  const outsideLabelWidth = useMemo(() => {
+  // ── Max text width for data point labels (used for fixed column sizing) ──
+  const fixedLabelMaxTextWidth = useMemo(() => {
     if (!settings.labels.showDataPointLabels) return 0;
     const pos = settings.labels.dataPointPosition;
     if (pos !== 'outside_right' && pos !== 'fixed') return 0;
@@ -331,12 +332,25 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       const prefW = measureTextWidth(prefix.text, prefix.fontSize, settings.labels.dataPointFontFamily, prefix.fontWeight);
       maxW += prefW + (prefix.padding || 0);
     }
-    // Add connector space (for vertical connector: only paddingBar + paddingLabel, length is vertical)
-    if (connector.show) {
-      maxW += connector.paddingBar + connector.paddingLabel;
+    return maxW;
+  }, [settings.labels, values, nf, prefix]);
+
+  // ── Outside label width (reserved space on chart right side) ──
+  const outsideLabelWidth = useMemo(() => {
+    if (fixedLabelMaxTextWidth === 0) return 0;
+    const pos = settings.labels.dataPointPosition;
+    const pad = settings.labels.outsideLabelPadding ?? 6;
+    if (pos === 'fixed') {
+      // Fixed mode: no connector space — connector is centered in the gap, not added to width
+      return fixedLabelMaxTextWidth + pad;
     }
-    return maxW + (settings.labels.outsideLabelPadding ?? 6);
-  }, [settings.labels, values, nf, prefix, connector]);
+    // outside_right mode: include connector space
+    let totalW = fixedLabelMaxTextWidth;
+    if (connector.show) {
+      totalW += connector.paddingBar + connector.paddingLabel;
+    }
+    return totalW + pad;
+  }, [fixedLabelMaxTextWidth, settings.labels.dataPointPosition, settings.labels.outsideLabelPadding, connector]);
 
   // ── X-axis ticks ──
   const xTicksAll = useMemo(() => {
@@ -704,7 +718,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 // Compute label position based on labelTextAlign setting
                 const align = settings.yAxis.labelTextAlign ?? 'end';
                 const yLs = settings.yAxis.labelLetterSpacing ?? 0;
-                const yLsStyle = yLs > 0 ? `${yLs}px` : undefined;
+                const yLsStyle = yLs !== 0 ? `${yLs}px` : undefined;
                 let labelX: number;
                 let anchor: 'start' | 'middle' | 'end';
                 if (yAxisRight) {
@@ -816,13 +830,19 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   labelX = barEndX + (settings.labels.outsideLabelPadding ?? 6) + connectorSpace;
                   anchor = 'start';
                 } else if (labelPos === 'fixed') {
-                  // Fixed position: all labels at the same X coordinate (right edge of plot + padding + connector space)
-                  const connectorSpace = connector.show
-                    ? connector.paddingBar + connector.paddingLabel
-                    : 0;
-                  labelX = padding.left + plotWidth + (settings.labels.outsideLabelPadding ?? 6) + connectorSpace;
+                  // Fixed position: auto-column-width alignment (like Excel column auto-width)
+                  const columnStart = padding.left + plotWidth + (settings.labels.outsideLabelPadding ?? 6);
                   const fixedAlign = settings.labels.fixedLabelAlignment ?? 'start';
-                  anchor = fixedAlign === 'center' ? 'middle' : fixedAlign;
+                  if (fixedAlign === 'end') {
+                    labelX = columnStart + fixedLabelMaxTextWidth;
+                    anchor = 'end';
+                  } else if (fixedAlign === 'center') {
+                    labelX = columnStart + fixedLabelMaxTextWidth / 2;
+                    anchor = 'middle';
+                  } else {
+                    labelX = columnStart;
+                    anchor = 'start';
+                  }
                 } else {
                   labelX = padding.left + barStartX + barW / 2;
                   anchor = 'middle';
@@ -838,7 +858,14 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   <>
                     {/* Connector border (vertical) */}
                     {connector.show && (labelPos === 'outside_right' || labelPos === 'fixed') && (() => {
-                      const connX = barEndX + connector.paddingBar;
+                      let connX: number;
+                      if (labelPos === 'fixed') {
+                        // Centered between bar end and label column start
+                        const labelColumnStart = padding.left + plotWidth + (settings.labels.outsideLabelPadding ?? 6);
+                        connX = (barEndX + labelColumnStart) / 2 + connector.paddingBar;
+                      } else {
+                        connX = barEndX + connector.paddingBar;
+                      }
                       // Vertical line spanning bar height
                       const connY1 = barY;
                       const connY2 = barY + barHeight;
@@ -864,7 +891,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                         fontWeight: fontWeightToCSS(settings.labels.dataPointFontWeight),
                         fontStyle: settings.labels.dataPointFontStyle || 'normal',
                         fill: labelColor,
-                        letterSpacing: dpLs > 0 ? `${dpLs}px` : undefined,
+                        letterSpacing: dpLs !== 0 ? `${dpLs}px` : undefined,
                         pointerEvents: 'none',
                       }}
                     >
@@ -946,6 +973,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const iconSize = info.icon.size;
                 const iconSpace = info.icon.show ? iconSize + 4 : 0;
                 const iconColor = info.icon.perRowColors[cat] ?? info.icon.defaultColor;
+                const rowIconName = info.icon.perRowIconNames?.[cat] ?? info.icon.iconName;
 
                 return (
                   <>
@@ -953,7 +981,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     {info.icon.show && (
                       <g transform={`translate(${infoAnchor === 'start' ? infoX : infoX - iconSize}, ${infoCenterY - iconSize / 2})`}>
                         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={info.icon.borderWidth} strokeLinecap="round" strokeLinejoin="round">
-                          {renderLucideIcon(info.icon.iconName)}
+                          {renderLucideIcon(rowIconName)}
                         </svg>
                       </g>
                     )}
@@ -969,7 +997,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                         fontFamily: rowFf,
                         fontWeight: fontWeightToCSS(rowFw),
                         fill: rowColor,
-                        letterSpacing: rowLs > 0 ? `${rowLs}px` : undefined,
+                        letterSpacing: rowLs !== 0 ? `${rowLs}px` : undefined,
                         pointerEvents: 'none',
                       }}
                     >
