@@ -65,6 +65,8 @@ export interface BarsSettings {
   outlineColor: string;
   outlineWidth: number;
   borderRadius: Record<string, { tl: number; tr: number; bl: number; br: number }>;
+  manualPlotWidth?: boolean;
+  manualPlotWidthValue?: number;
 }
 
 // Lines, Dots and Areas (Line chart)
@@ -356,6 +358,8 @@ export interface NumberFormattingSettings {
   infoDecimalPlaces: number;
   infoPrefix: string;
   infoSuffix: string;
+  infoThousandsSeparator?: ThousandsSeparator;
+  infoDecimalSeparator?: DecimalSeparator;
 }
 
 // Legend
@@ -560,6 +564,8 @@ export interface ConnectorBorderSettings {
   paddingBar: number;
   paddingLabel: number;
   alignment: BorderAlignment;
+  manualLength?: boolean;
+  manualLengthValue?: number;
 }
 
 export interface CustomPrefixSettings {
@@ -593,7 +599,11 @@ export interface InfoBorderSettings {
   width: number;
   style: BorderLineStyle;
   padding?: number;
+  manualLength?: boolean;
+  manualLengthValue?: number;
 }
+
+export type InfoDataType = 'number' | 'text';
 
 export interface InfoColumnSettings {
   show: boolean;
@@ -604,6 +614,7 @@ export interface InfoColumnSettings {
   color: string;
   letterSpacing: number;
   padding: number;
+  dataType: InfoDataType;
   perRowColors: Record<string, string>;
   perRowFontSizes: Record<string, number>;
   perRowFontFamilies: Record<string, string>;

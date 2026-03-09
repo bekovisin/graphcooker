@@ -29,6 +29,7 @@ import { LUCIDE_ICONS } from '@/lib/chart/lucideIconData';
 import type {
   InfoColumnSettings,
   InfoPosition,
+  InfoDataType,
   FontWeight,
   BorderLineStyle,
 } from '@/types/chart';
@@ -128,6 +129,21 @@ export function InfoColumnSection() {
               <SelectContent>
                 <SelectItem value="left" className="text-xs">Left</SelectItem>
                 <SelectItem value="right" className="text-xs">Right</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+
+          <SettingRow label="Data type">
+            <Select
+              value={settings.dataType ?? 'number'}
+              onValueChange={(v) => update({ dataType: v as InfoDataType })}
+            >
+              <SelectTrigger className="h-8 text-xs w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="number" className="text-xs">Number</SelectItem>
+                <SelectItem value="text" className="text-xs">Text</SelectItem>
               </SelectContent>
             </Select>
           </SettingRow>
@@ -536,6 +552,27 @@ export function InfoColumnSection() {
                     step={0.5}
                     suffix="px"
                   />
+                  <SettingRow label="Manual length" variant="inline">
+                    <Switch
+                      checked={settings.borderLeft.manualLength ?? false}
+                      onCheckedChange={(checked) =>
+                        update({ borderLeft: { ...settings.borderLeft, manualLength: checked } })
+                      }
+                    />
+                  </SettingRow>
+                  {settings.borderLeft.manualLength && (
+                    <NumberInput
+                      label="Length"
+                      value={settings.borderLeft.manualLengthValue ?? 20}
+                      onChange={(v) =>
+                        update({ borderLeft: { ...settings.borderLeft, manualLengthValue: v } })
+                      }
+                      min={1}
+                      max={200}
+                      step={1}
+                      suffix="px"
+                    />
+                  )}
                   <NumberInput
                     label="Padding"
                     value={settings.borderLeft.padding ?? 0}
@@ -610,6 +647,27 @@ export function InfoColumnSection() {
                     step={0.5}
                     suffix="px"
                   />
+                  <SettingRow label="Manual length" variant="inline">
+                    <Switch
+                      checked={settings.borderRight.manualLength ?? false}
+                      onCheckedChange={(checked) =>
+                        update({ borderRight: { ...settings.borderRight, manualLength: checked } })
+                      }
+                    />
+                  </SettingRow>
+                  {settings.borderRight.manualLength && (
+                    <NumberInput
+                      label="Length"
+                      value={settings.borderRight.manualLengthValue ?? 20}
+                      onChange={(v) =>
+                        update({ borderRight: { ...settings.borderRight, manualLengthValue: v } })
+                      }
+                      min={1}
+                      max={200}
+                      step={1}
+                      suffix="px"
+                    />
+                  )}
                   <NumberInput
                     label="Padding"
                     value={settings.borderRight.padding ?? 0}

@@ -244,6 +244,8 @@ export const defaultChartSettings: ChartSettings = {
     infoDecimalPlaces: 2,
     infoPrefix: '',
     infoSuffix: '',
+    infoThousandsSeparator: undefined,
+    infoDecimalSeparator: undefined,
   },
   legend: {
     show: true,
@@ -396,6 +398,7 @@ export const defaultChartSettings: ChartSettings = {
     color: '#333333',
     letterSpacing: 0,
     padding: 8,
+    dataType: 'number' as const,
     perRowColors: {},
     perRowFontSizes: {},
     perRowFontFamilies: {},

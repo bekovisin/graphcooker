@@ -70,7 +70,25 @@ export function ConnectorBorderSection() {
             </Select>
           </SettingRow>
 
-          {/* Length is kept for backward compatibility but hidden since connector is now vertical */}
+          {/* Manual length */}
+          <SettingRow label="Manual length" variant="inline">
+            <Switch
+              checked={settings.manualLength ?? false}
+              onCheckedChange={(checked) => update({ manualLength: checked })}
+            />
+          </SettingRow>
+
+          {settings.manualLength && (
+            <NumberInput
+              label="Length"
+              value={settings.manualLengthValue ?? 20}
+              onChange={(v) => update({ manualLengthValue: v })}
+              min={1}
+              max={200}
+              step={1}
+              suffix="px"
+            />
+          )}
 
           <NumberInput
             label="Padding (bar side)"

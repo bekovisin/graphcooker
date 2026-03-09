@@ -181,6 +181,40 @@ export function NumberFormattingSection() {
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Info thousands</label>
+              <Select
+                value={settings.infoThousandsSeparator ?? settings.thousandsSeparator}
+                onValueChange={(v: ThousandsSeparator) => update({ infoThousandsSeparator: v })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value=",">, (comma)</SelectItem>
+                  <SelectItem value=".">. (dot)</SelectItem>
+                  <SelectItem value=" ">(space)</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-400 mb-0.5 block">Info decimal</label>
+              <Select
+                value={settings.infoDecimalSeparator ?? settings.decimalSeparator}
+                onValueChange={(v: DecimalSeparator) => update({ infoDecimalSeparator: v })}
+              >
+                <SelectTrigger className="h-7 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value=".">. (dot)</SelectItem>
+                  <SelectItem value=",">, (comma)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5">
+            <div>
               <label className="text-[10px] text-gray-400 mb-0.5 block">Info prefix</label>
               <Input
                 value={settings.infoPrefix ?? ''}

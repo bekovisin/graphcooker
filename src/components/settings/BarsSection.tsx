@@ -191,6 +191,26 @@ export function BarsSection() {
         </div>
       )}
 
+      {/* Manual plot width */}
+      <SettingRow label="Manual plot width" variant="inline">
+        <Switch
+          checked={settings.manualPlotWidth ?? false}
+          onCheckedChange={(checked) => update({ manualPlotWidth: checked })}
+        />
+      </SettingRow>
+
+      {settings.manualPlotWidth && (
+        <SliderWithInput
+          label="Plot width"
+          value={settings.manualPlotWidthValue ?? 100}
+          onChange={(v) => update({ manualPlotWidthValue: v })}
+          min={1}
+          max={2000}
+          step={1}
+          suffix="px"
+        />
+      )}
+
       {/* Bar Opacity */}
       <SliderWithInput
         label="Bar opacity"

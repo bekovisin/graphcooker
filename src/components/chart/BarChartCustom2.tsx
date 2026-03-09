@@ -48,7 +48,7 @@ function resolveColors(colorsSettings: ChartSettings['colors'], names: string[])
   return names.map((name, i) => overrides[name] || colors[i % colors.length]);
 }
 
-function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number): string {
+function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number, thousandsOverride?: string, decimalSepOverride?: string, prefixOverride?: string, suffixOverride?: string): string {
   const decimals = decimalOverride !== undefined ? decimalOverride : nf.decimalPlaces;
   const factor = Math.pow(10, decimals);
   const adjusted = nf.roundDecimal !== false
@@ -60,11 +60,15 @@ function formatNumber(value: number, nf: ChartSettings['numberFormatting'], deci
   }
   const [intPart, decPart] = str.split('.');
   let formattedInt = intPart;
-  if (nf.thousandsSeparator !== 'none') {
-    formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, nf.thousandsSeparator);
+  const tSep = thousandsOverride !== undefined ? thousandsOverride : nf.thousandsSeparator;
+  if (tSep !== 'none') {
+    formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, tSep);
   }
-  str = decPart ? `${formattedInt}${nf.decimalSeparator}${decPart}` : formattedInt;
-  return `${nf.prefix}${str}${nf.suffix}`;
+  const dSep = decimalSepOverride !== undefined ? decimalSepOverride : nf.decimalSeparator;
+  str = decPart ? `${formattedInt}${dSep}${decPart}` : formattedInt;
+  const px = prefixOverride !== undefined ? prefixOverride : nf.prefix;
+  const sx = suffixOverride !== undefined ? suffixOverride : nf.suffix;
+  return `${px}${str}${sx}`;
 }
 
 function getContrastColor(hexColor: string): string {
@@ -303,8 +307,21 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     if (!info.show) return 0;
     let maxW = 0;
     for (let i = 0; i < infoValues.length; i++) {
-      const text = infoValues[i];
-      if (!text) continue;
+      const rawText = infoValues[i];
+      if (!rawText) continue;
+      // Format info text for measurement (same logic as rendering)
+      let text = rawText;
+      const infoDataType = info.dataType ?? 'number';
+      if (infoDataType === 'number') {
+        const numVal = parseFloat(String(rawText).replace(',', '.'));
+        if (!isNaN(numVal)) {
+          if (nf.infoCustomDecimals) {
+            text = formatNumber(numVal, nf, nf.infoDecimalPlaces, nf.infoThousandsSeparator, nf.infoDecimalSeparator, nf.infoPrefix, nf.infoSuffix);
+          } else {
+            text = formatNumber(numVal, nf);
+          }
+        }
+      }
       const cat = categories[i];
       const fs = info.perRowFontSizes[cat] ?? info.fontSize;
       const ff = info.perRowFontFamilies[cat] ?? info.fontFamily;
@@ -314,7 +331,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     }
     const iconSpace = info.icon.show ? info.icon.size + 4 : 0;
     return maxW + iconSpace + info.padding * 2;
-  }, [info, infoValues, categories]);
+  }, [info, infoValues, categories, nf]);
 
   // ── Max text width for data point labels (used for fixed column sizing) ──
   const fixedLabelMaxTextWidth = useMemo(() => {
@@ -341,8 +358,12 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     const pos = settings.labels.dataPointPosition;
     const pad = settings.labels.outsideLabelPadding ?? 6;
     if (pos === 'fixed') {
-      // Fixed mode: no connector space — connector is centered in the gap, not added to width
-      return fixedLabelMaxTextWidth + pad;
+      // Fixed mode: include connector space so labels shift right of connector
+      let totalW = fixedLabelMaxTextWidth + pad;
+      if (connector.show) {
+        totalW += connector.paddingBar + connector.paddingLabel + connector.width;
+      }
+      return totalW;
     }
     // outside_right mode: include connector space
     let totalW = fixedLabelMaxTextWidth;
@@ -443,7 +464,10 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
   const computedChartHeight = totalBarsHeight + padding.top + padding.bottom;
   const svgHeight = heightProp || computedChartHeight;
-  const plotWidth = Math.max(1, width - padding.left - padding.right);
+  const autoPlotWidth = Math.max(1, width - padding.left - padding.right);
+  const plotWidth = settings.bars.manualPlotWidth && settings.bars.manualPlotWidthValue !== undefined
+    ? settings.bars.manualPlotWidthValue
+    : autoPlotWidth;
 
   // Scale
   const xScale = useCallback((val: number) => {
@@ -670,7 +694,23 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
           const barW = Math.abs(xScale(Math.max(0, minVal) + Math.abs(value)) - xScale(Math.max(0, minVal)));
           const barStartX = value >= 0 ? xScale(Math.max(0, minVal)) : xScale(Math.max(0, minVal)) - barW;
           const barColor = colors[ci];
-          const infoText = infoValues[ci];
+          const rawInfoText = infoValues[ci];
+          // Format info text based on dataType
+          const infoText = (() => {
+            if (!rawInfoText) return rawInfoText;
+            const infoDataType = info.dataType ?? 'number';
+            if (infoDataType === 'text') {
+              // Text mode: show raw text exactly as typed
+              return rawInfoText;
+            }
+            // Number mode: parse and format
+            const numVal = parseFloat(String(rawInfoText).replace(',', '.'));
+            if (isNaN(numVal)) return rawInfoText;
+            if (nf.infoCustomDecimals) {
+              return formatNumber(numVal, nf, nf.infoDecimalPlaces, nf.infoThousandsSeparator, nf.infoDecimalSeparator, nf.infoPrefix, nf.infoSuffix);
+            }
+            return formatNumber(numVal, nf);
+          })();
 
           // Border radius
           const br = settings.bars.borderRadius[cat] || { tl: 0, tr: 0, bl: 0, br: 0 };
@@ -818,35 +858,46 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 let labelX: number;
                 let anchor: 'start' | 'middle' | 'end';
 
+                // Custom padding offsets
+                const customPad = settings.labels.dataPointCustomPadding;
+                const padLeft = customPad ? (settings.labels.dataPointPaddingLeft || 0) : 0;
+                const padRight = customPad ? (settings.labels.dataPointPaddingRight || 0) : 0;
+                const padTop = customPad ? (settings.labels.dataPointPaddingTop || 0) : 0;
+                const padBottom = customPad ? (settings.labels.dataPointPaddingBottom || 0) : 0;
+                const padOffsetX = padLeft - padRight;
+                const padOffsetY = padTop - padBottom;
+
                 if (labelPos === 'left') {
-                  labelX = padding.left + barStartX + 4;
+                  labelX = padding.left + barStartX + 4 + padOffsetX;
                   anchor = 'start';
                 } else if (labelPos === 'right') {
-                  labelX = barEndX - 4;
+                  labelX = barEndX - 4 + padOffsetX;
                   anchor = 'end';
                 } else if (labelPos === 'outside_right') {
-                  // Connector + padding (vertical connector: only paddingBar + paddingLabel)
                   const connectorSpace = connector.show
                     ? connector.paddingBar + connector.paddingLabel
                     : 0;
-                  labelX = barEndX + (settings.labels.outsideLabelPadding ?? 6) + connectorSpace;
+                  labelX = barEndX + (settings.labels.outsideLabelPadding ?? 6) + connectorSpace + padOffsetX;
                   anchor = 'start';
                 } else if (labelPos === 'fixed') {
-                  // Fixed position: auto-column-width alignment (like Excel column auto-width)
-                  const columnStart = padding.left + plotWidth + (settings.labels.outsideLabelPadding ?? 6);
+                  // Fixed position: shift right past connector border if enabled
+                  const connectorOffset = connector.show
+                    ? connector.paddingBar + connector.paddingLabel + connector.width
+                    : 0;
+                  const columnStart = padding.left + plotWidth + (settings.labels.outsideLabelPadding ?? 6) + connectorOffset;
                   const fixedAlign = settings.labels.fixedLabelAlignment ?? 'start';
                   if (fixedAlign === 'end') {
-                    labelX = columnStart + fixedLabelMaxTextWidth;
+                    labelX = columnStart + fixedLabelMaxTextWidth + padOffsetX;
                     anchor = 'end';
                   } else if (fixedAlign === 'center') {
-                    labelX = columnStart + fixedLabelMaxTextWidth / 2;
+                    labelX = columnStart + fixedLabelMaxTextWidth / 2 + padOffsetX;
                     anchor = 'middle';
                   } else {
-                    labelX = columnStart;
+                    labelX = columnStart + padOffsetX;
                     anchor = 'start';
                   }
                 } else {
-                  labelX = padding.left + barStartX + barW / 2;
+                  labelX = padding.left + barStartX + barW / 2 + padOffsetX;
                   anchor = 'middle';
                 }
 
@@ -854,7 +905,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   ? ((labelPos === 'outside_right' || labelPos === 'fixed') ? '#333333' : getContrastColor(barColor))
                   : (settings.labels.dataPointSeriesColors[columnMapping.values[0]] || settings.labels.dataPointColor);
 
-                const labelCenterY = barY + barHeight / 2;
+                const labelCenterY = barY + barHeight / 2 + padOffsetY;
 
                 return (
                   <>
@@ -862,16 +913,23 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     {connector.show && (labelPos === 'outside_right' || labelPos === 'fixed') && (() => {
                       let connX: number;
                       if (labelPos === 'fixed') {
-                        // Fixed X for ALL rows: centered between plot right edge and label column start
                         const plotRightEdge = padding.left + plotWidth;
                         const labelColumnStart = plotRightEdge + (settings.labels.outsideLabelPadding ?? 6);
                         connX = (plotRightEdge + labelColumnStart) / 2 + connector.paddingBar;
                       } else {
                         connX = barEndX + connector.paddingBar;
                       }
-                      // Vertical line spanning bar height
-                      const connY1 = barY;
-                      const connY2 = barY + barHeight;
+                      // Vertical line - use manual length or full bar height
+                      let connY1: number;
+                      let connY2: number;
+                      if (connector.manualLength && connector.manualLengthValue !== undefined) {
+                        const centerY = barY + barHeight / 2;
+                        connY1 = centerY - connector.manualLengthValue / 2;
+                        connY2 = centerY + connector.manualLengthValue / 2;
+                      } else {
+                        connY1 = barY;
+                        connY2 = barY + barHeight;
+                      }
                       return (
                         <line
                           x1={connX} y1={connY1} x2={connX} y2={connY2}
@@ -1009,13 +1067,21 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
                     {/* Info border (left side - between info and label) */}
                     {info.position === 'left' && info.borderLeft.show && (() => {
-                      // Centered between y-axis labels end and info column start
                       const yAxisEnd = padding.left - tickPadding;
                       const infoEnd = padding.left - yAxisLabelWidth - tickPadding;
                       const borderX = (yAxisEnd + infoEnd) / 2 + (info.borderLeft.padding ?? 0);
+                      let bY1: number, bY2: number;
+                      if (info.borderLeft.manualLength && info.borderLeft.manualLengthValue !== undefined) {
+                        const centerY = barY + barHeight / 2;
+                        bY1 = centerY - info.borderLeft.manualLengthValue / 2;
+                        bY2 = centerY + info.borderLeft.manualLengthValue / 2;
+                      } else {
+                        bY1 = barY;
+                        bY2 = barY + barHeight;
+                      }
                       return (
                         <line
-                          x1={borderX} y1={barY} x2={borderX} y2={barY + barHeight}
+                          x1={borderX} y1={bY1} x2={borderX} y2={bY2}
                           stroke={info.borderLeft.color}
                           strokeWidth={info.borderLeft.width}
                           strokeDasharray={getDashArray(info.borderLeft.style, 4, info.borderLeft.width)}
@@ -1025,13 +1091,21 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
                     {/* Info border (right side - between data labels and info) */}
                     {info.position === 'right' && info.borderRight.show && (() => {
-                      // Centered between data labels end and info column start
                       const dataEnd = padding.left + plotWidth + outsideLabelWidth;
                       const infoStart = dataEnd + rowPad;
                       const borderX = (dataEnd + infoStart) / 2 + (info.borderRight.padding ?? 0);
+                      let bY1: number, bY2: number;
+                      if (info.borderRight.manualLength && info.borderRight.manualLengthValue !== undefined) {
+                        const centerY = barY + barHeight / 2;
+                        bY1 = centerY - info.borderRight.manualLengthValue / 2;
+                        bY2 = centerY + info.borderRight.manualLengthValue / 2;
+                      } else {
+                        bY1 = barY;
+                        bY2 = barY + barHeight;
+                      }
                       return (
                         <line
-                          x1={borderX} y1={barY} x2={borderX} y2={barY + barHeight}
+                          x1={borderX} y1={bY1} x2={borderX} y2={bY2}
                           stroke={info.borderRight.color}
                           strokeWidth={info.borderRight.width}
                           strokeDasharray={getDashArray(info.borderRight.style, 4, info.borderRight.width)}
