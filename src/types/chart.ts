@@ -606,6 +606,22 @@ export interface InfoBorderSettings {
   manualLengthValue?: number;
 }
 
+export interface RowImagesSettings {
+  show: boolean;
+  defaultUrl: string;
+  defaultWidth: number;
+  defaultHeight: number;
+  borderRadius: number;
+  customPadding: boolean;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  perRowUrls: Record<string, string>;
+  perRowWidths: Record<string, number>;
+  perRowHeights: Record<string, number>;
+}
+
 export type InfoDataType = 'number' | 'text';
 export type InfoVerticalAlignment = 'top' | 'center' | 'bottom';
 
@@ -668,6 +684,7 @@ export interface ChartSettings {
   customPrefix: CustomPrefixSettings;
   infoColumn: InfoColumnSettings;
   barBackground: BarBackgroundSettings;
+  rowImages: RowImagesSettings;
 }
 
 // ===== PREVIEW STATE (persisted in columnMapping) =====

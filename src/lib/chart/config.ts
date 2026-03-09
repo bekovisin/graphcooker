@@ -431,6 +431,21 @@ export const defaultChartSettings: ChartSettings = {
     color: '#f0f0f0',
     opacity: 0.3,
   },
+  rowImages: {
+    show: false,
+    defaultUrl: '',
+    defaultWidth: 24,
+    defaultHeight: 24,
+    borderRadius: 0,
+    customPadding: false,
+    paddingTop: 0,
+    paddingRight: 4,
+    paddingBottom: 0,
+    paddingLeft: 0,
+    perRowUrls: {},
+    perRowWidths: {},
+    perRowHeights: {},
+  },
 };
 
 export const defaultData = [

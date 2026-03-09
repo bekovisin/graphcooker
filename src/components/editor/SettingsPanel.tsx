@@ -31,6 +31,7 @@ import { BarBackgroundSection } from '@/components/settings/BarBackgroundSection
 import { BarRowBordersSection } from '@/components/settings/BarRowBordersSection';
 import { ConnectorBorderSection } from '@/components/settings/ConnectorBorderSection';
 import { InfoColumnSection } from '@/components/settings/InfoColumnSection';
+import { RowImagesSection } from '@/components/settings/RowImagesSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
@@ -62,6 +63,7 @@ const barCustom2Sections = [
   { id: 'bar-row-borders', title: 'Bar row borders', Component: BarRowBordersSection },
   { id: 'connector-border', title: 'Connector border', Component: ConnectorBorderSection },
   { id: 'info-column', title: 'Info column', Component: InfoColumnSection },
+  { id: 'row-images', title: 'Row images', Component: RowImagesSection },
   { id: 'labels', title: 'Labels', Component: LabelsSection },
   { id: 'x-axis', title: 'X axis', Component: XAxisSection },
   { id: 'y-axis', title: 'Y axis', Component: YAxisSection },

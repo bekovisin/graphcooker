@@ -338,6 +338,22 @@ export const settingsMap: SettingsSection[] = [
       { key: 'borderRight', label: 'Border right' },
     ],
   },
+  {
+    id: 'row-images',
+    title: 'Row images',
+    settings: [
+      { key: 'show', label: 'Show row images' },
+      { key: 'defaultUrl', label: 'Default image URL' },
+      { key: 'defaultWidth', label: 'Default width' },
+      { key: 'defaultHeight', label: 'Default height' },
+      { key: 'borderRadius', label: 'Border radius' },
+      { key: 'customPadding', label: 'Custom padding' },
+      { key: 'paddingTop', label: 'Padding top' },
+      { key: 'paddingRight', label: 'Padding right' },
+      { key: 'paddingBottom', label: 'Padding bottom' },
+      { key: 'paddingLeft', label: 'Padding left' },
+    ],
+  },
 ];
 
 /** Get all setting keys as "sectionId.settingKey" format */

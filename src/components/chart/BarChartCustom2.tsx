@@ -272,7 +272,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
   }, [data, columnMapping, settings.colors, settings.chartType.sortMode, settings.xAxis.min, settings.xAxis.max]);
 
   // ── Settings shortcuts ──
-  const yAxisHidden = settings.yAxis.position === 'hidden';
+  const isAboveBars = settings.labels.barLabelStyle === 'above_bars';
+  const yAxisHidden = settings.yAxis.position === 'hidden' || isAboveBars;
   const yAxisRight = settings.yAxis.position === 'right';
   const xAxisHidden = settings.xAxis.position === 'hidden';
   const xAxisOnTop = settings.xAxis.position === 'top' || settings.xAxis.position === 'float_up';
@@ -335,6 +336,20 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       : info.padding * 2;
     return maxW + iconSpace + hPad;
   }, [info, infoValues, categories, nf]);
+
+  // ── Row images space ──
+  const ri = settings.rowImages;
+  const rowImagesSpace = useMemo(() => {
+    if (!ri.show) return 0;
+    let maxW = ri.defaultWidth;
+    for (const cat of categories) {
+      const w = ri.perRowWidths[cat] ?? ri.defaultWidth;
+      if (w > maxW) maxW = w;
+    }
+    const padL = ri.customPadding ? ri.paddingLeft : 0;
+    const padR = ri.customPadding ? ri.paddingRight : 4;
+    return maxW + padL + padR;
+  }, [ri, categories]);
 
   // ── Max text width for data point labels (used for fixed column sizing) ──
   const fixedLabelMaxTextWidth = useMemo(() => {
@@ -430,13 +445,15 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     const yLabelSpace = yAxisLabelWidth + tickPadding + yAxisTitleWidth;
     const infoLeft = info.show && info.position === 'left' ? infoColumnWidth : 0;
     const infoRight = info.show && info.position === 'right' ? infoColumnWidth : 0;
+    const imgLeft = !yAxisRight ? rowImagesSpace : 0;
+    const imgRight = yAxisRight ? rowImagesSpace : 0;
     return {
       top: settings.layout.paddingTop + (xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
-      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + outsideLabelWidth + infoRight,
+      right: settings.layout.paddingRight + (yAxisRight && !yAxisHidden ? yLabelSpace : 0) + outsideLabelWidth + infoRight + imgRight,
       bottom: settings.layout.paddingBottom + (!xAxisOnTop ? xAxisHeight + xAxisTitleHeight : 0),
-      left: settings.layout.paddingLeft + (!yAxisRight && !yAxisHidden ? yLabelSpace : 0) + infoLeft,
+      left: settings.layout.paddingLeft + (!yAxisRight && !yAxisHidden ? yLabelSpace : 0) + infoLeft + imgLeft,
     };
-  }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, outsideLabelWidth, infoColumnWidth, info.show, info.position]);
+  }, [settings.layout, yAxisLabelWidth, tickPadding, yAxisTitleWidth, xAxisHeight, xAxisTitleHeight, yAxisRight, yAxisHidden, xAxisOnTop, outsideLabelWidth, infoColumnWidth, info.show, info.position, rowImagesSpace]);
 
   // ── Bar sizing ──
   const spacingMain = settings.bars.spacingMain;
@@ -450,19 +467,37 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     return settings.bars.barHeight;
   })();
 
+  // Above-bars label row heights (per-category)
+  const labelRowHeights = useMemo(() => {
+    if (!isAboveBars) return categories.map(() => 0);
+    const baseHeight = yTickStyle.fontSize + 8;
+    if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) {
+      return categories.map(() => baseHeight);
+    }
+    const maxW = settings.yAxis.spaceModeValue;
+    return categories.map((cat) => {
+      const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+      if (fullW > maxW && cat.includes(' ')) {
+        const lines = wrapText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+        return lines.length > 1 ? yTickStyle.fontSize * 1.2 * lines.length + 4 : baseHeight;
+      }
+      return baseHeight;
+    });
+  }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, categories]);
+
   // Category Y offsets
   const catYOffsets = useMemo(() => {
     const offsets: number[] = [];
     let cumY = 0;
     for (let ci = 0; ci < categories.length; ci++) {
       offsets.push(cumY);
-      cumY += barHeight + spacingMain;
+      cumY += barHeight + spacingMain + labelRowHeights[ci];
     }
     return offsets;
-  }, [categories.length, barHeight, spacingMain]);
+  }, [categories.length, barHeight, spacingMain, labelRowHeights]);
 
   const totalBarsHeight = catYOffsets.length > 0
-    ? catYOffsets[catYOffsets.length - 1] + barHeight + spacingMain
+    ? catYOffsets[catYOffsets.length - 1] + barHeight + spacingMain + labelRowHeights[labelRowHeights.length - 1]
     : 0;
 
   const computedChartHeight = totalBarsHeight + padding.top + padding.bottom;
@@ -691,7 +726,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
         {/* ── Bars, Labels, Info, Borders ── */}
         {categories.map((cat, ci) => {
           const catY = chartTop + catYOffsets[ci];
-          const barY = catY;
+          const barY = catY + labelRowHeights[ci];
           const rawValue = values[ci];
           const value = rawValue * animProgress;
           const barW = Math.abs(xScale(Math.max(0, minVal) + Math.abs(value)) - xScale(Math.max(0, minVal)));
@@ -755,6 +790,84 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 onMouseMove={(e) => handleBarHover(e, cat, rawValue, barColor, infoText)}
                 onMouseLeave={handleBarLeave}
               />
+
+              {/* ── Above-bars category label ── */}
+              {isAboveBars && (() => {
+                const zeroLineVisible = hasZeroInRange && settings.xAxis.zeroLine?.show === true;
+                const aboveLabelX = zeroLineVisible
+                  ? padding.left + xScale(0)
+                  : padding.left;
+                const abPad = settings.labels;
+                const aboveX = aboveLabelX + (abPad.aboveBarPaddingLeft || 0) - (abPad.aboveBarPaddingRight || 0);
+                const aboveY = catY + yTickStyle.fontSize + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0);
+
+                const yLsDefault = settings.yAxis.labelLetterSpacing ?? 0;
+                const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
+                const yLsStyle = yLs !== 0 ? `${yLs}px` : undefined;
+
+                // Handle text wrapping if spaceMode is fixed
+                if (settings.yAxis.spaceMode === 'fixed' && settings.yAxis.spaceModeValue > 0) {
+                  const maxW = settings.yAxis.spaceModeValue;
+                  const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                  if (fullW > maxW && cat.includes(' ')) {
+                    const lines = wrapText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                    const lineH = yTickStyle.fontSize * 1.2;
+                    return lines.map((line, li) => (
+                      <text
+                        key={`above-${ci}-${li}`}
+                        x={aboveX}
+                        y={aboveY + li * lineH}
+                        textAnchor="start"
+                        style={{
+                          fontSize: yTickStyle.fontSize,
+                          fontFamily: yTickStyle.fontFamily,
+                          fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
+                          fill: yTickStyle.color,
+                          letterSpacing: yLsStyle,
+                        }}
+                      >
+                        {line}
+                      </text>
+                    ));
+                  }
+                  const display = settings.yAxis.fixedEllipsis
+                    ? truncateText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight)
+                    : cat;
+                  return (
+                    <text
+                      x={aboveX}
+                      y={aboveY}
+                      textAnchor="start"
+                      style={{
+                        fontSize: yTickStyle.fontSize,
+                        fontFamily: yTickStyle.fontFamily,
+                        fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
+                        fill: yTickStyle.color,
+                        letterSpacing: yLsStyle,
+                      }}
+                    >
+                      {display}
+                    </text>
+                  );
+                }
+
+                return (
+                  <text
+                    x={aboveX}
+                    y={aboveY}
+                    textAnchor="start"
+                    style={{
+                      fontSize: yTickStyle.fontSize,
+                      fontFamily: yTickStyle.fontFamily,
+                      fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
+                      fill: yTickStyle.color,
+                      letterSpacing: yLsStyle,
+                    }}
+                  >
+                    {cat}
+                  </text>
+                );
+              })()}
 
               {/* ── Y-axis labels ── */}
               {!yAxisHidden && (() => {
@@ -848,6 +961,51 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   >
                     {cat}
                   </text>
+                );
+              })()}
+
+              {/* ── Row images ── */}
+              {ri.show && (() => {
+                const imgUrl = ri.perRowUrls[cat] || ri.defaultUrl;
+                if (!imgUrl) return null;
+                const imgW = ri.perRowWidths[cat] ?? ri.defaultWidth;
+                const imgH = ri.perRowHeights[cat] ?? ri.defaultHeight;
+                const iPadT = ri.customPadding ? ri.paddingTop : 0;
+                const iPadR = ri.customPadding ? ri.paddingRight : 4;
+                const iPadB = ri.customPadding ? ri.paddingBottom : 0;
+                const iPadL = ri.customPadding ? ri.paddingLeft : 0;
+
+                let imgX: number;
+                if (yAxisRight) {
+                  // Right side: after Y labels
+                  imgX = padding.left + plotWidth + outsideLabelWidth + iPadL + 4;
+                } else {
+                  // Left side: between Y label and plot area
+                  imgX = padding.left - imgW - iPadR + iPadL;
+                }
+                const imgY = barY + barHeight / 2 - imgH / 2 + iPadT - iPadB;
+                const clipId = `img-clip-${ci}`;
+                const br = ri.borderRadius;
+
+                return (
+                  <g>
+                    {br > 0 && (
+                      <defs>
+                        <clipPath id={clipId}>
+                          <rect x={imgX} y={imgY} width={imgW} height={imgH} rx={br} />
+                        </clipPath>
+                      </defs>
+                    )}
+                    <image
+                      href={imgUrl}
+                      x={imgX}
+                      y={imgY}
+                      width={imgW}
+                      height={imgH}
+                      clipPath={br > 0 ? `url(#${clipId})` : undefined}
+                      preserveAspectRatio="xMidYMid slice"
+                    />
+                  </g>
                 );
               })()}
 
