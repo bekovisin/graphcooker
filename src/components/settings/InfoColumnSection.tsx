@@ -85,6 +85,73 @@ function SubHeader({
   );
 }
 
+function FourWayPadding({
+  top, right, bottom, left,
+  onTopChange, onRightChange, onBottomChange, onLeftChange,
+}: {
+  top: number; right: number; bottom: number; left: number;
+  onTopChange: (v: number) => void;
+  onRightChange: (v: number) => void;
+  onBottomChange: (v: number) => void;
+  onLeftChange: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <span className="text-xs text-gray-500 font-medium">Padding (px)</span>
+      <div className="grid grid-cols-4 gap-1.5">
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Top</label>
+          <Input
+            type="number"
+            value={top}
+            onChange={(e) => onTopChange(parseFloat(e.target.value) || 0)}
+            className="h-7 text-xs w-full"
+            min={-50}
+            max={200}
+            step={0.1}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Right</label>
+          <Input
+            type="number"
+            value={right}
+            onChange={(e) => onRightChange(parseFloat(e.target.value) || 0)}
+            className="h-7 text-xs w-full"
+            min={-50}
+            max={200}
+            step={0.1}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Bottom</label>
+          <Input
+            type="number"
+            value={bottom}
+            onChange={(e) => onBottomChange(parseFloat(e.target.value) || 0)}
+            className="h-7 text-xs w-full"
+            min={-50}
+            max={200}
+            step={0.1}
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Left</label>
+          <Input
+            type="number"
+            value={left}
+            onChange={(e) => onLeftChange(parseFloat(e.target.value) || 0)}
+            className="h-7 text-xs w-full"
+            min={-50}
+            max={200}
+            step={0.1}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function InfoColumnSection() {
   const settings = useEditorStore((s) => s.settings.infoColumn);
   const updateSettings = useEditorStore((s) => s.updateSettings);
@@ -150,17 +217,6 @@ export function InfoColumnSection() {
             </Select>
           </SettingRow>
 
-          <NumberInput
-            label="Vertical padding"
-            value={settings.verticalPadding ?? 0}
-            onChange={(v) => update({ verticalPadding: v })}
-            min={-50}
-            max={50}
-            step={0.01}
-            arrowStep={0.1}
-            suffix="px"
-          />
-
           <SettingRow label="Data type">
             <Select
               value={settings.dataType ?? 'number'}
@@ -176,19 +232,42 @@ export function InfoColumnSection() {
             </Select>
           </SettingRow>
 
-          {/* Default text styling */}
+          {/* ── Padding section ── */}
+          <SettingRow label="Custom padding" variant="inline">
+            <Switch
+              checked={settings.customPadding ?? false}
+              onCheckedChange={(checked) => update({ customPadding: checked })}
+            />
+          </SettingRow>
+
+          {settings.customPadding ? (
+            <FourWayPadding
+              top={settings.paddingTop ?? 0}
+              right={settings.paddingRight ?? 8}
+              bottom={settings.paddingBottom ?? 0}
+              left={settings.paddingLeft ?? 8}
+              onTopChange={(v) => update({ paddingTop: v })}
+              onRightChange={(v) => update({ paddingRight: v })}
+              onBottomChange={(v) => update({ paddingBottom: v })}
+              onLeftChange={(v) => update({ paddingLeft: v })}
+            />
+          ) : (
+            <NumberInput
+              label="Padding"
+              value={settings.padding}
+              onChange={(v) => update({ padding: v })}
+              min={-50}
+              max={50}
+              step={0.1}
+              arrowStep={1}
+              suffix="px"
+            />
+          )}
+
+          {/* ── Default text styling ── */}
           <SubHeader>Default text styling</SubHeader>
 
-          <NumberInput
-            label="Font size"
-            value={settings.fontSize}
-            onChange={(v) => update({ fontSize: v })}
-            min={6}
-            max={32}
-            step={1}
-            suffix="px"
-          />
-
+          {/* Font family */}
           <SettingRow label="Font family">
             <Select
               value={settings.fontFamily}
@@ -207,52 +286,58 @@ export function InfoColumnSection() {
             </Select>
           </SettingRow>
 
-          <SettingRow label="Font weight">
-            <Select
-              value={String(settings.fontWeight)}
-              onValueChange={(v) => update({ fontWeight: v as FontWeight })}
-            >
-              <SelectTrigger className="h-8 text-xs w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="300" className="text-xs">Light</SelectItem>
-                <SelectItem value="400" className="text-xs">Normal</SelectItem>
-                <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                <SelectItem value="600" className="text-xs">Semibold</SelectItem>
-                <SelectItem value="700" className="text-xs">Bold</SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          <SettingRow label="Color">
-            <ColorPicker
-              value={settings.color}
-              onChange={(color) => update({ color })}
-            />
-          </SettingRow>
-
-          {/* Letter spacing + Padding side by side */}
-          <div className="grid grid-cols-2 gap-2">
-            <NumberInput
-              label="Letter spacing"
-              value={settings.letterSpacing}
-              onChange={(v) => update({ letterSpacing: v })}
-              min={-10}
-              max={20}
-              step={0.1}
-              suffix="px"
-            />
-            <NumberInput
-              label="Padding"
-              value={settings.padding}
-              onChange={(v) => update({ padding: v })}
-              min={0}
-              max={50}
-              step={1}
-              suffix="px"
-            />
+          {/* Font styling: weight, size, color in 3-col grid */}
+          <div className="space-y-1.5">
+            <span className="text-xs text-gray-600 font-medium">Font styling</span>
+            <div className="grid grid-cols-3 gap-1.5 items-end">
+              <Select
+                value={String(settings.fontWeight)}
+                onValueChange={(v) => update({ fontWeight: v as FontWeight })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="300" className="text-xs">Light</SelectItem>
+                  <SelectItem value="400" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                  <SelectItem value="600" className="text-xs">Semibold</SelectItem>
+                  <SelectItem value="700" className="text-xs">Bold</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  value={settings.fontSize}
+                  onChange={(e) => {
+                    const num = parseFloat(e.target.value);
+                    if (!isNaN(num)) update({ fontSize: Math.max(6, Math.min(48, num)) });
+                  }}
+                  min={6}
+                  max={48}
+                  step={1}
+                  className="h-8 text-xs w-full"
+                />
+                <span className="text-xs text-gray-400 shrink-0">px</span>
+              </div>
+              <ColorPicker
+                value={settings.color}
+                onChange={(color) => update({ color })}
+              />
+            </div>
           </div>
+
+          {/* Letter spacing */}
+          <NumberInput
+            label="Letter spacing"
+            value={settings.letterSpacing}
+            onChange={(v) => update({ letterSpacing: v })}
+            min={-10}
+            max={20}
+            step={0.01}
+            arrowStep={0.1}
+            suffix="px"
+          />
 
           {/* Per-row overrides button */}
           <button
@@ -347,7 +432,7 @@ export function InfoColumnSection() {
                             }
                           }}
                           className="h-7 text-xs w-full"
-                          step="0.1"
+                          step="0.01"
                           placeholder={String(settings.letterSpacing)}
                         />
                       </div>
@@ -380,7 +465,7 @@ export function InfoColumnSection() {
             </DialogContent>
           </Dialog>
 
-          {/* Icon sub-section */}
+          {/* ── Icon sub-section ── */}
           <SubHeader collapsible open={iconOpen} onToggle={() => setIconOpen(!iconOpen)}>
             Icon
           </SubHeader>
@@ -453,6 +538,29 @@ export function InfoColumnSection() {
                       }
                     />
                   </SettingRow>
+
+                  {/* Icon custom padding */}
+                  <SettingRow label="Custom padding" variant="inline">
+                    <Switch
+                      checked={settings.icon.customPadding ?? false}
+                      onCheckedChange={(checked) =>
+                        update({ icon: { ...settings.icon, customPadding: checked } })
+                      }
+                    />
+                  </SettingRow>
+
+                  {settings.icon.customPadding && (
+                    <FourWayPadding
+                      top={settings.icon.paddingTop ?? 0}
+                      right={settings.icon.paddingRight ?? 0}
+                      bottom={settings.icon.paddingBottom ?? 0}
+                      left={settings.icon.paddingLeft ?? 0}
+                      onTopChange={(v) => update({ icon: { ...settings.icon, paddingTop: v } })}
+                      onRightChange={(v) => update({ icon: { ...settings.icon, paddingRight: v } })}
+                      onBottomChange={(v) => update({ icon: { ...settings.icon, paddingBottom: v } })}
+                      onLeftChange={(v) => update({ icon: { ...settings.icon, paddingLeft: v } })}
+                    />
+                  )}
 
                   {/* Per-row icon overrides button */}
                   {rowLabels.length > 0 && (
@@ -541,7 +649,7 @@ export function InfoColumnSection() {
             </>
           )}
 
-          {/* Border Left sub-section */}
+          {/* ── Border Left sub-section ── */}
           <SubHeader
             collapsible
             open={borderLeftOpen}
@@ -636,7 +744,7 @@ export function InfoColumnSection() {
             </>
           )}
 
-          {/* Border Right sub-section */}
+          {/* ── Border Right sub-section ── */}
           <SubHeader
             collapsible
             open={borderRightOpen}

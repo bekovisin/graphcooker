@@ -591,6 +591,11 @@ export interface InfoIconSettings {
   perRowColors: Record<string, string>;
   perRowIconNames: Record<string, string>;
   iconName: string;
+  customPadding?: boolean;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
 }
 
 export interface InfoBorderSettings {
@@ -617,6 +622,11 @@ export interface InfoColumnSettings {
   color: string;
   letterSpacing: number;
   padding: number;
+  customPadding?: boolean;
+  paddingTop?: number;
+  paddingRight?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
   dataType: InfoDataType;
   perRowColors: Record<string, string>;
   perRowFontSizes: Record<string, number>;

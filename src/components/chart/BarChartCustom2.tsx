@@ -330,7 +330,10 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       if (w > maxW) maxW = w;
     }
     const iconSpace = info.icon.show ? info.icon.size + 4 : 0;
-    return maxW + iconSpace + info.padding * 2;
+    const hPad = info.customPadding
+      ? (info.paddingLeft ?? 8) + (info.paddingRight ?? 8)
+      : info.padding * 2;
+    return maxW + iconSpace + hPad;
   }, [info, infoValues, categories, nf]);
 
   // ── Max text width for data point labels (used for fixed column sizing) ──
@@ -1018,30 +1021,36 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const rowLs = info.perRowLetterSpacings[cat] ?? info.letterSpacing;
                 const rowPad = info.perRowPaddings[cat] ?? info.padding;
 
+                // Horizontal padding: custom 4-way or simple
+                const padLeft = info.customPadding ? (info.paddingLeft ?? 8) : rowPad;
+                const padRight = info.customPadding ? (info.paddingRight ?? 8) : rowPad;
+
                 let infoX: number;
                 let infoAnchor: 'start' | 'end';
 
                 if (info.position === 'left') {
-                  infoX = padding.left - yAxisLabelWidth - tickPadding - rowPad;
+                  infoX = padding.left - yAxisLabelWidth - tickPadding - padLeft;
                   infoAnchor = 'end';
                 } else {
                   // Right side: after outside labels
-                  infoX = padding.left + plotWidth + outsideLabelWidth + rowPad;
+                  infoX = padding.left + plotWidth + outsideLabelWidth + padRight;
                   infoAnchor = 'start';
                 }
 
+                // Vertical padding: custom 4-way or legacy verticalPadding
+                const padTop = info.customPadding ? (info.paddingTop ?? 0) : (info.verticalPadding ?? 0);
+                const padBot = info.customPadding ? (info.paddingBottom ?? 0) : (info.verticalPadding ?? 0);
                 const vAlign = info.verticalAlignment ?? 'center';
-                const vPad = info.verticalPadding ?? 0;
                 let infoTextY: number;
                 let infoDy: string;
                 if (vAlign === 'top') {
-                  infoTextY = barY + vPad;
+                  infoTextY = barY + padTop;
                   infoDy = '0.85em';
                 } else if (vAlign === 'bottom') {
-                  infoTextY = barY + barHeight + vPad;
+                  infoTextY = barY + barHeight + padBot;
                   infoDy = '-0.15em';
                 } else {
-                  infoTextY = barY + barHeight / 2 + vPad;
+                  infoTextY = barY + barHeight / 2 + padTop;
                   infoDy = '0.35em';
                 }
                 const iconSize = info.icon.size;
@@ -1049,11 +1058,22 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const iconColor = info.icon.perRowColors[cat] ?? info.icon.defaultColor;
                 const rowIconName = info.icon.perRowIconNames?.[cat] ?? info.icon.iconName;
 
+                // Icon vertical alignment: account for text dy baseline shift
+                const dyValue = parseFloat(infoDy); // 0.35 (center), 0.85 (top), -0.15 (bottom)
+                const iconVerticalOffset = (dyValue - 0.35) * rowFs;
+                let iconY = infoTextY + iconVerticalOffset - iconSize / 2;
+                // Apply icon custom padding
+                const iconPadT = info.icon.customPadding ? (info.icon.paddingTop ?? 0) : 0;
+                const iconPadL = info.icon.customPadding ? (info.icon.paddingLeft ?? 0) : 0;
+                const iconPadR = info.icon.customPadding ? (info.icon.paddingRight ?? 0) : 0;
+                iconY += iconPadT;
+                const iconBaseX = infoAnchor === 'start' ? infoX + iconPadL : infoX - iconSize - iconPadR;
+
                 return (
                   <>
                     {/* Info icon */}
                     {info.icon.show && (
-                      <g transform={`translate(${infoAnchor === 'start' ? infoX : infoX - iconSize}, ${infoTextY - iconSize / 2})`}>
+                      <g transform={`translate(${iconBaseX}, ${iconY})`}>
                         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={info.icon.borderWidth} strokeLinecap="round" strokeLinejoin="round">
                           {renderLucideIcon(rowIconName)}
                         </svg>
@@ -1062,7 +1082,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
                     {/* Info text */}
                     <text
-                      x={infoAnchor === 'start' ? infoX + iconSpace : infoX - iconSpace}
+                      x={infoAnchor === 'start' ? infoX + iconSpace + iconPadL : infoX - iconSpace - iconPadR}
                       y={infoTextY}
                       dy={infoDy}
                       textAnchor={infoAnchor}
