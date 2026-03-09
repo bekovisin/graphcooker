@@ -85,26 +85,24 @@ function SubHeader({
   );
 }
 
-function FourWayPadding({
-  top, right, bottom, left,
-  onTopChange, onRightChange, onBottomChange, onLeftChange,
+function TwoWayPadding({
+  vertical, horizontal,
+  onVerticalChange, onHorizontalChange,
 }: {
-  top: number; right: number; bottom: number; left: number;
-  onTopChange: (v: number) => void;
-  onRightChange: (v: number) => void;
-  onBottomChange: (v: number) => void;
-  onLeftChange: (v: number) => void;
+  vertical: number; horizontal: number;
+  onVerticalChange: (v: number) => void;
+  onHorizontalChange: (v: number) => void;
 }) {
   return (
     <div className="space-y-1.5">
       <span className="text-xs text-gray-500 font-medium">Padding (px)</span>
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5">
         <div>
-          <label className="text-[10px] text-gray-400 mb-0.5 block">Top</label>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Vertical</label>
           <Input
             type="number"
-            value={top}
-            onChange={(e) => onTopChange(parseFloat(e.target.value) || 0)}
+            value={vertical}
+            onChange={(e) => onVerticalChange(parseFloat(e.target.value) || 0)}
             className="h-7 text-xs w-full"
             min={-50}
             max={200}
@@ -112,35 +110,11 @@ function FourWayPadding({
           />
         </div>
         <div>
-          <label className="text-[10px] text-gray-400 mb-0.5 block">Right</label>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Horizontal</label>
           <Input
             type="number"
-            value={right}
-            onChange={(e) => onRightChange(parseFloat(e.target.value) || 0)}
-            className="h-7 text-xs w-full"
-            min={-50}
-            max={200}
-            step={0.1}
-          />
-        </div>
-        <div>
-          <label className="text-[10px] text-gray-400 mb-0.5 block">Bottom</label>
-          <Input
-            type="number"
-            value={bottom}
-            onChange={(e) => onBottomChange(parseFloat(e.target.value) || 0)}
-            className="h-7 text-xs w-full"
-            min={-50}
-            max={200}
-            step={0.1}
-          />
-        </div>
-        <div>
-          <label className="text-[10px] text-gray-400 mb-0.5 block">Left</label>
-          <Input
-            type="number"
-            value={left}
-            onChange={(e) => onLeftChange(parseFloat(e.target.value) || 0)}
+            value={horizontal}
+            onChange={(e) => onHorizontalChange(parseFloat(e.target.value) || 0)}
             className="h-7 text-xs w-full"
             min={-50}
             max={200}
@@ -241,15 +215,11 @@ export function InfoColumnSection() {
           </SettingRow>
 
           {settings.customPadding ? (
-            <FourWayPadding
-              top={settings.paddingTop ?? 0}
-              right={settings.paddingRight ?? 8}
-              bottom={settings.paddingBottom ?? 0}
-              left={settings.paddingLeft ?? 8}
-              onTopChange={(v) => update({ paddingTop: v })}
-              onRightChange={(v) => update({ paddingRight: v })}
-              onBottomChange={(v) => update({ paddingBottom: v })}
-              onLeftChange={(v) => update({ paddingLeft: v })}
+            <TwoWayPadding
+              vertical={settings.paddingVertical ?? 0}
+              horizontal={settings.paddingHorizontal ?? 8}
+              onVerticalChange={(v) => update({ paddingVertical: v })}
+              onHorizontalChange={(v) => update({ paddingHorizontal: v })}
             />
           ) : (
             <NumberInput
@@ -286,10 +256,10 @@ export function InfoColumnSection() {
             </Select>
           </SettingRow>
 
-          {/* Font styling: weight, size, color in 3-col grid */}
+          {/* Font styling: weight+italic, size, color in grid */}
           <div className="space-y-1.5">
             <span className="text-xs text-gray-600 font-medium">Font styling</span>
-            <div className="grid grid-cols-3 gap-1.5 items-end">
+            <div className="grid grid-cols-[1fr_auto_1fr_auto] gap-1.5 items-end">
               <Select
                 value={String(settings.fontWeight)}
                 onValueChange={(v) => update({ fontWeight: v as FontWeight })}
@@ -305,6 +275,18 @@ export function InfoColumnSection() {
                   <SelectItem value="700" className="text-xs">Bold</SelectItem>
                 </SelectContent>
               </Select>
+              <button
+                type="button"
+                onClick={() => update({ fontStyle: (settings.fontStyle ?? 'normal') === 'normal' ? 'italic' : 'normal' })}
+                className={`h-8 w-8 flex items-center justify-center rounded-md border text-xs font-serif italic shrink-0 ${
+                  (settings.fontStyle ?? 'normal') === 'italic'
+                    ? 'bg-blue-50 border-blue-300 text-blue-600'
+                    : 'border-gray-300 text-gray-500 hover:bg-gray-50'
+                }`}
+                title="Italic"
+              >
+                I
+              </button>
               <div className="flex items-center gap-1">
                 <Input
                   type="number"
@@ -550,15 +532,11 @@ export function InfoColumnSection() {
                   </SettingRow>
 
                   {settings.icon.customPadding && (
-                    <FourWayPadding
-                      top={settings.icon.paddingTop ?? 0}
-                      right={settings.icon.paddingRight ?? 0}
-                      bottom={settings.icon.paddingBottom ?? 0}
-                      left={settings.icon.paddingLeft ?? 0}
-                      onTopChange={(v) => update({ icon: { ...settings.icon, paddingTop: v } })}
-                      onRightChange={(v) => update({ icon: { ...settings.icon, paddingRight: v } })}
-                      onBottomChange={(v) => update({ icon: { ...settings.icon, paddingBottom: v } })}
-                      onLeftChange={(v) => update({ icon: { ...settings.icon, paddingLeft: v } })}
+                    <TwoWayPadding
+                      vertical={settings.icon.paddingVertical ?? 0}
+                      horizontal={settings.icon.paddingHorizontal ?? 0}
+                      onVerticalChange={(v) => update({ icon: { ...settings.icon, paddingVertical: v } })}
+                      onHorizontalChange={(v) => update({ icon: { ...settings.icon, paddingHorizontal: v } })}
                     />
                   )}
 

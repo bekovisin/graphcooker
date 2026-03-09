@@ -331,7 +331,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
     }
     const iconSpace = info.icon.show ? info.icon.size + 4 : 0;
     const hPad = info.customPadding
-      ? (info.paddingLeft ?? 8) + (info.paddingRight ?? 8)
+      ? (info.paddingHorizontal ?? 8) * 2
       : info.padding * 2;
     return maxW + iconSpace + hPad;
   }, [info, infoValues, categories, nf]);
@@ -1021,36 +1021,34 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const rowLs = info.perRowLetterSpacings[cat] ?? info.letterSpacing;
                 const rowPad = info.perRowPaddings[cat] ?? info.padding;
 
-                // Horizontal padding: custom 4-way or simple
-                const padLeft = info.customPadding ? (info.paddingLeft ?? 8) : rowPad;
-                const padRight = info.customPadding ? (info.paddingRight ?? 8) : rowPad;
+                // Horizontal padding: custom 2-way or simple
+                const padH = info.customPadding ? (info.paddingHorizontal ?? 8) : rowPad;
 
                 let infoX: number;
                 let infoAnchor: 'start' | 'end';
 
                 if (info.position === 'left') {
-                  infoX = padding.left - yAxisLabelWidth - tickPadding - padLeft;
+                  infoX = padding.left - yAxisLabelWidth - tickPadding - padH;
                   infoAnchor = 'end';
                 } else {
                   // Right side: after outside labels
-                  infoX = padding.left + plotWidth + outsideLabelWidth + padRight;
+                  infoX = padding.left + plotWidth + outsideLabelWidth + padH;
                   infoAnchor = 'start';
                 }
 
-                // Vertical padding: custom 4-way or legacy verticalPadding
-                const padTop = info.customPadding ? (info.paddingTop ?? 0) : (info.verticalPadding ?? 0);
-                const padBot = info.customPadding ? (info.paddingBottom ?? 0) : (info.verticalPadding ?? 0);
+                // Vertical padding: custom 2-way or legacy verticalPadding
+                const padV = info.customPadding ? (info.paddingVertical ?? 0) : (info.verticalPadding ?? 0);
                 const vAlign = info.verticalAlignment ?? 'center';
                 let infoTextY: number;
                 let infoDy: string;
                 if (vAlign === 'top') {
-                  infoTextY = barY + padTop;
+                  infoTextY = barY + padV;
                   infoDy = '0.85em';
                 } else if (vAlign === 'bottom') {
-                  infoTextY = barY + barHeight + padBot;
+                  infoTextY = barY + barHeight - padV;
                   infoDy = '-0.15em';
                 } else {
-                  infoTextY = barY + barHeight / 2 + padTop;
+                  infoTextY = barY + barHeight / 2 + padV;
                   infoDy = '0.35em';
                 }
                 const iconSize = info.icon.size;
@@ -1063,11 +1061,10 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const iconVerticalOffset = (dyValue - 0.35) * rowFs;
                 let iconY = infoTextY + iconVerticalOffset - iconSize / 2;
                 // Apply icon custom padding
-                const iconPadT = info.icon.customPadding ? (info.icon.paddingTop ?? 0) : 0;
-                const iconPadL = info.icon.customPadding ? (info.icon.paddingLeft ?? 0) : 0;
-                const iconPadR = info.icon.customPadding ? (info.icon.paddingRight ?? 0) : 0;
-                iconY += iconPadT;
-                const iconBaseX = infoAnchor === 'start' ? infoX + iconPadL : infoX - iconSize - iconPadR;
+                const iconPadV = info.icon.customPadding ? (info.icon.paddingVertical ?? 0) : 0;
+                const iconPadH = info.icon.customPadding ? (info.icon.paddingHorizontal ?? 0) : 0;
+                iconY += iconPadV;
+                const iconBaseX = infoAnchor === 'start' ? infoX + iconPadH : infoX - iconSize - iconPadH;
 
                 return (
                   <>
@@ -1082,7 +1079,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
                     {/* Info text */}
                     <text
-                      x={infoAnchor === 'start' ? infoX + iconSpace + iconPadL : infoX - iconSpace - iconPadR}
+                      x={infoAnchor === 'start' ? infoX + iconSpace + iconPadH : infoX - iconSpace - iconPadH}
                       y={infoTextY}
                       dy={infoDy}
                       textAnchor={infoAnchor}
@@ -1090,6 +1087,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                         fontSize: rowFs,
                         fontFamily: rowFf,
                         fontWeight: fontWeightToCSS(rowFw),
+                        fontStyle: info.fontStyle ?? 'normal',
                         fill: rowColor,
                         letterSpacing: rowLs !== 0 ? `${rowLs}px` : undefined,
                         pointerEvents: 'none',
