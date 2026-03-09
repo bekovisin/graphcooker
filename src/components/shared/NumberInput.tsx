@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { useCallback } from 'react';
 
 interface NumberInputProps {
-  label: string;
+  label?: string;
   value: number;
   onChange: (value: number) => void;
   min?: number;
@@ -13,9 +13,10 @@ interface NumberInputProps {
   step?: number;
   arrowStep?: number;
   suffix?: string;
+  className?: string;
 }
 
-export function NumberInput({ label, value, onChange, min, max, step = 1, arrowStep, suffix }: NumberInputProps) {
+export function NumberInput({ label, value, onChange, min, max, step = 1, arrowStep, suffix, className }: NumberInputProps) {
   const clamp = useCallback((num: number) => {
     return Math.max(min ?? -Infinity, Math.min(max ?? Infinity, num));
   }, [min, max]);
@@ -32,7 +33,7 @@ export function NumberInput({ label, value, onChange, min, max, step = 1, arrowS
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-gray-500">{label}</Label>
+      {label && <Label className="text-xs text-gray-500">{label}</Label>}
       <div className="flex items-center gap-1">
         <Input
           type="number"
@@ -47,7 +48,7 @@ export function NumberInput({ label, value, onChange, min, max, step = 1, arrowS
           min={min}
           max={max}
           step={arrowStep ? arrowStep : step}
-          className="h-8 text-xs w-full"
+          className={className || "h-8 text-xs w-full"}
         />
         {suffix && <span className="text-xs text-gray-400 shrink-0">{suffix}</span>}
       </div>

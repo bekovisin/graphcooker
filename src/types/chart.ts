@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2';
+export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';
@@ -664,6 +664,119 @@ export interface BarBackgroundSettings {
   opacity: number;
 }
 
+// ===== BAR CHART STACKED-2 (ELECTION) SETTINGS =====
+
+export type ElectionSegmentAlign = 'left' | 'center' | 'right';
+export type ElectionLabelPosition = 'above_bar' | 'below_bar' | 'hidden';
+
+export interface ElectionPerRowTextStyle {
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: FontWeight;
+  fontStyle: FontStyle;
+  color: string;
+  letterSpacing: number;
+}
+
+export interface ElectionPerRowPrefixSettings {
+  show: boolean;
+  text: string;
+  position: 'left' | 'right';
+  fontSize: number;
+  fontWeight: FontWeight;
+  color: string;
+  padding: number;
+  paddingTop: number;
+  paddingBottom: number;
+  verticalAlign: 'bottom' | 'center' | 'top';
+}
+
+export interface ElectionPerRowNumberFormat {
+  decimalPlaces: number;
+  thousandsSeparator: ThousandsSeparator;
+  decimalSeparator: DecimalSeparator;
+  prefix: string;
+  suffix: string;
+  showTrailingZeros: boolean;
+}
+
+export interface ElectionRowImageSide {
+  show: boolean;
+  url: string;
+  width: number;
+  height: number;
+  borderRadius: number;
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+}
+
+export interface ElectionBarSettings {
+  // Bar layout
+  barHeight: number;
+  spacingBetweenSegments: number;
+  barOpacity: number;
+  manualPlotWidth: boolean;
+  manualPlotWidthValue: number;
+  outline: boolean;
+  outlineColor: string;
+  outlineWidth: number;
+
+  // Data points
+  showDataPoints: boolean;
+  defaultDataPointStyle: ElectionPerRowTextStyle;
+  perRowDataPointStyles: Record<string, Partial<ElectionPerRowTextStyle>>;
+  perRowDataPointAlign: Record<string, ElectionSegmentAlign>;
+  dataPointPaddingTop: number;
+  dataPointPaddingRight: number;
+  dataPointPaddingBottom: number;
+  dataPointPaddingLeft: number;
+  perRowDataPointPadding: Record<string, { top: number; right: number; bottom: number; left: number }>;
+
+  // Prefix per row
+  defaultPrefix: ElectionPerRowPrefixSettings;
+  perRowPrefixSettings: Record<string, Partial<ElectionPerRowPrefixSettings>>;
+
+  // Segment labels (bar labels)
+  defaultLabelPosition: ElectionLabelPosition;
+  defaultLabelAlign: 'left' | 'center' | 'right';
+  defaultLabelStyle: ElectionPerRowTextStyle;
+  perRowLabelPosition: Record<string, ElectionLabelPosition>;
+  perRowLabelAlign: Record<string, 'left' | 'center' | 'right'>;
+  perRowLabelStyles: Record<string, Partial<ElectionPerRowTextStyle>>;
+
+  // Legend control
+  legendVisibleRows: Record<string, boolean>;
+
+  // Data points info (below bar)
+  showDataPointsInfo: boolean;
+  defaultInfoStyle: ElectionPerRowTextStyle;
+  perRowInfoVisible: Record<string, boolean>;
+  perRowInfoStyles: Record<string, Partial<ElectionPerRowTextStyle>>;
+  infoPaddingTop: number;
+
+  // Number formatting (data points)
+  defaultNumberFormat: ElectionPerRowNumberFormat;
+  perRowNumberFormat: Record<string, Partial<ElectionPerRowNumberFormat>>;
+
+  // Number formatting (info)
+  defaultInfoNumberFormat: ElectionPerRowNumberFormat;
+  perRowInfoNumberFormat: Record<string, Partial<ElectionPerRowNumberFormat>>;
+
+  // Left/right images
+  leftImage: {
+    show: boolean;
+    defaultSettings: ElectionRowImageSide;
+    perRowSettings: Record<string, Partial<ElectionRowImageSide>>;
+  };
+  rightImage: {
+    show: boolean;
+    defaultSettings: ElectionRowImageSide;
+    perRowSettings: Record<string, Partial<ElectionRowImageSide>>;
+  };
+}
+
 // ===== MASTER SETTINGS OBJECT =====
 export interface ChartSettings {
   chartType: ChartTypeSettings;
@@ -691,6 +804,7 @@ export interface ChartSettings {
   infoColumn: InfoColumnSettings;
   barBackground: BarBackgroundSettings;
   rowImages: RowImagesSettings;
+  electionBar: ElectionBarSettings;
 }
 
 // ===== PREVIEW STATE (persisted in columnMapping) =====

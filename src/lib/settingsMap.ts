@@ -278,6 +278,24 @@ export const settingsMap: SettingsSection[] = [
     ],
   },
   {
+    id: 'election-bar',
+    title: 'Election bar',
+    settings: [
+      { key: 'barHeight', label: 'Bar height' },
+      { key: 'spacingBetweenSegments', label: 'Spacing between segments' },
+      { key: 'barOpacity', label: 'Bar opacity' },
+      { key: 'manualPlotWidth', label: 'Manual plot width' },
+      { key: 'outline', label: 'Outline' },
+      { key: 'showDataPoints', label: 'Data points' },
+      { key: 'prefix', label: 'Prefix' },
+      { key: 'labels', label: 'Segment labels' },
+      { key: 'showDataPointsInfo', label: 'Data points info' },
+      { key: 'numberFormat', label: 'Number formatting' },
+      { key: 'images', label: 'Images' },
+      { key: 'legendRows', label: 'Legend rows' },
+    ],
+  },
+  {
     id: 'bar-background',
     title: 'Bar background',
     settings: [

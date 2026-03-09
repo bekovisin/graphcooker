@@ -3,8 +3,16 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { getPaletteColors, extendColors } from '@/lib/chart/palettes';
 import { LUCIDE_ICONS } from '@/lib/chart/lucideIconData';
+import {
+  resolveColors,
+  formatNumber,
+  getContrastColor,
+  fontWeightToCSS,
+  measureTextWidth,
+  truncateText,
+  wrapText,
+} from '@/lib/chart/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface TooltipState {
@@ -29,115 +37,6 @@ interface BarChartCustom2Props {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────
-function parseCustomOverrides(overrides: string): Record<string, string> {
-  const map: Record<string, string> = {};
-  if (!overrides.trim()) return map;
-  overrides.split('\n').forEach((line) => {
-    const [key, value] = line.split(':').map((s) => s.trim());
-    if (key && value) map[key] = value;
-  });
-  return map;
-}
-
-function resolveColors(colorsSettings: ChartSettings['colors'], names: string[]): string[] {
-  let colors = getPaletteColors(colorsSettings.palette, colorsSettings.customPaletteColors);
-  if (colorsSettings.extend) {
-    colors = extendColors(colors, Math.max(names.length, colors.length));
-  }
-  const overrides = parseCustomOverrides(colorsSettings.customOverrides);
-  return names.map((name, i) => overrides[name] || colors[i % colors.length]);
-}
-
-function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number, thousandsOverride?: string, decimalSepOverride?: string, prefixOverride?: string, suffixOverride?: string): string {
-  const decimals = decimalOverride !== undefined ? decimalOverride : nf.decimalPlaces;
-  const factor = Math.pow(10, decimals);
-  const adjusted = nf.roundDecimal !== false
-    ? Math.round(value * factor) / factor
-    : Math.trunc(value * factor) / factor;
-  let str = adjusted.toFixed(decimals);
-  if (!nf.showTrailingZeros && str.includes('.')) {
-    str = str.replace(/0+$/, '').replace(/\.$/, '');
-  }
-  const [intPart, decPart] = str.split('.');
-  let formattedInt = intPart;
-  const tSep = thousandsOverride !== undefined ? thousandsOverride : nf.thousandsSeparator;
-  if (tSep !== 'none') {
-    formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, tSep);
-  }
-  const dSep = decimalSepOverride !== undefined ? decimalSepOverride : nf.decimalSeparator;
-  str = decPart ? `${formattedInt}${dSep}${decPart}` : formattedInt;
-  const px = prefixOverride !== undefined ? prefixOverride : nf.prefix;
-  const sx = suffixOverride !== undefined ? suffixOverride : nf.suffix;
-  return `${px}${str}${sx}`;
-}
-
-function getContrastColor(hexColor: string): string {
-  const hex = hexColor.replace('#', '');
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 128 ? '#000000' : '#ffffff';
-}
-
-function fontWeightToCSS(fw: string): number {
-  if (fw === 'bold') return 700;
-  if (fw === '900') return 900;
-  if (fw === '800') return 800;
-  if (fw === '600') return 600;
-  if (fw === '500') return 500;
-  if (fw === '300') return 300;
-  if (fw === '200') return 200;
-  if (fw === '100') return 100;
-  return 400;
-}
-
-let _measureCanvas: HTMLCanvasElement | null = null;
-function measureTextWidth(text: string, fontSize: number, fontFamily: string, fontWeight: string): number {
-  if (typeof document === 'undefined') return text.length * fontSize * 0.6;
-  if (!_measureCanvas) _measureCanvas = document.createElement('canvas');
-  const ctx = _measureCanvas.getContext('2d');
-  if (!ctx) return text.length * fontSize * 0.6;
-  ctx.font = `${fontWeightToCSS(fontWeight)} ${fontSize}px ${fontFamily}`;
-  return ctx.measureText(text).width;
-}
-
-function truncateText(text: string, maxWidth: number, fontSize: number, fontFamily: string, fontWeight: string): string {
-  const fullWidth = measureTextWidth(text, fontSize, fontFamily, fontWeight);
-  if (fullWidth <= maxWidth) return text;
-  const ellipsis = '...';
-  const ellipsisW = measureTextWidth(ellipsis, fontSize, fontFamily, fontWeight);
-  let truncated = text;
-  while (truncated.length > 0) {
-    truncated = truncated.slice(0, -1);
-    if (measureTextWidth(truncated, fontSize, fontFamily, fontWeight) + ellipsisW <= maxWidth) {
-      return truncated + ellipsis;
-    }
-  }
-  return ellipsis;
-}
-
-function wrapText(text: string, maxWidth: number, fontSize: number, fontFamily: string, fontWeight: string): string[] {
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = '';
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const testWidth = measureTextWidth(testLine, fontSize, fontFamily, fontWeight);
-    if (testWidth > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-  if (currentLine) lines.push(currentLine);
-  for (let i = 0; i < lines.length; i++) {
-    lines[i] = truncateText(lines[i], maxWidth, fontSize, fontFamily, fontWeight);
-  }
-  return lines.length > 0 ? lines : [truncateText(text, maxWidth, fontSize, fontFamily, fontWeight)];
-}
-
 function generateNiceTicks(min: number, max: number, desiredCount: number = 5): number[] {
   if (max <= min) return [0];
   const range = max - min;

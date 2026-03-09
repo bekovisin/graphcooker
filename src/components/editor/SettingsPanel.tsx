@@ -32,6 +32,7 @@ import { BarRowBordersSection } from '@/components/settings/BarRowBordersSection
 import { ConnectorBorderSection } from '@/components/settings/ConnectorBorderSection';
 import { InfoColumnSection } from '@/components/settings/InfoColumnSection';
 import { RowImagesSection } from '@/components/settings/RowImagesSection';
+import { ElectionBarSection } from '@/components/settings/ElectionBarSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
@@ -80,6 +81,19 @@ const barCustom2Sections = [
   { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
 ];
 
+const electionSections = [
+  { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'colors', title: 'Colors', Component: ColorsSection },
+  { id: 'election-bar', title: 'Election bar', Component: ElectionBarSection },
+  { id: 'legend', title: 'Legend', Component: LegendSection },
+  { id: 'animations', title: 'Animations', Component: AnimationsSection },
+  { id: 'layout', title: 'Layout', Component: LayoutSection },
+  { id: 'question', title: 'Question', Component: QuestionSection },
+  { id: 'header', title: 'Header', Component: HeaderSection },
+  { id: 'footer', title: 'Footer', Component: FooterSection },
+  { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
+];
+
 const lineSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
   { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
@@ -111,7 +125,9 @@ export function SettingsPanel() {
     ? lineSections
     : chartType === 'bar_chart_custom_2'
       ? barCustom2Sections
-      : barSections;
+      : chartType === 'bar_stacked_2'
+        ? electionSections
+        : barSections;
   const activePreset = presets.find((p) => p.id === activePresetId);
 
   // Filter by search query first

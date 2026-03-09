@@ -7,6 +7,7 @@ import { CustomBarChart } from '@/components/chart/CustomBarChart';
 import { GroupedBarChart } from '@/components/chart/GroupedBarChart';
 import { LineChart } from '@/components/chart/LineChart';
 import { BarChartCustom2 } from '@/components/chart/BarChartCustom2';
+import { BarChartElection } from '@/components/chart/BarChartElection';
 import type { QuestionSettings } from '@/types/chart';
 
 const deviceWidths: Record<string, string> = {
@@ -156,6 +157,16 @@ export function ChartPreview() {
             />
           ) : settings.chartType.chartType === 'bar_chart_custom_2' ? (
             <BarChartCustom2
+              data={data}
+              columnMapping={columnMapping}
+              settings={settings}
+              width={chartAreaWidth}
+              height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+              columnOrder={columnOrder}
+              seriesNames={seriesNames}
+            />
+          ) : settings.chartType.chartType === 'bar_stacked_2' ? (
+            <BarChartElection
               data={data}
               columnMapping={columnMapping}
               settings={settings}

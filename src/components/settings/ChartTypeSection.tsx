@@ -24,6 +24,7 @@ const chartTypeOptions: { value: ChartType; label: string }[] = [
   { value: 'bar_stacked_custom', label: 'Bar chart stacked (custom)' },
   { value: 'bar_grouped', label: 'Bar chart grouped' },
   { value: 'bar_chart_custom_2', label: 'Bar chart custom 2' },
+  { value: 'bar_stacked_2', label: 'Bar chart stacked 2 (Election)' },
   { value: 'line_chart', label: 'Line chart' },
 ];
 
