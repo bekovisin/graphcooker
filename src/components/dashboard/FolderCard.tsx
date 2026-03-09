@@ -17,7 +17,7 @@ import { getDescendantIds } from '@/lib/folder-utils';
 interface FolderItem {
   id: number;
   name: string;
-  parentId?: number | null;
+  parentId: number | null;
 }
 
 interface FolderCardProps {

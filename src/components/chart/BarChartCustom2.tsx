@@ -1,10 +1,9 @@
 'use client';
 
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { ChartSettings, ColumnMapping, FontWeight } from '@/types/chart';
+import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { getPaletteColors, extendColors } from '@/lib/chart/palettes';
-import { icons as lucideIcons } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface TooltipState {
@@ -165,15 +164,6 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
   return ticks;
 }
 
-/** Get Lucide icon SVG path data */
-function getLucideIconPaths(iconName: string): Array<[string, Record<string, string>]> | null {
-  const iconDef = (lucideIcons as Record<string, unknown>)[iconName] as unknown;
-  if (!iconDef) return null;
-  // lucide-react icons are React components; we need to extract path data
-  // We'll use a curated set of common icon paths instead
-  return null;
-}
-
 // Common Lucide icon SVG paths (pre-extracted for inline SVG rendering)
 const LUCIDE_ICON_PATHS: Record<string, string> = {
   'circle': 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z',
@@ -201,7 +191,7 @@ function getDashArray(style: string, dashLength: number, width: number): string 
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function BarChartCustom2({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation }: BarChartCustom2Props) {
+export function BarChartCustom2({ data, columnMapping, settings, width, height: heightProp, skipAnimation }: BarChartCustom2Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', value: 0, color: '' });
   const [animProgress, setAnimProgress] = useState(skipAnimation || !settings.animations.enabled ? 1 : 0);
@@ -261,8 +251,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       ? resolvedColors
       : cats.map(() => resolvedColors[0] || '#6366f1');
 
-    let maxV = Math.max(0, ...vals);
-    let minV = Math.min(0, ...vals);
+    const maxV = Math.max(0, ...vals);
+    const minV = Math.min(0, ...vals);
 
     const userMin = settings.xAxis.min ? parseFloat(settings.xAxis.min) : undefined;
     const userMax = settings.xAxis.max ? parseFloat(settings.xAxis.max) : undefined;
@@ -494,8 +484,6 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
   const chartBottom = chartTop + totalBarsHeight;
   const xAxisYPos = xAxisOnTop ? chartTop : chartBottom;
   const xAxisTickDir = xAxisOnTop ? -1 : 1;
-
-  const yLabelMaxWidth = yAxisLabelWidth - 4;
 
   const bgOpacity = (settings.layout.backgroundOpacity ?? 100) / 100;
   const bgColor = settings.layout.backgroundColor || 'transparent';
