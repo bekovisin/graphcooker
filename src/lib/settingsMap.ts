@@ -343,6 +343,7 @@ export const settingsMap: SettingsSection[] = [
     title: 'Row images',
     settings: [
       { key: 'show', label: 'Show row images' },
+      { key: 'imagePosition', label: 'Image position' },
       { key: 'defaultUrl', label: 'Default image URL' },
       { key: 'defaultWidth', label: 'Default width' },
       { key: 'defaultHeight', label: 'Default height' },

@@ -608,6 +608,7 @@ export interface InfoBorderSettings {
 
 export interface RowImagesSettings {
   show: boolean;
+  imagePosition: 'left' | 'right';
   defaultUrl: string;
   defaultWidth: number;
   defaultHeight: number;

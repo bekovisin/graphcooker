@@ -433,6 +433,7 @@ export const defaultChartSettings: ChartSettings = {
   },
   rowImages: {
     show: false,
+    imagePosition: 'right' as const,
     defaultUrl: '',
     defaultWidth: 24,
     defaultHeight: 24,

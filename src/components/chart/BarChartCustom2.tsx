@@ -876,16 +876,18 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const yLsDefault = settings.yAxis.labelLetterSpacing ?? 0;
                 const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
                 const yLsStyle = yLs !== 0 ? `${yLs}px` : undefined;
+                // When imagePosition is 'right', push labels away from bars to make room for images
+                const imgOffset = (ri.show && ri.imagePosition === 'right') ? rowImagesSpace : 0;
                 let labelX: number;
                 let anchor: 'start' | 'middle' | 'end';
                 if (yAxisRight) {
-                  const areaLeft = padding.left + plotWidth + tickPadding + 4;
+                  const areaLeft = padding.left + plotWidth + imgOffset + tickPadding + 4;
                   const areaRight = areaLeft + yAxisLabelWidth;
                   if (align === 'start') { labelX = areaLeft; anchor = 'start'; }
                   else if (align === 'center') { labelX = (areaLeft + areaRight) / 2; anchor = 'middle'; }
                   else { labelX = areaRight; anchor = 'end'; }
                 } else {
-                  const areaRight = padding.left - tickPadding - 4;
+                  const areaRight = padding.left - imgOffset - tickPadding - 4;
                   const areaLeft = areaRight - yAxisLabelWidth;
                   if (align === 'start') { labelX = areaLeft; anchor = 'start'; }
                   else if (align === 'center') { labelX = (areaLeft + areaRight) / 2; anchor = 'middle'; }
@@ -976,12 +978,25 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const iPadL = ri.customPadding ? ri.paddingLeft : 0;
 
                 let imgX: number;
-                if (yAxisRight) {
-                  // Right side: after Y labels
-                  imgX = padding.left + plotWidth + outsideLabelWidth + iPadL + 4;
-                } else {
-                  // Left side: between Y label and plot area
+                if (isAboveBars) {
+                  // Above bars: image left of bar (no Y labels to conflict)
                   imgX = padding.left - imgW - iPadR + iPadL;
+                } else if (yAxisRight) {
+                  if (ri.imagePosition === 'right') {
+                    // Between bars and labels (right side)
+                    imgX = padding.left + plotWidth + iPadL;
+                  } else {
+                    // After labels (further right)
+                    imgX = padding.left + plotWidth + rowImagesSpace - imgW + iPadL + yAxisLabelWidth + tickPadding + 4;
+                  }
+                } else {
+                  if (ri.imagePosition === 'right') {
+                    // Between labels and bars (in rowImagesSpace zone)
+                    imgX = padding.left - imgW - iPadR + iPadL;
+                  } else {
+                    // Left of labels (before label area)
+                    imgX = padding.left - rowImagesSpace - yAxisLabelWidth - tickPadding - 4 + iPadL;
+                  }
                 }
                 const imgY = barY + barHeight / 2 - imgH / 2 + iPadT - iPadB;
                 const clipId = `img-clip-${ci}`;
