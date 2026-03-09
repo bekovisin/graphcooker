@@ -411,8 +411,8 @@ export const defaultChartSettings: ChartSettings = {
       perRowIconNames: {},
       iconName: 'circle',
     },
-    borderLeft: { show: false, color: '#e0e0e0', width: 1, style: 'solid' as const },
-    borderRight: { show: false, color: '#e0e0e0', width: 1, style: 'solid' as const },
+    borderLeft: { show: false, color: '#e0e0e0', width: 1, style: 'solid' as const, padding: 0 },
+    borderRight: { show: false, color: '#e0e0e0', width: 1, style: 'solid' as const, padding: 0 },
   },
   barBackground: {
     show: false,

@@ -92,6 +92,7 @@ export function InfoColumnSection() {
   const [showPerRowDialog, setShowPerRowDialog] = useState(false);
   const [iconOpen, setIconOpen] = useState(false);
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [showPerRowIconDialog, setShowPerRowIconDialog] = useState(false);
   const [perRowIconPickerLabel, setPerRowIconPickerLabel] = useState<string | null>(null);
   const [borderLeftOpen, setBorderLeftOpen] = useState(false);
   const [borderRightOpen, setBorderRightOpen] = useState(false);
@@ -187,25 +188,27 @@ export function InfoColumnSection() {
             />
           </SettingRow>
 
-          <NumberInput
-            label="Letter spacing"
-            value={settings.letterSpacing}
-            onChange={(v) => update({ letterSpacing: v })}
-            min={-10}
-            max={20}
-            step={0.01}
-            suffix="px"
-          />
-
-          <NumberInput
-            label="Padding"
-            value={settings.padding}
-            onChange={(v) => update({ padding: v })}
-            min={0}
-            max={50}
-            step={1}
-            suffix="px"
-          />
+          {/* Letter spacing + Padding side by side */}
+          <div className="grid grid-cols-2 gap-2">
+            <NumberInput
+              label="Letter spacing"
+              value={settings.letterSpacing}
+              onChange={(v) => update({ letterSpacing: v })}
+              min={-10}
+              max={20}
+              step={0.1}
+              suffix="px"
+            />
+            <NumberInput
+              label="Padding"
+              value={settings.padding}
+              onChange={(v) => update({ padding: v })}
+              min={0}
+              max={50}
+              step={1}
+              suffix="px"
+            />
+          </div>
 
           {/* Per-row overrides button */}
           <button
@@ -300,7 +303,7 @@ export function InfoColumnSection() {
                             }
                           }}
                           className="h-7 text-xs w-full"
-                          step="0.01"
+                          step="0.1"
                           placeholder={String(settings.letterSpacing)}
                         />
                       </div>
@@ -372,29 +375,31 @@ export function InfoColumnSection() {
                     }
                   />
 
-                  <NumberInput
-                    label="Icon size"
-                    value={settings.icon.size}
-                    onChange={(v) =>
-                      update({ icon: { ...settings.icon, size: v } })
-                    }
-                    min={4}
-                    max={40}
-                    step={1}
-                    suffix="px"
-                  />
-
-                  <NumberInput
-                    label="Border width"
-                    value={settings.icon.borderWidth}
-                    onChange={(v) =>
-                      update({ icon: { ...settings.icon, borderWidth: v } })
-                    }
-                    min={0}
-                    max={5}
-                    step={0.5}
-                    suffix="px"
-                  />
+                  {/* Icon size + Border width side by side */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <NumberInput
+                      label="Icon size"
+                      value={settings.icon.size}
+                      onChange={(v) =>
+                        update({ icon: { ...settings.icon, size: v } })
+                      }
+                      min={4}
+                      max={40}
+                      step={1}
+                      suffix="px"
+                    />
+                    <NumberInput
+                      label="Border width"
+                      value={settings.icon.borderWidth}
+                      onChange={(v) =>
+                        update({ icon: { ...settings.icon, borderWidth: v } })
+                      }
+                      min={0}
+                      max={5}
+                      step={0.5}
+                      suffix="px"
+                    />
+                  </div>
 
                   <SettingRow label="Default color">
                     <ColorPicker
@@ -405,71 +410,88 @@ export function InfoColumnSection() {
                     />
                   </SettingRow>
 
-                  {/* Per-row icon settings */}
+                  {/* Per-row icon overrides button */}
                   {rowLabels.length > 0 && (
-                    <div className="space-y-1 mt-1">
-                      <Label className="text-[10px] text-gray-400 uppercase tracking-wider">
-                        Per-row icon overrides
-                      </Label>
-                      {rowLabels.map((label, i) => (
-                        <div key={label || i} className="space-y-1 p-1.5 rounded border border-gray-100">
-                          <span className="text-[10px] text-gray-500 truncate block">
-                            {label || `Row ${i + 1}`}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            {/* Per-row icon picker */}
-                            <button
-                              onClick={() => setPerRowIconPickerLabel(label)}
-                              className="flex items-center gap-1 h-6 px-1.5 text-[10px] border border-gray-200 rounded hover:bg-gray-50 shrink-0"
-                              title="Change icon"
-                            >
-                              <span className="shrink-0">
-                                {renderIconElements(
-                                  LUCIDE_ICONS[settings.icon.perRowIconNames?.[label] ?? settings.icon.iconName] || LUCIDE_ICONS['circle'],
-                                  12, '#374151', 2
-                                )}
-                              </span>
-                            </button>
-                            {/* Per-row icon color */}
-                            <ColorPicker
-                              value={
-                                settings.icon.perRowColors[label] ||
-                                settings.icon.defaultColor
-                              }
-                              onChange={(color) =>
+                    <button
+                      onClick={() => setShowPerRowIconDialog(true)}
+                      className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-gray-600 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                    >
+                      <Settings2 className="w-3.5 h-3.5" />
+                      Per-row icon overrides
+                    </button>
+                  )}
+
+                  {/* Per-row icon dialog */}
+                  <Dialog open={showPerRowIconDialog} onOpenChange={setShowPerRowIconDialog}>
+                    <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="text-sm">Per-row icon overrides</DialogTitle>
+                        <DialogDescription className="text-xs text-gray-500">
+                          Override the default icon and color for specific rows.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3 mt-2">
+                        {rowLabels.map((label, i) => (
+                          <div key={label || i} className="space-y-1.5 p-2 rounded-md border border-gray-100">
+                            <Label className="text-xs font-medium">{label || `Row ${i + 1}`}</Label>
+                            <div className="flex items-center gap-2">
+                              {/* Per-row icon picker */}
+                              <button
+                                onClick={() => setPerRowIconPickerLabel(label)}
+                                className="flex items-center gap-1 h-7 px-2 text-xs border border-gray-200 rounded-md hover:bg-gray-50 shrink-0"
+                                title="Change icon"
+                              >
+                                <span className="shrink-0">
+                                  {renderIconElements(
+                                    LUCIDE_ICONS[settings.icon.perRowIconNames?.[label] ?? settings.icon.iconName] || LUCIDE_ICONS['circle'],
+                                    14, '#374151', 2
+                                  )}
+                                </span>
+                                <span className="text-[10px] text-gray-500 truncate max-w-[80px]">
+                                  {settings.icon.perRowIconNames?.[label] ?? settings.icon.iconName}
+                                </span>
+                              </button>
+                              {/* Per-row icon color */}
+                              <ColorPicker
+                                value={
+                                  settings.icon.perRowColors[label] ||
+                                  settings.icon.defaultColor
+                                }
+                                onChange={(color) =>
+                                  update({
+                                    icon: {
+                                      ...settings.icon,
+                                      perRowColors: {
+                                        ...settings.icon.perRowColors,
+                                        [label]: color,
+                                      },
+                                    },
+                                  })
+                                }
+                              />
+                            </div>
+                            <LucideIconPicker
+                              open={perRowIconPickerLabel === label}
+                              onOpenChange={(open) => { if (!open) setPerRowIconPickerLabel(null); }}
+                              value={settings.icon.perRowIconNames?.[label] ?? settings.icon.iconName}
+                              onSelect={(name) => {
                                 update({
                                   icon: {
                                     ...settings.icon,
-                                    perRowColors: {
-                                      ...settings.icon.perRowColors,
-                                      [label]: color,
+                                    perRowIconNames: {
+                                      ...settings.icon.perRowIconNames,
+                                      [label]: name,
                                     },
                                   },
-                                })
-                              }
+                                });
+                                setPerRowIconPickerLabel(null);
+                              }}
                             />
                           </div>
-                          <LucideIconPicker
-                            open={perRowIconPickerLabel === label}
-                            onOpenChange={(open) => { if (!open) setPerRowIconPickerLabel(null); }}
-                            value={settings.icon.perRowIconNames?.[label] ?? settings.icon.iconName}
-                            onSelect={(name) => {
-                              update({
-                                icon: {
-                                  ...settings.icon,
-                                  perRowIconNames: {
-                                    ...settings.icon.perRowIconNames,
-                                    [label]: name,
-                                  },
-                                },
-                              });
-                              setPerRowIconPickerLabel(null);
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </>
               )}
             </>
@@ -512,6 +534,17 @@ export function InfoColumnSection() {
                     min={0.5}
                     max={5}
                     step={0.5}
+                    suffix="px"
+                  />
+                  <NumberInput
+                    label="Padding"
+                    value={settings.borderLeft.padding ?? 0}
+                    onChange={(v) =>
+                      update({ borderLeft: { ...settings.borderLeft, padding: v } })
+                    }
+                    min={-50}
+                    max={50}
+                    step={0.1}
                     suffix="px"
                   />
                   <SettingRow label="Style">
@@ -575,6 +608,17 @@ export function InfoColumnSection() {
                     min={0.5}
                     max={5}
                     step={0.5}
+                    suffix="px"
+                  />
+                  <NumberInput
+                    label="Padding"
+                    value={settings.borderRight.padding ?? 0}
+                    onChange={(v) =>
+                      update({ borderRight: { ...settings.borderRight, padding: v } })
+                    }
+                    min={-50}
+                    max={50}
+                    step={0.1}
                     suffix="px"
                   />
                   <SettingRow label="Style">

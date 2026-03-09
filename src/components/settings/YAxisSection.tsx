@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { ColorPicker } from '@/components/shared/ColorPicker';
@@ -14,6 +15,14 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/shared/NumberInput';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Settings2 } from 'lucide-react';
 import type {
   YAxisPosition,
   ScaleType,
@@ -161,7 +170,20 @@ export function YAxisSection() {
   const settings = useEditorStore((s) => s.settings.yAxis);
   const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const updateSettings = useEditorStore((s) => s.updateSettings);
+  const data = useEditorStore((s) => s.data);
+  const labelsColumn = useEditorStore((s) => s.columnMapping.labels);
   const isLineChart = chartType === 'line_chart';
+  const [showYLsModal, setShowYLsModal] = useState(false);
+
+  const categoryNames = useMemo(() => {
+    if (!labelsColumn || !data.length) return [];
+    const seen = new Set<string>();
+    return data.reduce<string[]>((acc, row) => {
+      const name = String(row[labelsColumn] || '');
+      if (name && !seen.has(name)) { seen.add(name); acc.push(name); }
+      return acc;
+    }, []);
+  }, [data, labelsColumn]);
 
   const update = (updates: Partial<YAxisSettings>) => {
     updateSettings('yAxis', updates);
@@ -741,16 +763,61 @@ export function YAxisSection() {
             onChange={(v) => update({ labelLetterSpacing: v })}
             min={-10}
             max={20}
-            step={0.01}
+            step={0.1}
             suffix="px"
           />
+          {categoryNames.length > 0 && (
+            <button
+              onClick={() => setShowYLsModal(true)}
+              className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-gray-600 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              Per-row letter spacing
+            </button>
+          )}
+          <Dialog open={showYLsModal} onOpenChange={setShowYLsModal}>
+            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-sm">Per-row Y-axis letter spacing</DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
+                  Override the default letter spacing for specific rows. Leave empty to use the default.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 mt-2">
+                {categoryNames.map((label) => (
+                  <div key={label} className="flex items-center gap-2 p-2 rounded-md border border-gray-100">
+                    <span className="text-xs font-medium min-w-[60px] truncate">{label}</span>
+                    <Input
+                      type="number"
+                      value={settings.perRowLabelLetterSpacings?.[label] ?? ''}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        if (!isNaN(v)) {
+                          update({
+                            perRowLabelLetterSpacings: {
+                              ...settings.perRowLabelLetterSpacings,
+                              [label]: v,
+                            },
+                          });
+                        }
+                      }}
+                      className="h-7 text-xs flex-1"
+                      step="0.1"
+                      placeholder={String(settings.labelLetterSpacing ?? 0)}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">px</span>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
           <NumberInput
             label="Label margin"
             value={settings.labelMargin ?? 0}
             onChange={(v) => update({ labelMargin: v })}
             min={-20}
             max={50}
-            step={0.01}
+            step={0.1}
             suffix="px"
           />
         </>

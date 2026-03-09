@@ -717,7 +717,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
               {!yAxisHidden && (() => {
                 // Compute label position based on labelTextAlign setting
                 const align = settings.yAxis.labelTextAlign ?? 'end';
-                const yLs = settings.yAxis.labelLetterSpacing ?? 0;
+                const yLsDefault = settings.yAxis.labelLetterSpacing ?? 0;
+                const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
                 const yLsStyle = yLs !== 0 ? `${yLs}px` : undefined;
                 let labelX: number;
                 let anchor: 'start' | 'middle' | 'end';
@@ -811,7 +812,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
               {settings.labels.showDataPointLabels && rawValue !== 0 && (() => {
                 const labelText = formatNumber(rawValue, nf);
                 const barEndX = padding.left + barStartX + barW;
-                const dpLs = settings.labels.dataPointLetterSpacing ?? 0;
+                const dpLsDefault = settings.labels.dataPointLetterSpacing ?? 0;
+                const dpLs = settings.labels.perRowDataPointLetterSpacings?.[cat] ?? dpLsDefault;
 
                 let labelX: number;
                 let anchor: 'start' | 'middle' | 'end';
@@ -860,9 +862,10 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     {connector.show && (labelPos === 'outside_right' || labelPos === 'fixed') && (() => {
                       let connX: number;
                       if (labelPos === 'fixed') {
-                        // Centered between bar end and label column start
-                        const labelColumnStart = padding.left + plotWidth + (settings.labels.outsideLabelPadding ?? 6);
-                        connX = (barEndX + labelColumnStart) / 2 + connector.paddingBar;
+                        // Fixed X for ALL rows: centered between plot right edge and label column start
+                        const plotRightEdge = padding.left + plotWidth;
+                        const labelColumnStart = plotRightEdge + (settings.labels.outsideLabelPadding ?? 6);
+                        connX = (plotRightEdge + labelColumnStart) / 2 + connector.paddingBar;
                       } else {
                         connX = barEndX + connector.paddingBar;
                       }
@@ -1005,30 +1008,36 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     </text>
 
                     {/* Info border (left side - between info and label) */}
-                    {info.position === 'left' && info.borderLeft.show && (
-                      <line
-                        x1={padding.left - yAxisLabelWidth - tickPadding - 2}
-                        y1={barY}
-                        x2={padding.left - yAxisLabelWidth - tickPadding - 2}
-                        y2={barY + barHeight}
-                        stroke={info.borderLeft.color}
-                        strokeWidth={info.borderLeft.width}
-                        strokeDasharray={getDashArray(info.borderLeft.style, 4, info.borderLeft.width)}
-                      />
-                    )}
+                    {info.position === 'left' && info.borderLeft.show && (() => {
+                      // Centered between y-axis labels end and info column start
+                      const yAxisEnd = padding.left - tickPadding;
+                      const infoEnd = padding.left - yAxisLabelWidth - tickPadding;
+                      const borderX = (yAxisEnd + infoEnd) / 2 + (info.borderLeft.padding ?? 0);
+                      return (
+                        <line
+                          x1={borderX} y1={barY} x2={borderX} y2={barY + barHeight}
+                          stroke={info.borderLeft.color}
+                          strokeWidth={info.borderLeft.width}
+                          strokeDasharray={getDashArray(info.borderLeft.style, 4, info.borderLeft.width)}
+                        />
+                      );
+                    })()}
 
-                    {/* Info border (right side - between data and info) */}
-                    {info.position === 'right' && info.borderRight.show && (
-                      <line
-                        x1={padding.left + plotWidth + outsideLabelWidth + 2}
-                        y1={barY}
-                        x2={padding.left + plotWidth + outsideLabelWidth + 2}
-                        y2={barY + barHeight}
-                        stroke={info.borderRight.color}
-                        strokeWidth={info.borderRight.width}
-                        strokeDasharray={getDashArray(info.borderRight.style, 4, info.borderRight.width)}
-                      />
-                    )}
+                    {/* Info border (right side - between data labels and info) */}
+                    {info.position === 'right' && info.borderRight.show && (() => {
+                      // Centered between data labels end and info column start
+                      const dataEnd = padding.left + plotWidth + outsideLabelWidth;
+                      const infoStart = dataEnd + rowPad;
+                      const borderX = (dataEnd + infoStart) / 2 + (info.borderRight.padding ?? 0);
+                      return (
+                        <line
+                          x1={borderX} y1={barY} x2={borderX} y2={barY + barHeight}
+                          stroke={info.borderRight.color}
+                          strokeWidth={info.borderRight.width}
+                          strokeDasharray={getDashArray(info.borderRight.style, 4, info.borderRight.width)}
+                        />
+                      );
+                    })()}
                   </>
                 );
               })()}

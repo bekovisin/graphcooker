@@ -132,6 +132,7 @@ export interface LabelsSettings {
   outsideLabelPadding: number;
   fixedLabelAlignment: 'start' | 'center' | 'end';
   dataPointLetterSpacing: number;
+  perRowDataPointLetterSpacings?: Record<string, number>;
   showPercentPrefix: boolean;
   percentPrefixFontSize: number;
   percentPrefixFontWeight: FontWeight;
@@ -323,6 +324,7 @@ export interface YAxisSettings {
   labelTextAlign?: 'start' | 'center' | 'end';
   labelLetterSpacing?: number;
   labelMargin?: number;
+  perRowLabelLetterSpacings?: Record<string, number>;
 }
 
 // Plot Background
@@ -590,6 +592,7 @@ export interface InfoBorderSettings {
   color: string;
   width: number;
   style: BorderLineStyle;
+  padding?: number;
 }
 
 export interface InfoColumnSettings {

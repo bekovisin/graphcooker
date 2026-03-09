@@ -78,7 +78,7 @@ export function ConnectorBorderSection() {
             onChange={(v) => update({ paddingBar: v })}
             min={-50}
             max={50}
-            step={0.01}
+            step={0.1}
             suffix="px"
           />
 
@@ -88,7 +88,7 @@ export function ConnectorBorderSection() {
             onChange={(v) => update({ paddingLabel: v })}
             min={-50}
             max={50}
-            step={0.01}
+            step={0.1}
             suffix="px"
           />
 
