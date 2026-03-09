@@ -457,17 +457,9 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
   // ── Bar sizing ──
   const spacingMain = settings.bars.spacingMain;
-  const barHeight = (() => {
-    if (heightProp && categories.length > 0) {
-      const nonBarSpace = padding.top + padding.bottom;
-      const availableForBars = heightProp - nonBarSpace;
-      const perCategory = availableForBars / categories.length;
-      return Math.max(4, perCategory - spacingMain);
-    }
-    return settings.bars.barHeight;
-  })();
 
-  // Above-bars label row heights (per-category)
+  // Above-bars label row heights (per-category) — computed before barHeight
+  // so fixed-height mode can account for label space
   const labelRowHeights = useMemo(() => {
     if (!isAboveBars) return categories.map(() => 0);
     const baseHeight = yTickStyle.fontSize + 8;
@@ -484,6 +476,17 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       return baseHeight;
     });
   }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, categories]);
+
+  const barHeight = (() => {
+    if (heightProp && categories.length > 0) {
+      const nonBarSpace = padding.top + padding.bottom;
+      const totalLabelHeight = labelRowHeights.reduce((sum, h) => sum + h, 0);
+      const availableForBars = heightProp - nonBarSpace - totalLabelHeight;
+      const perCategory = availableForBars / categories.length;
+      return Math.max(4, perCategory - spacingMain);
+    }
+    return settings.bars.barHeight;
+  })();
 
   // Category Y offsets
   const catYOffsets = useMemo(() => {

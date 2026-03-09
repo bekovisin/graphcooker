@@ -763,20 +763,21 @@ export async function renderChartOffscreen(
   const bottomExtra = (footerBlock?.height || 0) + (questionPosition === 'below' ? (questionBlock?.height || 0) : 0);
 
   // Chart-only height
+  const isAutoHeight = settings.chartType.heightMode === 'auto';
   const requestedHeight =
     options.height ||
-    (settings.chartType.heightMode === 'auto'
+    (isAutoHeight
       ? Math.max(300, data.length * 45 + 100)
       : settings.chartType.standardHeight) ||
     500;
   const chartHeight = requestedHeight - topExtra - bottomExtra;
 
-  // Create off-screen wrapper
-  const totalHeight = requestedHeight;
+  // Create off-screen wrapper — use large height for auto mode so chart isn't clipped
+  const initialHeight = isAutoHeight ? Math.max(requestedHeight, 5000) : requestedHeight;
   const wrapper = document.createElement('div');
   wrapper.style.cssText = `
     position: fixed; left: 0; top: 0;
-    width: ${width}px; height: ${totalHeight}px;
+    width: ${width}px; height: ${initialHeight}px;
     opacity: 0; z-index: -9999; pointer-events: none; overflow: hidden;
   `;
   document.body.appendChild(wrapper);
@@ -786,7 +787,7 @@ export async function renderChartOffscreen(
   container.id = 'offscreen-chart-container';
   const bgColor = options.transparent ? 'transparent' : (settings.layout.backgroundColor || '#ffffff');
   container.style.cssText = `
-    width: ${width}px; height: ${totalHeight}px;
+    width: ${width}px; height: ${initialHeight}px;
     background-color: ${bgColor};
     overflow: hidden;
     font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -825,6 +826,9 @@ export async function renderChartOffscreen(
         ? (await import('@/components/chart/BarChartCustom2')).BarChartCustom2
         : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
 
+  // When auto height, don't pass a fixed height — let the chart compute its own
+  const chartHeightProp = isAutoHeight ? undefined : (chartHeight > 0 ? chartHeight : undefined);
+
   const reactRoot = createRoot(container);
   reactRoot.render(
     React.createElement(ChartComponent, {
@@ -832,7 +836,7 @@ export async function renderChartOffscreen(
       columnMapping,
       settings: renderSettings,
       width: width > 0 ? width : 800,
-      height: chartHeight > 0 ? chartHeight : undefined,
+      height: chartHeightProp,
       columnOrder,
       seriesNames,
       skipAnimation: true,
@@ -843,6 +847,14 @@ export async function renderChartOffscreen(
   // ── Inject header / question / footer into the SVG ──
   const svgEl = container.querySelector('svg');
 
+  // For auto height, read the actual SVG height and resize container to fit
+  const actualChartHeight = svgEl ? parseFloat(svgEl.getAttribute('height') || String(chartHeight)) : chartHeight;
+  const totalHeight = isAutoHeight ? (actualChartHeight + topExtra + bottomExtra) : requestedHeight;
+  if (isAutoHeight) {
+    wrapper.style.height = `${totalHeight}px`;
+    container.style.height = `${totalHeight}px`;
+  }
+
   // Explicitly set overflow hidden so serialised SVG clips content outside
   // the viewport (e.g. x-axis ticks that extend beyond the chart area).
   if (svgEl) {
@@ -851,7 +863,7 @@ export async function renderChartOffscreen(
 
   if (svgEl && (topExtra > 0 || bottomExtra > 0)) {
     const svgW = parseFloat(svgEl.getAttribute('width') || String(width));
-    const svgH = parseFloat(svgEl.getAttribute('height') || String(chartHeight));
+    const svgH = parseFloat(svgEl.getAttribute('height') || String(actualChartHeight));
     const newH = svgH + topExtra + bottomExtra;
 
     // Expand SVG dimensions
