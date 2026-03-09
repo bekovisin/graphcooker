@@ -66,6 +66,7 @@ export const defaultChartSettings: ChartSettings = {
     aboveBarPaddingRight: 0,
     aboveBarPaddingBottom: 0,
     aboveBarPaddingLeft: 0,
+    barGroupVerticalOffset: 0,
     showDataPointLabels: false,
     dataPointFontSize: 12,
     dataPointFontFamily: 'Inter, sans-serif',

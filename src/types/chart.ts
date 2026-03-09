@@ -114,6 +114,7 @@ export interface LabelsSettings {
   aboveBarPaddingRight: number;
   aboveBarPaddingBottom: number;
   aboveBarPaddingLeft: number;
+  barGroupVerticalOffset: number;
   showDataPointLabels: boolean;
   dataPointFontSize: number;
   dataPointFontFamily: string;
@@ -566,6 +567,8 @@ export interface ConnectorBorderSettings {
   alignment: BorderAlignment;
   manualLength?: boolean;
   manualLengthValue?: number;
+  manualLengthTop?: number;
+  manualLengthBottom?: number;
 }
 
 export interface CustomPrefixSettings {
@@ -604,6 +607,8 @@ export interface InfoBorderSettings {
   padding?: number;
   manualLength?: boolean;
   manualLengthValue?: number;
+  manualLengthTop?: number;
+  manualLengthBottom?: number;
 }
 
 export interface RowImagesSettings {

@@ -79,15 +79,26 @@ export function ConnectorBorderSection() {
           </SettingRow>
 
           {settings.manualLength && (
-            <NumberInput
-              label="Length"
-              value={settings.manualLengthValue ?? 20}
-              onChange={(v) => update({ manualLengthValue: v })}
-              min={1}
-              max={200}
-              step={1}
-              suffix="px"
-            />
+            <>
+              <NumberInput
+                label="Length (top)"
+                value={settings.manualLengthTop ?? (settings.manualLengthValue ?? 20) / 2}
+                onChange={(v) => update({ manualLengthTop: v })}
+                min={0}
+                max={200}
+                step={1}
+                suffix="px"
+              />
+              <NumberInput
+                label="Length (bottom)"
+                value={settings.manualLengthBottom ?? (settings.manualLengthValue ?? 20) / 2}
+                onChange={(v) => update({ manualLengthBottom: v })}
+                min={0}
+                max={200}
+                step={1}
+                suffix="px"
+              />
+            </>
           )}
 
           <NumberInput

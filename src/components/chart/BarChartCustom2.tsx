@@ -727,6 +727,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
         {categories.map((cat, ci) => {
           const catY = chartTop + catYOffsets[ci];
           const barY = catY + labelRowHeights[ci];
+          const groupOffset = isAboveBars ? (settings.labels.barGroupVerticalOffset ?? 0) : 0;
+          const renderBarY = barY + groupOffset;
           const rawValue = values[ci];
           const value = rawValue * animProgress;
           const barW = Math.abs(xScale(Math.max(0, minVal) + Math.abs(value)) - xScale(Math.max(0, minVal)));
@@ -766,7 +768,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
               {barBg.show && (
                 <rect
                   x={padding.left}
-                  y={barY}
+                  y={renderBarY}
                   width={plotWidth}
                   height={barHeight}
                   fill={barBg.color}
@@ -778,7 +780,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
               {/* ── Actual bar ── */}
               <rect
                 x={padding.left + barStartX}
-                y={barY}
+                y={renderBarY}
                 width={Math.max(0, barW)}
                 height={barHeight}
                 fill={barColor}
@@ -799,7 +801,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   : padding.left;
                 const abPad = settings.labels;
                 const aboveX = aboveLabelX + (abPad.aboveBarPaddingLeft || 0) - (abPad.aboveBarPaddingRight || 0);
-                const aboveY = catY + yTickStyle.fontSize + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0);
+                const aboveY = catY + yTickStyle.fontSize + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0) + groupOffset;
 
                 const yLsDefault = settings.yAxis.labelLetterSpacing ?? 0;
                 const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
@@ -908,7 +910,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     }
                     const lineH = yTickStyle.fontSize * 1.2;
                     const totalH = displayLines.length * lineH;
-                    const startY = barY + barHeight / 2 - totalH / 2 + yTickStyle.fontSize * 0.35;
+                    const startY = renderBarY + barHeight / 2 - totalH / 2 + yTickStyle.fontSize * 0.35;
                     return displayLines.map((line, li) => (
                       <text
                         key={`ylabel-${ci}-${li}`}
@@ -931,7 +933,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   return (
                     <text
                       x={labelX}
-                      y={barY + barHeight / 2}
+                      y={renderBarY + barHeight / 2}
                       dy="0.35em"
                       textAnchor={anchor}
                       style={{
@@ -950,7 +952,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 return (
                   <text
                     x={labelX}
-                    y={barY + barHeight / 2}
+                    y={renderBarY + barHeight / 2}
                     dy="0.35em"
                     textAnchor={anchor}
                     style={{
@@ -998,7 +1000,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     imgX = padding.left - rowImagesSpace - yAxisLabelWidth - tickPadding - 4 + iPadL;
                   }
                 }
-                const imgY = barY + barHeight / 2 - imgH / 2 + iPadT - iPadB;
+                const imgY = renderBarY + barHeight / 2 - imgH / 2 + iPadT - iPadB;
                 const clipId = `img-clip-${ci}`;
                 const br = ri.borderRadius;
 
@@ -1081,7 +1083,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   ? ((labelPos === 'outside_right' || labelPos === 'fixed') ? '#333333' : getContrastColor(barColor))
                   : (settings.labels.dataPointSeriesColors[columnMapping.values[0]] || settings.labels.dataPointColor);
 
-                const labelCenterY = barY + barHeight / 2 + padOffsetY;
+                const labelCenterY = renderBarY + barHeight / 2 + padOffsetY;
 
                 return (
                   <>
@@ -1098,10 +1100,11 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                       // Vertical line - use manual length or full bar height
                       let connY1: number;
                       let connY2: number;
-                      if (connector.manualLength && connector.manualLengthValue !== undefined) {
+                      if (connector.manualLength) {
                         const centerY = barY + barHeight / 2;
-                        connY1 = centerY - connector.manualLengthValue / 2;
-                        connY2 = centerY + connector.manualLengthValue / 2;
+                        const fallback = (connector.manualLengthValue ?? barHeight) / 2;
+                        connY1 = centerY - (connector.manualLengthTop ?? fallback);
+                        connY2 = centerY + (connector.manualLengthBottom ?? fallback);
                       } else {
                         connY1 = barY;
                         connY2 = barY + barHeight;
@@ -1158,9 +1161,9 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                       const paddingTopVal = prefix.paddingTop || 0;
                       const paddingBottomVal = prefix.paddingBottom || 0;
                       if (vAlign === 'top') {
-                        prefixY = barY + prefixFs / 2 + paddingTopVal;
+                        prefixY = renderBarY + prefixFs / 2 + paddingTopVal;
                       } else if (vAlign === 'bottom') {
-                        prefixY = barY + barHeight - prefixFs / 2 - paddingBottomVal;
+                        prefixY = renderBarY + barHeight - prefixFs / 2 - paddingBottomVal;
                       }
 
                       return (
@@ -1215,13 +1218,13 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 let infoTextY: number;
                 let infoDy: string;
                 if (vAlign === 'top') {
-                  infoTextY = barY + padV;
+                  infoTextY = renderBarY + padV;
                   infoDy = '0.85em';
                 } else if (vAlign === 'bottom') {
-                  infoTextY = barY + barHeight - padV;
+                  infoTextY = renderBarY + barHeight - padV;
                   infoDy = '-0.15em';
                 } else {
-                  infoTextY = barY + barHeight / 2 + padV;
+                  infoTextY = renderBarY + barHeight / 2 + padV;
                   infoDy = '0.35em';
                 }
                 const iconSize = info.icon.size;
@@ -1275,10 +1278,11 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                       const infoEnd = padding.left - yAxisLabelWidth - tickPadding;
                       const borderX = (yAxisEnd + infoEnd) / 2 + (info.borderLeft.padding ?? 0);
                       let bY1: number, bY2: number;
-                      if (info.borderLeft.manualLength && info.borderLeft.manualLengthValue !== undefined) {
+                      if (info.borderLeft.manualLength) {
                         const centerY = barY + barHeight / 2;
-                        bY1 = centerY - info.borderLeft.manualLengthValue / 2;
-                        bY2 = centerY + info.borderLeft.manualLengthValue / 2;
+                        const fallback = (info.borderLeft.manualLengthValue ?? barHeight) / 2;
+                        bY1 = centerY - (info.borderLeft.manualLengthTop ?? fallback);
+                        bY2 = centerY + (info.borderLeft.manualLengthBottom ?? fallback);
                       } else {
                         bY1 = barY;
                         bY2 = barY + barHeight;
@@ -1299,10 +1303,11 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                       const infoStart = dataEnd + rowPad;
                       const borderX = (dataEnd + infoStart) / 2 + (info.borderRight.padding ?? 0);
                       let bY1: number, bY2: number;
-                      if (info.borderRight.manualLength && info.borderRight.manualLengthValue !== undefined) {
+                      if (info.borderRight.manualLength) {
                         const centerY = barY + barHeight / 2;
-                        bY1 = centerY - info.borderRight.manualLengthValue / 2;
-                        bY2 = centerY + info.borderRight.manualLengthValue / 2;
+                        const fallback = (info.borderRight.manualLengthValue ?? barHeight) / 2;
+                        bY1 = centerY - (info.borderRight.manualLengthTop ?? fallback);
+                        bY2 = centerY + (info.borderRight.manualLengthBottom ?? fallback);
                       } else {
                         bY1 = barY;
                         bY2 = barY + barHeight;

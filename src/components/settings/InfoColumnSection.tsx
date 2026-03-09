@@ -675,17 +675,30 @@ export function InfoColumnSection() {
                     />
                   </SettingRow>
                   {settings.borderLeft.manualLength && (
-                    <NumberInput
-                      label="Length"
-                      value={settings.borderLeft.manualLengthValue ?? 20}
-                      onChange={(v) =>
-                        update({ borderLeft: { ...settings.borderLeft, manualLengthValue: v } })
-                      }
-                      min={1}
-                      max={200}
-                      step={1}
-                      suffix="px"
-                    />
+                    <>
+                      <NumberInput
+                        label="Length (top)"
+                        value={settings.borderLeft.manualLengthTop ?? (settings.borderLeft.manualLengthValue ?? 20) / 2}
+                        onChange={(v) =>
+                          update({ borderLeft: { ...settings.borderLeft, manualLengthTop: v } })
+                        }
+                        min={0}
+                        max={200}
+                        step={1}
+                        suffix="px"
+                      />
+                      <NumberInput
+                        label="Length (bottom)"
+                        value={settings.borderLeft.manualLengthBottom ?? (settings.borderLeft.manualLengthValue ?? 20) / 2}
+                        onChange={(v) =>
+                          update({ borderLeft: { ...settings.borderLeft, manualLengthBottom: v } })
+                        }
+                        min={0}
+                        max={200}
+                        step={1}
+                        suffix="px"
+                      />
+                    </>
                   )}
                   <NumberInput
                     label="Padding"
@@ -770,17 +783,30 @@ export function InfoColumnSection() {
                     />
                   </SettingRow>
                   {settings.borderRight.manualLength && (
-                    <NumberInput
-                      label="Length"
-                      value={settings.borderRight.manualLengthValue ?? 20}
-                      onChange={(v) =>
-                        update({ borderRight: { ...settings.borderRight, manualLengthValue: v } })
-                      }
-                      min={1}
-                      max={200}
-                      step={1}
-                      suffix="px"
-                    />
+                    <>
+                      <NumberInput
+                        label="Length (top)"
+                        value={settings.borderRight.manualLengthTop ?? (settings.borderRight.manualLengthValue ?? 20) / 2}
+                        onChange={(v) =>
+                          update({ borderRight: { ...settings.borderRight, manualLengthTop: v } })
+                        }
+                        min={0}
+                        max={200}
+                        step={1}
+                        suffix="px"
+                      />
+                      <NumberInput
+                        label="Length (bottom)"
+                        value={settings.borderRight.manualLengthBottom ?? (settings.borderRight.manualLengthValue ?? 20) / 2}
+                        onChange={(v) =>
+                          update({ borderRight: { ...settings.borderRight, manualLengthBottom: v } })
+                        }
+                        min={0}
+                        max={200}
+                        step={1}
+                        suffix="px"
+                      />
+                    </>
                   )}
                   <NumberInput
                     label="Padding"

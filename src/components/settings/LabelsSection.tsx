@@ -1274,6 +1274,19 @@ export function LabelsSection() {
         </div>
       )}
 
+      {/* Bar group vertical offset — only when above_bars */}
+      {settings.barLabelStyle === 'above_bars' && (
+        <NumberInput
+          label="Bar group vertical offset"
+          value={settings.barGroupVerticalOffset ?? 0}
+          onChange={(v) => update({ barGroupVerticalOffset: v })}
+          min={-50}
+          max={50}
+          step={1}
+          suffix="px"
+        />
+      )}
+
       {/* DATA POINT LABELS */}
       <SubHeader>Data Point Labels</SubHeader>
 
