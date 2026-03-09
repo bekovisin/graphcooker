@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 import { DataRow } from '@/types/data';
-import { CellAddress, SelectionRange } from '@/components/editor/spreadsheet/types';
+import { CellAddress, ColumnTypeConfig, SelectionRange } from '@/components/editor/spreadsheet/types';
 import {
   normalizeRange,
   parseClipboardText,
@@ -12,6 +12,7 @@ import {
 interface UseSpreadsheetClipboardProps {
   data: DataRow[];
   columnOrder: string[];
+  columnTypes: Record<string, ColumnTypeConfig>;
   activeCell: CellAddress | null;
   selectionRange: SelectionRange | null;
   headerSelected: boolean;
@@ -24,6 +25,7 @@ interface UseSpreadsheetClipboardProps {
 export function useSpreadsheetClipboard({
   data,
   columnOrder,
+  columnTypes,
   activeCell,
   selectionRange,
   headerSelected,
@@ -134,24 +136,28 @@ export function useSpreadsheetClipboard({
       // Write paste data
       for (let r = 0; r < dataRows.length; r++) {
         for (let c = 0; c < dataRows[r].length; c++) {
-          const targetRow = startRow + r;
-          const targetCol = activeCell.col + c;
+          const targetRow: number = startRow + r;
+          const targetCol: number = activeCell.col + c;
           if (targetRow < newData.length && targetCol < newColumnOrder.length) {
             const colName = newColumnOrder[targetCol];
             const val = dataRows[r][c];
-            // Try to parse as number; fall back to comma→dot for decimal separator
-            let num = Number(val);
-            if (isNaN(num) && val.includes(',')) {
-              num = Number(val.replace(',', '.'));
+            // If column type is 'text', always store as string
+            if (columnTypes[colName]?.type === 'text') {
+              newData[targetRow][colName] = val;
+            } else {
+              let num = Number(val);
+              if (isNaN(num) && val.includes(',')) {
+                num = Number(val.replace(',', '.'));
+              }
+              newData[targetRow][colName] = val !== '' && !isNaN(num) ? num : val;
             }
-            newData[targetRow][colName] = val !== '' && !isNaN(num) ? num : val;
           }
         }
       }
 
       onDataChange(newData, newColumnOrder);
     },
-    [data, columnOrder, activeCell, headerSelected, onDataChange, setSeriesName, pushHistory]
+    [data, columnOrder, columnTypes, activeCell, headerSelected, onDataChange, setSeriesName, pushHistory]
   );
 
   const handleDelete = useCallback(() => {

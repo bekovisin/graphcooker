@@ -604,10 +604,13 @@ export interface InfoBorderSettings {
 }
 
 export type InfoDataType = 'number' | 'text';
+export type InfoVerticalAlignment = 'top' | 'center' | 'bottom';
 
 export interface InfoColumnSettings {
   show: boolean;
   position: InfoPosition;
+  verticalAlignment: InfoVerticalAlignment;
+  verticalPadding: number;
   fontSize: number;
   fontFamily: string;
   fontWeight: FontWeight;

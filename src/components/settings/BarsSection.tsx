@@ -89,7 +89,7 @@ export function BarsSection() {
         value={settings.barHeight}
         onChange={(v) => update({ barHeight: v })}
         min={4}
-        max={80}
+        max={160}
         step={1}
         suffix="px"
       />
@@ -100,7 +100,7 @@ export function BarsSection() {
         value={settings.spacingMain}
         onChange={(v) => update({ spacingMain: v })}
         min={0}
-        max={60}
+        max={100}
         step={1}
         suffix="px"
       />
@@ -122,7 +122,7 @@ export function BarsSection() {
         value={settings.emptyRowSpacing}
         onChange={(v) => update({ emptyRowSpacing: v })}
         min={0}
-        max={100}
+        max={200}
         step={1}
         suffix="px"
       />
@@ -133,7 +133,7 @@ export function BarsSection() {
         value={settings.bottomBarPadding}
         onChange={(v) => update({ bottomBarPadding: v })}
         min={-50}
-        max={100}
+        max={200}
         step={1}
         suffix="px"
       />

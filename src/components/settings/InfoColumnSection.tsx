@@ -29,6 +29,7 @@ import { LUCIDE_ICONS } from '@/lib/chart/lucideIconData';
 import type {
   InfoColumnSettings,
   InfoPosition,
+  InfoVerticalAlignment,
   InfoDataType,
   FontWeight,
   BorderLineStyle,
@@ -132,6 +133,33 @@ export function InfoColumnSection() {
               </SelectContent>
             </Select>
           </SettingRow>
+
+          <SettingRow label="Vertical alignment">
+            <Select
+              value={settings.verticalAlignment ?? 'center'}
+              onValueChange={(v) => update({ verticalAlignment: v as InfoVerticalAlignment })}
+            >
+              <SelectTrigger className="h-8 text-xs w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top" className="text-xs">Top</SelectItem>
+                <SelectItem value="center" className="text-xs">Center</SelectItem>
+                <SelectItem value="bottom" className="text-xs">Bottom</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+
+          <NumberInput
+            label="Vertical padding"
+            value={settings.verticalPadding ?? 0}
+            onChange={(v) => update({ verticalPadding: v })}
+            min={-50}
+            max={50}
+            step={0.01}
+            arrowStep={0.1}
+            suffix="px"
+          />
 
           <SettingRow label="Data type">
             <Select

@@ -35,6 +35,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     columnOrder,
     columnMapping,
     seriesNames,
+    columnTypes,
     setSeriesName,
     setDataAndColumns,
     insertRow,
@@ -72,6 +73,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
   const clipboard = useSpreadsheetClipboard({
     data,
     columnOrder,
+    columnTypes,
     activeCell: selection.activeCell,
     selectionRange: selection.selectionRange,
     headerSelected: selection.headerSelected,
@@ -182,12 +184,15 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     (row: number, col: number, value: string) => {
       pushHistory();
       const colName = columnOrder[col];
-      // Try parsing as number; fall back to comma→dot for locales using comma as decimal
-      let num = Number(value);
-      if (isNaN(num) && value.includes(',')) {
-        num = Number(value.replace(',', '.'));
+      let parsedValue: string | number = value;
+      // If column type is 'text', always store as string
+      if (columnTypes[colName]?.type !== 'text') {
+        let num = Number(value);
+        if (isNaN(num) && value.includes(',')) {
+          num = Number(value.replace(',', '.'));
+        }
+        parsedValue = value !== '' && !isNaN(num) ? num : value;
       }
-      const parsedValue = value !== '' && !isNaN(num) ? num : value;
       updateCell(row, colName, parsedValue);
       selection.stopEditing();
       refocusContainer();
@@ -196,7 +201,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
         selection.setActiveCell({ row: row + 1, col });
       }
     },
-    [pushHistory, columnOrder, updateCell, selection, rowCount, refocusContainer]
+    [pushHistory, columnOrder, columnTypes, updateCell, selection, rowCount, refocusContainer]
   );
 
   const handleCellEditCancel = useCallback(() => {

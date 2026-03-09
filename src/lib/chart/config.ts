@@ -392,6 +392,8 @@ export const defaultChartSettings: ChartSettings = {
   infoColumn: {
     show: false,
     position: 'right' as const,
+    verticalAlignment: 'center' as const,
+    verticalPadding: 0,
     fontSize: 12,
     fontFamily: 'Inter, sans-serif',
     fontWeight: 'normal' as const,

@@ -320,6 +320,8 @@ export const settingsMap: SettingsSection[] = [
     settings: [
       { key: 'show', label: 'Show info column' },
       { key: 'position', label: 'Position' },
+      { key: 'verticalAlignment', label: 'Vertical alignment' },
+      { key: 'verticalPadding', label: 'Vertical padding' },
       { key: 'fontSize', label: 'Font size' },
       { key: 'fontFamily', label: 'Font family' },
       { key: 'fontWeight', label: 'Font weight' },

@@ -1030,7 +1030,20 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   infoAnchor = 'start';
                 }
 
-                const infoCenterY = barY + barHeight / 2;
+                const vAlign = info.verticalAlignment ?? 'center';
+                const vPad = info.verticalPadding ?? 0;
+                let infoTextY: number;
+                let infoDy: string;
+                if (vAlign === 'top') {
+                  infoTextY = barY + vPad;
+                  infoDy = '0.85em';
+                } else if (vAlign === 'bottom') {
+                  infoTextY = barY + barHeight + vPad;
+                  infoDy = '-0.15em';
+                } else {
+                  infoTextY = barY + barHeight / 2 + vPad;
+                  infoDy = '0.35em';
+                }
                 const iconSize = info.icon.size;
                 const iconSpace = info.icon.show ? iconSize + 4 : 0;
                 const iconColor = info.icon.perRowColors[cat] ?? info.icon.defaultColor;
@@ -1040,7 +1053,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   <>
                     {/* Info icon */}
                     {info.icon.show && (
-                      <g transform={`translate(${infoAnchor === 'start' ? infoX : infoX - iconSize}, ${infoCenterY - iconSize / 2})`}>
+                      <g transform={`translate(${infoAnchor === 'start' ? infoX : infoX - iconSize}, ${infoTextY - iconSize / 2})`}>
                         <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={info.icon.borderWidth} strokeLinecap="round" strokeLinejoin="round">
                           {renderLucideIcon(rowIconName)}
                         </svg>
@@ -1050,8 +1063,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     {/* Info text */}
                     <text
                       x={infoAnchor === 'start' ? infoX + iconSpace : infoX - iconSpace}
-                      y={infoCenterY}
-                      dy="0.35em"
+                      y={infoTextY}
+                      dy={infoDy}
                       textAnchor={infoAnchor}
                       style={{
                         fontSize: rowFs,
