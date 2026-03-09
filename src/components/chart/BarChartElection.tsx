@@ -325,8 +325,10 @@ export function BarChartElection({
       ref={svgRef}
       width={width}
       height={chartHeight}
-      style={{ backgroundColor: `rgba(${parseInt(layout.backgroundColor.slice(1, 3), 16)}, ${parseInt(layout.backgroundColor.slice(3, 5), 16)}, ${parseInt(layout.backgroundColor.slice(5, 7), 16)}, ${layout.backgroundOpacity / 100})` }}
+      style={{ display: 'block' }}
     >
+      {/* Layout background */}
+      <rect x="0" y="0" width={width} height={chartHeight} fill={layout.backgroundColor === 'transparent' ? 'none' : layout.backgroundColor} fillOpacity={layout.backgroundOpacity / 100} />
       {/* ── Left Images ── */}
       {eb.leftImage.show && categories.map((cat, ci) => {
         const img = resolveImageSide(cat, eb.leftImage.perRowSettings, eb.leftImage.defaultSettings);
