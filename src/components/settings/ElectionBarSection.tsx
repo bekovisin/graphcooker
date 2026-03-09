@@ -118,7 +118,7 @@ function ImageUploader({
           <img src={value} alt="" className={compact ? 'h-8 rounded' : 'h-12 rounded'} />
           <button
             className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
-            onClick={() => onChange('')}
+            onClick={() => { onChange(''); if (inputRef.current) inputRef.current.value = ''; }}
           >
             <X className="w-3 h-3" />
           </button>
@@ -142,7 +142,7 @@ function ImageUploader({
           <span className="text-[10px] text-gray-400">Upload</span>
         </div>
       )}
-      <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+      <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { handleFile(f); e.target.value = ''; } }} />
       <Input
         value={value.startsWith('data:') ? '' : value}
         onChange={(e) => onChange(e.target.value)}
