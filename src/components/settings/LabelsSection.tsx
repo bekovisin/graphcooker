@@ -154,10 +154,10 @@ function CustomPrefixSubSection() {
                   value={customPrefix.fontSize}
                   onChange={(e) => {
                     const num = parseFloat(e.target.value);
-                    if (!isNaN(num)) updateCP({ fontSize: Math.max(6, Math.min(48, num)) });
+                    if (!isNaN(num)) updateCP({ fontSize: Math.max(6, Math.min(100, num)) });
                   }}
                   min={6}
-                  max={48}
+                  max={100}
                   step={1}
                   className="h-8 text-xs w-full"
                 />
@@ -729,10 +729,10 @@ export function LabelsSection() {
                         value={settings.dataPointFontSize}
                         onChange={(e) => {
                           const num = parseFloat(e.target.value);
-                          if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(48, num)) });
+                          if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(100, num)) });
                         }}
                         min={6}
-                        max={48}
+                        max={100}
                         step={1}
                         className="h-8 text-xs w-full"
                       />
@@ -1520,10 +1520,10 @@ export function LabelsSection() {
                   value={settings.dataPointFontSize}
                   onChange={(e) => {
                     const num = parseFloat(e.target.value);
-                    if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(48, num)) });
+                    if (!isNaN(num)) update({ dataPointFontSize: Math.max(6, Math.min(100, num)) });
                   }}
                   min={6}
-                  max={48}
+                  max={100}
                   step={1}
                   className="h-8 text-xs w-full"
                 />
@@ -1687,10 +1687,10 @@ export function LabelsSection() {
                           value={settings.percentPrefixFontSize ?? 12}
                           onChange={(e) => {
                             const num = parseFloat(e.target.value);
-                            if (!isNaN(num)) update({ percentPrefixFontSize: Math.max(6, Math.min(48, num)) });
+                            if (!isNaN(num)) update({ percentPrefixFontSize: Math.max(6, Math.min(100, num)) });
                           }}
                           min={6}
-                          max={48}
+                          max={100}
                           step={1}
                           className="h-8 text-xs w-full"
                         />

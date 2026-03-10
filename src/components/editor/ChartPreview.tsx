@@ -228,11 +228,11 @@ export function ChartPreview() {
       </div>
 
       {/* Chart container */}
-      <div className="flex-1 overflow-auto p-6 flex justify-center">
+      <div className="flex-1 overflow-auto p-6">
         <div
           ref={chartRef}
           id="chart-container"
-          className="rounded-lg shadow-sm border transition-all duration-300"
+          className="rounded-lg shadow-sm border transition-all duration-300 mx-auto shrink-0"
           style={{
             width: previewDevice === 'custom' ? `${customPreviewWidth}px` : deviceWidths[previewDevice],
             height: hasFixedHeight ? `${settings.chartType.standardHeight}px` : 'fit-content',
