@@ -148,7 +148,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
                 setIsEditing(false);
               }
             }}
-            className="h-8 w-64 text-sm font-medium"
+            className="h-8 w-[400px] text-sm font-medium"
           />
         ) : (
           <button
