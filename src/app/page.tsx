@@ -545,9 +545,9 @@ function DashboardPage() {
         case 'updated_asc':
           return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
         case 'name_asc':
-          return a.name.localeCompare(b.name);
+          return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
         case 'name_desc':
-          return b.name.localeCompare(a.name);
+          return b.name.localeCompare(a.name, undefined, { numeric: true, sensitivity: 'base' });
         case 'created_desc':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case 'created_asc':
