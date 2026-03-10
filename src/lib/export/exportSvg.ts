@@ -35,8 +35,17 @@ export async function exportSvg(
         rect.removeAttribute('opacity');
       };
 
-      // Direct children of <svg>
-      clonedSvg.querySelectorAll(':scope > rect').forEach(clearBgRect);
+      // Clear only background-like rects that are direct children of <svg>
+      // (at position 0,0 and spanning ≥90% of SVG width — NOT data rects like bar segments)
+      const svgW = parseFloat(clonedSvg.getAttribute('width') || '800');
+      clonedSvg.querySelectorAll(':scope > rect').forEach((rect) => {
+        const rx = parseFloat(rect.getAttribute('x') || '0');
+        const ry = parseFloat(rect.getAttribute('y') || '0');
+        const rw = parseFloat(rect.getAttribute('width') || '0');
+        if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
+          clearBgRect(rect);
+        }
+      });
 
       // First rect(s) inside the chart wrapper <g>
       const gWrap = clonedSvg.querySelector('g[transform]');

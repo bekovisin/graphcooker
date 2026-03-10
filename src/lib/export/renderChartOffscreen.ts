@@ -936,8 +936,16 @@ export async function renderChartOffscreen(
       rect.removeAttribute('opacity');
     };
 
-    // Clear any direct-child rects of the SVG root
-    svgEl.querySelectorAll(':scope > rect').forEach(clearBackgroundRect);
+    // Clear only background-like rects that are direct children of the SVG root
+    // (at position 0,0 and spanning ≥90% of SVG width — NOT data rects like bar segments)
+    svgEl.querySelectorAll(':scope > rect').forEach((rect) => {
+      const rx = parseFloat(rect.getAttribute('x') || '0');
+      const ry = parseFloat(rect.getAttribute('y') || '0');
+      const rw = parseFloat(rect.getAttribute('width') || '0');
+      if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
+        clearBackgroundRect(rect);
+      }
+    });
 
     // Clear full-size rects at the top of the chart wrapper group (bg rects
     // are always the first children at x=0/y=0 covering the chart area)

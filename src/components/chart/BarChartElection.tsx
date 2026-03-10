@@ -391,19 +391,21 @@ export function BarChartElection({
       })}
 
       {/* ── Bar Segments ── */}
-      {segments.map((seg) => (
-        <rect
-          key={`bar-${seg.index}`}
-          x={seg.x}
-          y={barY}
-          width={Math.max(0, seg.w)}
-          height={eb.barHeight}
-          fill={seg.color}
-          opacity={eb.barOpacity}
-          stroke={eb.outline ? eb.outlineColor : undefined}
-          strokeWidth={eb.outline ? eb.outlineWidth : undefined}
-        />
-      ))}
+      <g data-role="bar-segments">
+        {segments.map((seg) => (
+          <rect
+            key={`bar-${seg.index}`}
+            x={seg.x}
+            y={barY}
+            width={Math.max(0, seg.w)}
+            height={eb.barHeight}
+            fill={seg.color}
+            opacity={eb.barOpacity}
+            stroke={eb.outline ? eb.outlineColor : undefined}
+            strokeWidth={eb.outline ? eb.outlineWidth : undefined}
+          />
+        ))}
+      </g>
 
       {/* ── Labels Above/Below Bar ── */}
       {segments.map((seg) => {
