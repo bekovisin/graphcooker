@@ -642,6 +642,11 @@ function DashboardPage() {
                 : defaultColumnMapping;
             const vizName = (viz.name || 'chart').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim();
 
+            // Extract columnOrder and seriesNames persisted inside columnMapping
+            const vizColumnOrder: string[] = vizMapping?._columnOrder ||
+              (Array.isArray(vizData) && vizData.length > 0 ? Object.keys(vizData[0]) : []);
+            const vizSeriesNames: Record<string, string> = vizMapping?.seriesNames || {};
+
             // Determine export dimensions (per-chart or uniform)
             let chartWidth = width;
             let chartHeight = height;
@@ -675,7 +680,9 @@ function DashboardPage() {
                 vizSettings,
                 vizData,
                 vizMapping,
-                { width: chartWidth, height: chartHeight, transparent }
+                { width: chartWidth, height: chartHeight, transparent },
+                vizColumnOrder,
+                vizSeriesNames,
               );
 
               try {

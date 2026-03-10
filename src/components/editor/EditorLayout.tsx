@@ -282,9 +282,9 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     const { renderChartOffscreen } = await import('@/lib/export/renderChartOffscreen');
 
     const liveContainer = document.getElementById('chart-container');
-    // Use clientWidth/clientHeight (excludes the 1px CSS border) so the export
-    // dimensions match the border-free values saved to the DB for dashboard export.
-    const currentW = liveContainer?.clientWidth || 800;
+    const currentW = liveContainer?.offsetWidth || 800;
+    // Use clientHeight (excludes the 1px CSS border) so the height matches
+    // the border-free value saved to the DB for dashboard export.
     const currentH = liveContainer?.clientHeight || 600;
 
     const exportWidth = options.width || currentW;
@@ -325,13 +325,13 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   };
 
   // Get current chart container dimensions for export dialog defaults.
-  // Uses clientWidth/clientHeight to exclude the 1px CSS border — the offscreen
-  // export renderer has no border, so border-free dimensions are correct.
+  // Height uses clientHeight (excludes 1px CSS border) to match the border-free
+  // value saved to the DB; width uses offsetWidth (border-box matches CSS width).
   const getContainerDimensions = () => {
     if (typeof document === 'undefined') return { width: 800, height: 600 };
     const container = document.getElementById('chart-container');
     if (container) {
-      return { width: container.clientWidth, height: container.clientHeight };
+      return { width: container.offsetWidth, height: container.clientHeight };
     }
     return { width: 800, height: 600 };
   };
