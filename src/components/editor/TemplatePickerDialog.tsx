@@ -26,18 +26,21 @@ interface Template {
   templateName: string;
   chartType: string;
   thumbnail: string | null;
+  updatedAt: string;
 }
 
 interface TemplatePickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When true, shows a "replace current chart" warning instead of "unsaved changes" */
+  replaceMode?: boolean;
 }
 
-export function TemplatePickerDialog({ open, onOpenChange }: TemplatePickerDialogProps) {
+export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: TemplatePickerDialogProps) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingId, setLoadingId] = useState<number | null>(null);
-  const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
   const [pendingTemplateId, setPendingTemplateId] = useState<number | null>(null);
 
   const { isDirty, loadVisualization, setEditingTemplateId, setIsDirty } = useEditorStore();
@@ -54,9 +57,9 @@ export function TemplatePickerDialog({ open, onOpenChange }: TemplatePickerDialo
   }, [open]);
 
   const handleSelectTemplate = (templateId: number) => {
-    if (isDirty) {
+    if (replaceMode || isDirty) {
       setPendingTemplateId(templateId);
-      setShowUnsavedWarning(true);
+      setShowWarning(true);
       return;
     }
     loadTemplate(templateId);
@@ -94,25 +97,37 @@ export function TemplatePickerDialog({ open, onOpenChange }: TemplatePickerDialo
     }
   };
 
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return ''; }
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit existing template</DialogTitle>
+            <DialogTitle>{replaceMode ? 'Replace with template' : 'Edit existing template'}</DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              {replaceMode
+                ? 'Choose a template to replace the current chart. All current settings and data will be overwritten.'
+                : 'Select a template to load into the editor for editing.'}
+            </p>
           </DialogHeader>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-16">
               <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
             </div>
           ) : templates.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-16">
               <BookmarkPlus className="w-8 h-8 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">No templates saved yet</p>
+              <p className="text-xs text-gray-400 mt-1">Save a chart as a template from the editor</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto py-2">
+            <div className="grid grid-cols-3 gap-3 max-h-[480px] overflow-y-auto py-2">
               {templates.map((template) => (
                 <button
                   key={template.id}
@@ -125,7 +140,7 @@ export function TemplatePickerDialog({ open, onOpenChange }: TemplatePickerDialo
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={template.thumbnail} alt="" className="w-full h-full object-contain" />
                     ) : (
-                      <BarChart3 className="w-6 h-6 text-gray-200" />
+                      <BarChart3 className="w-8 h-8 text-gray-200" />
                     )}
                     {loadingId === template.id && (
                       <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
@@ -135,6 +150,9 @@ export function TemplatePickerDialog({ open, onOpenChange }: TemplatePickerDialo
                   </div>
                   <div className="px-2.5 py-2">
                     <p className="text-xs font-medium text-gray-800 truncate">{template.templateName}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                      {template.chartType.replace(/_/g, ' ')} · {formatDate(template.updatedAt)}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -143,12 +161,16 @@ export function TemplatePickerDialog({ open, onOpenChange }: TemplatePickerDialo
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={showUnsavedWarning} onOpenChange={setShowUnsavedWarning}>
+      <AlertDialog open={showWarning} onOpenChange={setShowWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+            <AlertDialogTitle>
+              {replaceMode ? 'Replace current chart?' : 'Unsaved changes'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes. Loading a template will replace the current content. Continue?
+              {replaceMode
+                ? 'This will replace all current settings, data, and column mappings with the selected template. This action cannot be undone.'
+                : 'You have unsaved changes. Loading a template will replace the current content. Continue?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -156,11 +178,12 @@ export function TemplatePickerDialog({ open, onOpenChange }: TemplatePickerDialo
             <AlertDialogAction
               onClick={() => {
                 if (pendingTemplateId) loadTemplate(pendingTemplateId);
-                setShowUnsavedWarning(false);
+                setShowWarning(false);
                 setPendingTemplateId(null);
               }}
+              className={replaceMode ? 'bg-orange-500 hover:bg-orange-600' : undefined}
             >
-              Continue
+              {replaceMode ? 'Replace' : 'Continue'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

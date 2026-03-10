@@ -19,6 +19,7 @@ interface Template {
   chartType: string;
   thumbnail: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface NewVisualizationDialogProps {
@@ -129,7 +130,7 @@ export function NewVisualizationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>New visualization</DialogTitle>
         </DialogHeader>
@@ -186,7 +187,7 @@ export function NewVisualizationDialog({
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
+              <div className="grid grid-cols-3 gap-3 max-h-[480px] overflow-y-auto">
                 {templates.map((template) => (
                   <button
                     key={template.id}
@@ -200,7 +201,7 @@ export function NewVisualizationDialog({
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={template.thumbnail} alt="" className="w-full h-full object-contain" />
                       ) : (
-                        <BarChart3 className="w-6 h-6 text-gray-200" />
+                        <BarChart3 className="w-8 h-8 text-gray-200" />
                       )}
                       {creatingFromTemplate === template.id && (
                         <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
@@ -208,9 +209,12 @@ export function NewVisualizationDialog({
                         </div>
                       )}
                     </div>
-                    {/* Name + edit/delete */}
+                    {/* Name + info + edit/delete */}
                     <div className="px-2.5 py-2 flex items-center justify-between">
-                      <p className="text-xs font-medium text-gray-800 truncate flex-1">{template.templateName}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-gray-800 truncate">{template.templateName}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5 truncate">{template.chartType.replace(/_/g, ' ')}</p>
+                      </div>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
                         <button
                           onClick={(e) => {

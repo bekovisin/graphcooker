@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  ArrowRightLeft,
   BookmarkPlus,
   Check,
   ChefHat,
@@ -31,6 +32,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { SaveTemplateDialog } from './SaveTemplateDialog';
 import { TemplatePickerDialog } from './TemplatePickerDialog';
+import { captureThumbnail } from '@/lib/capture-thumbnail';
 
 interface BreadcrumbItem {
   id: number;
@@ -65,6 +67,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
   const [editValue, setEditValue] = useState(visualizationName);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showReplacePicker, setShowReplacePicker] = useState(false);
   const [updatingTemplate, setUpdatingTemplate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -88,6 +91,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
     if (!activeTemplateId) return;
     setUpdatingTemplate(true);
     try {
+      const thumbnail = await captureThumbnail();
       const res = await fetch(`/api/templates/${activeTemplateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -96,6 +100,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
           settings,
           data,
           columnMapping,
+          thumbnail,
         }),
       });
       if (res.ok) {
@@ -244,6 +249,10 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
               <Pencil className="w-4 h-4" />
               Edit existing template...
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowReplacePicker(true)} className="gap-2">
+              <ArrowRightLeft className="w-4 h-4" />
+              Replace with template...
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -283,6 +292,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
 
       <SaveTemplateDialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate} />
       <TemplatePickerDialog open={showTemplatePicker} onOpenChange={setShowTemplatePicker} />
+      <TemplatePickerDialog open={showReplacePicker} onOpenChange={setShowReplacePicker} replaceMode />
     </div>
   );
 }

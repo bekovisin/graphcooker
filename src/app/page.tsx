@@ -19,6 +19,7 @@ import {
   ChevronRight,
   ChevronDown,
   Trash2,
+  ChefHat,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -1156,7 +1157,20 @@ function DashboardPage() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Toolbar */}
           <div className="px-6 py-3 border-b bg-white flex items-center gap-3 shrink-0">
-            {/* Title */}
+            {/* Logo + Title */}
+            {(activeFolderId !== null || isTrashView) && (
+              <button
+                onClick={() => { setActiveFolderId(null); setIsTrashView(false); exitSelectionMode(); }}
+                className="flex items-center gap-1 px-1.5 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
+                title="GraphCooker — All visualizations"
+              >
+                <ChefHat className="w-5 h-5 text-orange-500" />
+                <span className="text-sm font-bold text-gray-700">GC</span>
+              </button>
+            )}
+            {(activeFolderId !== null || isTrashView) && (
+              <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
+            )}
             <h2 className="text-sm font-semibold text-gray-800 mr-2">
               {isTrashView && <Trash2 className="w-4 h-4 inline-block mr-1.5 text-red-500 -mt-0.5" />}
               {activeFolderName}

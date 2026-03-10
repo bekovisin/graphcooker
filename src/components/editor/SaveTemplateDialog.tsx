@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, BookmarkPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { captureThumbnail } from '@/lib/capture-thumbnail';
 
 interface SaveTemplateDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function SaveTemplateDialog({ open, onOpenChange }: SaveTemplateDialogPro
 
     setSaving(true);
     try {
+      const thumbnail = await captureThumbnail();
       const res = await fetch('/api/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,6 +41,7 @@ export function SaveTemplateDialog({ open, onOpenChange }: SaveTemplateDialogPro
           settings,
           data,
           columnMapping,
+          thumbnail,
         }),
       });
 
