@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   title: "GraphCooker | Data Visualization",
   description: "Create beautiful data visualizations",
   icons: {
-    icon: "/icon.svg",
+    icon: "/icon.png",
   },
 };
 
