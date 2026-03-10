@@ -462,7 +462,7 @@ export function DashboardSidebar({
         )}
       </div>
 
-      {/* Bottom: Trash & General Settings links */}
+      {/* Bottom: Trash, Settings, User Profile */}
       <div className="border-t border-gray-200 p-2 space-y-0.5">
         {onTrashSelect && (
           <button
@@ -496,14 +496,37 @@ export function DashboardSidebar({
             User Management
           </Link>
         )}
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-        >
-          <LogOut className="w-4 h-4 text-gray-400" />
-          Sign Out
-        </button>
       </div>
+
+      {/* User Profile Card */}
+      {user && (
+        <div className="border-t border-gray-200 p-2">
+          <Link
+            href="/profile"
+            className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-semibold shrink-0">
+              {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-900 truncate">{user.name}</div>
+              <div className="flex items-center gap-1.5">
+                <span className={`inline-flex items-center px-1.5 py-0 text-[10px] font-medium rounded-full ${
+                  user.role === 'admin'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
+                  {user.role === 'admin' ? 'Admin' : 'Customer'}
+                </span>
+              </div>
+            </div>
+            <LogOut
+              className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); logout(); }}
+            />
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
