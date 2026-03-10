@@ -148,11 +148,13 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: Templa
                       </div>
                     )}
                   </div>
-                  <div className="px-2.5 py-2">
-                    <p className="text-xs font-medium text-gray-800 truncate">{template.templateName}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      {template.chartType.replace(/_/g, ' ')} · {formatDate(template.updatedAt)}
-                    </p>
+                  <div className="px-2.5 py-2 flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-800 truncate">{template.templateName}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                        {template.chartType.replace(/_/g, ' ')} · {formatDate(template.updatedAt)}
+                      </p>
+                    </div>
                   </div>
                 </button>
               ))}

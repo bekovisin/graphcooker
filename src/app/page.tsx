@@ -1103,10 +1103,16 @@ function DashboardPage() {
       <header className="bg-white border-b shrink-0 z-20">
         <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold tracking-tight">
-              <span className="text-gray-900">Graph</span>
-              <span className="text-orange-500">Cooker</span>
-            </h1>
+            <button
+              onClick={() => { setActiveFolderId(null); setIsTrashView(false); exitSelectionMode(); }}
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            >
+              <ChefHat className="w-5 h-5 text-orange-500" />
+              <h1 className="text-lg font-bold tracking-tight">
+                <span className="text-gray-900">Graph</span>
+                <span className="text-orange-500">Cooker</span>
+              </h1>
+            </button>
           </div>
 
           <div className="flex items-center gap-2">

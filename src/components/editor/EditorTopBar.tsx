@@ -25,14 +25,11 @@ import {
   FileType,
   Loader2,
   Pencil,
-  RefreshCw,
   Save,
 } from 'lucide-react';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import { SaveTemplateDialog } from './SaveTemplateDialog';
 import { TemplatePickerDialog } from './TemplatePickerDialog';
-import { captureThumbnail } from '@/lib/capture-thumbnail';
 
 interface BreadcrumbItem {
   id: number;
@@ -41,11 +38,10 @@ interface BreadcrumbItem {
 
 interface EditorTopBarProps {
   onExport: (format: 'png' | 'svg' | 'html' | 'pdf') => void;
-  fromTemplateId?: number | null;
   breadcrumbs?: BreadcrumbItem[];
 }
 
-export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: EditorTopBarProps) {
+export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) {
   const {
     visualizationName,
     setVisualizationName,
@@ -54,21 +50,13 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
     isDirty,
     isSaving,
     lastSavedAt,
-    settings,
-    data,
-    columnMapping,
-    chartType,
-    editingTemplateId,
   } = useEditorStore();
-
-  const activeTemplateId = editingTemplateId ?? fromTemplateId ?? null;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(visualizationName);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showReplacePicker, setShowReplacePicker] = useState(false);
-  const [updatingTemplate, setUpdatingTemplate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -85,34 +73,6 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
       setEditValue(visualizationName);
     }
     setIsEditing(false);
-  };
-
-  const handleUpdateTemplate = async () => {
-    if (!activeTemplateId) return;
-    setUpdatingTemplate(true);
-    try {
-      const thumbnail = await captureThumbnail();
-      const res = await fetch(`/api/templates/${activeTemplateId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chartType,
-          settings,
-          data,
-          columnMapping,
-          thumbnail,
-        }),
-      });
-      if (res.ok) {
-        toast.success('Template updated');
-      } else {
-        toast.error('Failed to update template');
-      }
-    } catch {
-      toast.error('Failed to update template');
-    } finally {
-      setUpdatingTemplate(false);
-    }
   };
 
   return (
@@ -215,21 +175,6 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
             <span className="text-gray-400">—</span>
           )}
         </div>
-
-        {activeTemplateId && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1"
-            onClick={handleUpdateTemplate}
-            disabled={updatingTemplate}
-            title="Update the source template with current settings"
-          >
-            {updatingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            <span className="hidden xl:inline">Update template</span>
-            <span className="xl:hidden">Update</span>
-          </Button>
-        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

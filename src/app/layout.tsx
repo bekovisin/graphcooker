@@ -23,6 +23,9 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "GraphCooker | Data Visualization",
   description: "Create beautiful data visualizations",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

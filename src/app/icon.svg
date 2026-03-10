@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#f97316"/>
+  <g transform="translate(4, 4)" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- ChefHat icon scaled to 24x24 -->
+    <path d="M17 21.6H7a1 1 0 0 1-1-1v-1.4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1.4a1 1 0 0 1-1 1Z"/>
+    <path d="M8 17.2c0-4.6 0-7.2 0-9.8A4.4 4.4 0 0 1 12 3a4.4 4.4 0 0 1 4 4.4c0 2.6 0 5.2 0 9.8"/>
+    <path d="M12 3a4.4 4.4 0 0 0-6.4 3.9c0 1.2.4 2 1.2 2.7"/>
+    <path d="M12 3a4.4 4.4 0 0 1 6.4 3.9c0 1.2-.4 2-1.2 2.7"/>
+  </g>
+</svg>
