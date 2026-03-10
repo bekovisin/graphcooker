@@ -29,9 +29,15 @@ const shantellSans = Shantell_Sans({
 
 export const metadata: Metadata = {
   title: "GraphCooker | Data Visualization",
-  description: "Create beautiful data visualizations",
+  description: "Cook your raw data into stunning, interactive visualizations — charts, graphs and more. Free during beta.",
+  keywords: ["data visualization", "charts", "graphs", "bar chart", "interactive", "dashboard", "free"],
+  openGraph: {
+    title: "GraphCooker — Data Visualization Made Easy",
+    description: "Cook your raw data into stunning visualizations. Free during beta.",
+    type: "website",
+  },
   icons: {
-    icon: "/icon.png",
+    icon: "/favicon.svg",
   },
 };
 

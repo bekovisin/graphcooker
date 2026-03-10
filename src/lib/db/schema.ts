@@ -112,6 +112,15 @@ export const preferences = pgTable('preferences', {
   uniqueIndex('preferences_user_key_idx').on(table.userId, table.key),
 ]);
 
+export const waitlist = pgTable('waitlist', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 50 }),
+  message: text('message'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const dashboardTemplates = pgTable('dashboard_templates', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull(),

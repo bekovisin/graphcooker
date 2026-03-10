@@ -35,6 +35,8 @@ import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationD
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { toast } from 'sonner';
 import { getDescendantIds } from '@/lib/folder-utils';
+import { useAuthStore } from '@/store/authStore';
+import { LandingPage } from '@/components/landing/LandingPage';
 
 type SortMode = 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' | 'created_desc' | 'created_asc';
 
@@ -48,6 +50,20 @@ const sortLabels: Record<SortMode, string> = {
 };
 
 export default function DashboardPageWrapper() {
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LandingPage />;
+  }
+
   return (
     <Suspense>
       <DashboardPage />

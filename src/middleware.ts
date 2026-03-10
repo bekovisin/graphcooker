@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout'];
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/api/waitlist'];
 const ADMIN_PATHS = ['/admin', '/api/admin'];
 
 export async function middleware(request: NextRequest) {
@@ -22,6 +22,22 @@ export async function middleware(request: NextRequest) {
     pathname.endsWith('.png') ||
     pathname.endsWith('.ico')
   ) {
+    return NextResponse.next();
+  }
+
+  // Root path: public but inject user headers if token exists
+  if (pathname === '/') {
+    const token = request.cookies.get('gc_session')?.value;
+    if (token) {
+      const payload = await verifyToken(token);
+      if (payload) {
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set('x-user-id', String(payload.userId));
+        requestHeaders.set('x-user-role', payload.role);
+        requestHeaders.set('x-user-email', payload.email);
+        return NextResponse.next({ request: { headers: requestHeaders } });
+      }
+    }
     return NextResponse.next();
   }
 
@@ -64,6 +80,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|icon.svg).*)',
   ],
 };
