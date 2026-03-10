@@ -163,17 +163,18 @@ function inlineStyles(svgEl: SVGSVGElement) {
       });
 
       if (hasMixedSizeTspans && factor > 0) {
-        let cumulativeCorrection = 0;
-        tspans.forEach((ts) => {
-          const tsFontSize = parseFloat(ts.getAttribute('font-size') || '0') || fontSize;
-          const neededCorrection = -(fontSize - tsFontSize) * factor;
-          const delta = neededCorrection - cumulativeCorrection;
+        const newParentY = parseFloat(el.getAttribute('y') || '0');
+        let runningY = newParentY;
 
-          if (Math.abs(delta) > 0.01) {
-            const existingDy = parseFloat(ts.getAttribute('dy') || '0');
-            ts.setAttribute('dy', String(+(existingDy + delta).toFixed(2)));
-          }
-          cumulativeCorrection = neededCorrection;
+        tspans.forEach((ts) => {
+          const existingDy = parseFloat(ts.getAttribute('dy') || '0');
+          runningY += existingDy;
+
+          const tsFontSize = parseFloat(ts.getAttribute('font-size') || '0') || fontSize;
+          const correction = -(fontSize - tsFontSize) * factor;
+
+          ts.setAttribute('y', String(+(runningY + correction).toFixed(2)));
+          ts.removeAttribute('dy');
         });
       }
     }
