@@ -98,7 +98,7 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
         <span className="text-sm font-semibold text-gray-800 shrink-0">Data</span>
         <button
           onClick={onUploadClick}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors shrink-0"
+          className="flex items-center gap-1.5 px-2.5 h-[26px] rounded-md text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors shrink-0"
         >
           <Upload className="w-3 h-3" />
           Upload data
