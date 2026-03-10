@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BarChart3, BookmarkPlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { captureThumbnail } from '@/lib/capture-thumbnail';
 
 interface Template {
   id: number;
@@ -34,16 +35,18 @@ interface TemplatePickerDialogProps {
   onOpenChange: (open: boolean) => void;
   /** When true, shows a "replace current chart" warning instead of "unsaved changes" */
   replaceMode?: boolean;
+  /** When true, selecting a template updates it with the current editor state */
+  updateMode?: boolean;
 }
 
-export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: TemplatePickerDialogProps) {
+export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMode }: TemplatePickerDialogProps) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [pendingTemplateId, setPendingTemplateId] = useState<number | null>(null);
 
-  const { isDirty, loadVisualization, setEditingTemplateId, setIsDirty } = useEditorStore();
+  const { isDirty, loadVisualization, setEditingTemplateId, setIsDirty, settings, data, columnMapping, chartType } = useEditorStore();
 
   useEffect(() => {
     if (open) {
@@ -57,12 +60,40 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: Templa
   }, [open]);
 
   const handleSelectTemplate = (templateId: number) => {
+    if (updateMode) {
+      setPendingTemplateId(templateId);
+      setShowWarning(true);
+      return;
+    }
     if (replaceMode || isDirty) {
       setPendingTemplateId(templateId);
       setShowWarning(true);
       return;
     }
     loadTemplate(templateId);
+  };
+
+  const updateTemplate = async (templateId: number) => {
+    setLoadingId(templateId);
+    try {
+      const thumbnail = await captureThumbnail();
+      const res = await fetch(`/api/templates/${templateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chartType, settings, data, columnMapping, thumbnail }),
+      });
+      if (!res.ok) {
+        toast.error('Failed to update template');
+        return;
+      }
+      const updated = await res.json();
+      toast.success(`Updated template "${updated.templateName}"`);
+      onOpenChange(false);
+    } catch {
+      toast.error('Failed to update template');
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const loadTemplate = async (templateId: number) => {
@@ -108,9 +139,11 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: Templa
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{replaceMode ? 'Replace with template' : 'Edit existing template'}</DialogTitle>
+            <DialogTitle>{updateMode ? 'Update a template' : replaceMode ? 'Replace with template' : 'Edit existing template'}</DialogTitle>
             <p className="text-sm text-gray-500 mt-1">
-              {replaceMode
+              {updateMode
+                ? 'Select a template to overwrite with the current chart settings and data.'
+                : replaceMode
                 ? 'Choose a template to replace the current chart. All current settings and data will be overwritten.'
                 : 'Select a template to load into the editor for editing.'}
             </p>
@@ -127,15 +160,17 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: Templa
               <p className="text-xs text-gray-400 mt-1">Save a chart as a template from the editor</p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-3 max-h-[480px] overflow-y-auto py-2">
+            <div className="grid grid-cols-3 gap-3 max-h-[480px] overflow-y-auto py-2" style={{ gridAutoRows: 'min-content' }}>
               {templates.map((template) => (
-                <button
+                <div
                   key={template.id}
-                  onClick={() => handleSelectTemplate(template.id)}
-                  disabled={loadingId !== null}
-                  className="group relative rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm overflow-hidden transition-all text-left disabled:opacity-50"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => loadingId === null && handleSelectTemplate(template.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && loadingId === null) handleSelectTemplate(template.id); }}
+                  className={`group relative rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm overflow-hidden transition-all text-left cursor-pointer ${loadingId !== null ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                  <div className="aspect-[16/10] bg-gray-50 flex items-center justify-center border-b">
+                  <div className="aspect-[16/10] bg-gray-50 flex items-center justify-center border-b relative">
                     {template.thumbnail ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={template.thumbnail} alt="" className="w-full h-full object-contain" />
@@ -148,15 +183,13 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: Templa
                       </div>
                     )}
                   </div>
-                  <div className="px-2.5 py-2 flex items-center justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-800 truncate">{template.templateName}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5 truncate">
-                        {template.chartType.replace(/_/g, ' ')} · {formatDate(template.updatedAt)}
-                      </p>
-                    </div>
+                  <div className="px-2.5 py-2">
+                    <p className="text-xs font-medium text-gray-800 truncate">{template.templateName}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                      {template.chartType.replace(/_/g, ' ')} · {formatDate(template.updatedAt)}
+                    </p>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
@@ -167,10 +200,12 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: Templa
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {replaceMode ? 'Replace current chart?' : 'Unsaved changes'}
+              {updateMode ? 'Update this template?' : replaceMode ? 'Replace current chart?' : 'Unsaved changes'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {replaceMode
+              {updateMode
+                ? 'This will overwrite the selected template with the current chart type, settings, data, and column mappings.'
+                : replaceMode
                 ? 'This will replace all current settings, data, and column mappings with the selected template. This action cannot be undone.'
                 : 'You have unsaved changes. Loading a template will replace the current content. Continue?'}
             </AlertDialogDescription>
@@ -179,13 +214,19 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode }: Templa
             <AlertDialogCancel onClick={() => setPendingTemplateId(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (pendingTemplateId) loadTemplate(pendingTemplateId);
+                if (pendingTemplateId) {
+                  if (updateMode) {
+                    updateTemplate(pendingTemplateId);
+                  } else {
+                    loadTemplate(pendingTemplateId);
+                  }
+                }
                 setShowWarning(false);
                 setPendingTemplateId(null);
               }}
-              className={replaceMode ? 'bg-orange-500 hover:bg-orange-600' : undefined}
+              className={updateMode ? 'bg-blue-500 hover:bg-blue-600' : replaceMode ? 'bg-orange-500 hover:bg-orange-600' : undefined}
             >
-              {replaceMode ? 'Replace' : 'Continue'}
+              {updateMode ? 'Update' : replaceMode ? 'Replace' : 'Continue'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

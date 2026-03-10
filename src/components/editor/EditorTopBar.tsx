@@ -25,6 +25,7 @@ import {
   FileType,
   Loader2,
   Pencil,
+  RefreshCw,
   Save,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -57,6 +58,7 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showReplacePicker, setShowReplacePicker] = useState(false);
+  const [showUpdatePicker, setShowUpdatePicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -198,6 +200,11 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
               <ArrowRightLeft className="w-4 h-4" />
               Replace with template...
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowUpdatePicker(true)} className="gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Update existing template...
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -238,6 +245,7 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
       <SaveTemplateDialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate} />
       <TemplatePickerDialog open={showTemplatePicker} onOpenChange={setShowTemplatePicker} />
       <TemplatePickerDialog open={showReplacePicker} onOpenChange={setShowReplacePicker} replaceMode />
+      <TemplatePickerDialog open={showUpdatePicker} onOpenChange={setShowUpdatePicker} updateMode />
     </div>
   );
 }
