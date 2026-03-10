@@ -136,7 +136,7 @@ export default function ProfilePage() {
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
         {/* Avatar + Role */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-zinc-800 text-white flex items-center justify-center text-2xl font-bold shrink-0">
+          <div className="w-16 h-16 rounded-full text-white flex items-center justify-center text-2xl font-bold shrink-0" style={{ background: 'linear-gradient(135deg, #FDBA74 0%, #F97316 50%, #EA580C 100%)' }}>
             {initials}
           </div>
           <div>

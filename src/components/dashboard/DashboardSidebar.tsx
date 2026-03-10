@@ -505,7 +505,7 @@ export function DashboardSidebar({
             href="/profile"
             className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors group"
           >
-            <div className="w-8 h-8 rounded-full bg-zinc-800 text-white flex items-center justify-center text-xs font-semibold shrink-0">
+            <div className="w-8 h-8 rounded-full text-white flex items-center justify-center text-xs font-semibold shrink-0" style={{ background: 'linear-gradient(135deg, #FDBA74 0%, #F97316 50%, #EA580C 100%)' }}>
               {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || '?'}
             </div>
             <div className="flex-1 min-w-0">
