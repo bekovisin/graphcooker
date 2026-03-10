@@ -20,6 +20,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  plainPassword: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -199,6 +200,7 @@ export default function AdminUsersPage() {
                 <tr className="border-b border-gray-200 bg-gray-50/50">
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Name</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Email</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Password</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Role</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Created</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Actions</th>
@@ -209,6 +211,9 @@ export default function AdminUsersPage() {
                   <tr key={user.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
                     <td className="px-4 py-3 text-sm text-gray-900">{user.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">
+                      {user.plainPassword || <span className="text-gray-300 italic text-xs">—</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         user.role === 'admin'
@@ -276,7 +281,7 @@ export default function AdminUsersPage() {
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 
@@ -287,7 +292,7 @@ export default function AdminUsersPage() {
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 
@@ -303,7 +308,7 @@ export default function AdminUsersPage() {
                     required={modalMode === 'create'}
                     minLength={8}
                     maxLength={128}
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     placeholder={modalMode === 'edit' ? 'New password (optional)' : 'Min 8 characters'}
                   />
                   <button

@@ -203,7 +203,7 @@ export default function SettingsPage() {
                           if (el) el.indeterminate = isPartial;
                         }}
                         onChange={() => toggleSection(section.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="w-4 h-4 rounded border-gray-300 accent-orange-500 cursor-pointer"
                       />
                       <span className="text-sm font-medium text-gray-800">{section.title}</span>
                     </label>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                               type="checkbox"
                               checked={selectedSettings.has(`${section.id}.${sub.key}`)}
                               onChange={() => toggleSetting(section.id, sub.key)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                              className="w-3.5 h-3.5 rounded border-gray-300 accent-orange-500 cursor-pointer"
                             />
                             <span className="text-xs text-gray-600">{sub.label}</span>
                           </label>
