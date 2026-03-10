@@ -6,6 +6,7 @@ import { useEditorStore } from '@/store/editorStore';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 import { EditorTopBar } from './EditorTopBar';
+import { MobileWarning } from './MobileWarning';
 import { ChartPreview } from './ChartPreview';
 import { DataEditor } from './DataEditor';
 import { SettingsPanel } from './SettingsPanel';
@@ -316,6 +317,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   return (
     <div className="h-screen flex flex-col bg-gray-100">
       <EditorTopBar onExport={handleExportRequest} breadcrumbs={breadcrumbs} />
+      <MobileWarning />
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area */}
         <ChartPreview />

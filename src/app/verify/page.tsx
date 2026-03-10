@@ -21,7 +21,7 @@ function VerifyContent() {
     if (success === 'true') {
       setStatus('success');
       // Auto-redirect to dashboard after 3 seconds
-      const timer = setTimeout(() => router.push('/'), 3000);
+      const timer = setTimeout(() => router.push('/dashboard'), 3000);
       return () => clearTimeout(timer);
     }
 
@@ -60,7 +60,7 @@ function VerifyContent() {
               <h2 className="text-lg font-semibold text-gray-900 mb-2">Email Verified!</h2>
               <p className="text-sm text-gray-500 mb-4">Your email has been verified successfully. Redirecting to dashboard...</p>
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/dashboard')}
                 className="px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
               >
                 Go to Dashboard

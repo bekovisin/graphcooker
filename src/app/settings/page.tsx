@@ -148,7 +148,7 @@ export default function SettingsPage() {
       {/* Top bar */}
       <div className="flex items-center h-14 px-4 border-b bg-white">
         <Link
-          href="/"
+          href="/dashboard"
           className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-gray-100 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 text-gray-600" />

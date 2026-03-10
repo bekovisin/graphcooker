@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
 
 const PUBLIC_PATHS = [
+  '/',
   '/login',
   '/api/auth/login',
   '/api/auth/logout',
@@ -34,22 +35,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Root path: public but inject user headers if token exists
-  if (pathname === '/') {
-    const token = request.cookies.get('gc_session')?.value;
-    if (token) {
-      const payload = await verifyToken(token);
-      if (payload) {
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-user-id', String(payload.userId));
-        requestHeaders.set('x-user-role', payload.role);
-        requestHeaders.set('x-user-email', payload.email);
-        return NextResponse.next({ request: { headers: requestHeaders } });
-      }
-    }
-    return NextResponse.next();
-  }
-
   // Check auth token
   const token = request.cookies.get('gc_session')?.value;
   if (!token) {
@@ -73,7 +58,7 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
   // Inject user info into request headers

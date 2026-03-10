@@ -82,7 +82,7 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
       {/* Left: Logo + Breadcrumbs + Name */}
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <Link
-          href="/"
+          href="/dashboard"
           className="flex items-center gap-1 px-1.5 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
           title="GraphCooker — Back to dashboard"
         >
@@ -92,7 +92,7 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
           <span key={bc.id} className="flex items-center gap-1.5 shrink-0">
             <ChevronRight className="w-3 h-3 text-gray-300" />
             <Link
-              href={`/?folder=${bc.id}`}
+              href={`/dashboard?folder=${bc.id}`}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors truncate max-w-[100px]"
               title={bc.name}
             >

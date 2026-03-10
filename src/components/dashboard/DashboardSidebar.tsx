@@ -19,6 +19,7 @@ import {
   Settings,
   Users,
   LogOut,
+  Globe,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -46,7 +47,7 @@ export interface VizItem {
   updatedAt: string;
 }
 
-interface DashboardSidebarProps {
+export interface DashboardSidebarProps {
   folders: FolderItem[];
   visualizations: VizItem[];
   activeFolderId: number | null;
@@ -398,7 +399,7 @@ export function DashboardSidebar({
   };
 
   return (
-    <div className="w-56 border-r border-gray-200 bg-gray-50/50 flex flex-col shrink-0 min-h-0" style={{ height: '100%' }}>
+    <div className="w-full md:w-56 border-r border-gray-200 bg-gray-50/50 flex flex-col shrink-0 min-h-0 h-full">
       <div className="px-3 py-[17.5px] border-b border-gray-200 flex items-center justify-between">
         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Folders</span>
         <button
@@ -496,6 +497,13 @@ export function DashboardSidebar({
             User Management
           </Link>
         )}
+        <Link
+          href="/"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+        >
+          <Globe className="w-4 h-4 text-gray-400" />
+          Landing Page
+        </Link>
       </div>
 
       {/* User Profile Card */}

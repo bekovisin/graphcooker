@@ -148,7 +148,7 @@ export default function ProfilePage() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center gap-3">
           <Link
-            href="/"
+            href="/dashboard"
             className="p-1.5 rounded-md hover:bg-gray-100 transition-colors text-gray-500"
           >
             <ArrowLeft className="w-4 h-4" />

@@ -254,7 +254,7 @@ export default function AdminUsersPage() {
       <div className="border-b border-gray-200 bg-white">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-4">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/dashboard')}
             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
