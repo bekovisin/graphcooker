@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { hashPassword } from '@/lib/auth/password';
+import { generateTokenString, createVerificationToken } from '@/lib/auth/verification';
+import { sendWelcomeEmail } from '@/lib/email/send';
 
 export async function GET() {
   try {
@@ -13,6 +15,7 @@ export async function GET() {
         name: users.name,
         role: users.role,
         plainPassword: users.plainPassword,
+        emailVerified: users.emailVerified,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       })
@@ -60,7 +63,18 @@ export async function POST(request: NextRequest) {
         createdAt: users.createdAt,
       });
 
-    return NextResponse.json(newUser, { status: 201 });
+    // Send welcome email with verification link
+    let emailSent = false;
+    try {
+      const verifyToken = generateTokenString();
+      await createVerificationToken(newUser.id, 'email_verify', verifyToken, 24 * 60); // 24 hours
+      await sendWelcomeEmail({ name: newUser.name, email: newUser.email }, password, verifyToken);
+      emailSent = true;
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+    }
+
+    return NextResponse.json({ ...newUser, emailSent }, { status: 201 });
   } catch (error) {
     console.error('Failed to create user:', error);
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });

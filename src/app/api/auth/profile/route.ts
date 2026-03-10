@@ -3,7 +3,6 @@ import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth/helpers';
-import { hashPassword, verifyPassword } from '@/lib/auth/password';
 
 // GET /api/auth/profile — get current user profile
 export async function GET(request: NextRequest) {
@@ -16,6 +15,7 @@ export async function GET(request: NextRequest) {
         email: users.email,
         name: users.name,
         role: users.role,
+        emailVerified: users.emailVerified,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -31,12 +31,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT /api/auth/profile — update current user profile
+// PUT /api/auth/profile — update name/email only (password change via email verification)
 export async function PUT(request: NextRequest) {
   try {
     const userId = getUserId(request);
     const body = await request.json();
-    const { name, email, currentPassword, newPassword } = body;
+    const { name, email } = body;
 
     // Fetch current user
     const [currentUser] = await db
@@ -57,7 +57,6 @@ export async function PUT(request: NextRequest) {
 
     // Update email
     if (email && email.trim() && email !== currentUser.email) {
-      // Check if email is already taken
       const [existing] = await db
         .select({ id: users.id })
         .from(users)
@@ -67,24 +66,6 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Email already in use' }, { status: 409 });
       }
       updates.email = email.trim();
-    }
-
-    // Update password
-    if (newPassword) {
-      if (!currentPassword) {
-        return NextResponse.json({ error: 'Current password is required' }, { status: 400 });
-      }
-
-      if (newPassword.length < 6 || newPassword.length > 128) {
-        return NextResponse.json({ error: 'Password must be 6-128 characters' }, { status: 400 });
-      }
-
-      const valid = await verifyPassword(currentPassword, currentUser.passwordHash);
-      if (!valid) {
-        return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
-      }
-
-      updates.passwordHash = await hashPassword(newPassword);
     }
 
     // Apply updates

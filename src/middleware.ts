@@ -2,7 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/api/waitlist'];
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/waitlist',
+  '/verify',
+  '/forgot-password',
+  '/api/auth/verify-email',
+  '/api/auth/forgot-password',
+];
 const ADMIN_PATHS = ['/admin', '/api/admin'];
 
 export async function middleware(request: NextRequest) {

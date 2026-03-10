@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Save, Eye, EyeOff, Mail, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ProfilePage() {
@@ -13,12 +13,14 @@ export default function ProfilePage() {
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Password change states
+  const [pwdStep, setPwdStep] = useState<'idle' | 'sending' | 'code'>('idle');
+  const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
@@ -76,9 +78,30 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSendCode = async () => {
+    setPwdStep('sending');
+    try {
+      const res = await fetch('/api/auth/profile/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to send code');
+      }
+
+      toast.success('Verification code sent to your email');
+      setPwdStep('code');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send code');
+      setPwdStep('idle');
+    }
+  };
+
   const handleChangePassword = async () => {
-    if (!currentPassword) {
-      toast.error('Enter your current password');
+    if (!code || code.length !== 6) {
+      toast.error('Enter the 6-digit verification code');
       return;
     }
     if (!newPassword) {
@@ -96,10 +119,10 @@ export default function ProfilePage() {
 
     setSavingPassword(true);
     try {
-      const res = await fetch('/api/auth/profile', {
-        method: 'PUT',
+      const res = await fetch('/api/auth/profile/change-password', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ code, newPassword }),
       });
 
       if (!res.ok) {
@@ -107,10 +130,11 @@ export default function ProfilePage() {
         throw new Error(data.error || 'Failed to change password');
       }
 
-      setCurrentPassword('');
+      setCode('');
       setNewPassword('');
       setConfirmPassword('');
-      toast.success('Password changed');
+      setPwdStep('idle');
+      toast.success('Password changed successfully');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to change password');
     } finally {
@@ -190,63 +214,103 @@ export default function ProfilePage() {
         {/* Change Password */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
           <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Change Password</h2>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
-              <div className="relative">
+          <p className="text-sm text-gray-500">
+            To change your password, we&apos;ll send a verification code to your email address.
+          </p>
+
+          {pwdStep === 'idle' && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleSendCode}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                Send Verification Code
+              </button>
+            </div>
+          )}
+
+          {pwdStep === 'sending' && (
+            <div className="flex justify-end">
+              <button
+                disabled
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg opacity-50"
+              >
+                Sending code...
+              </button>
+            </div>
+          )}
+
+          {pwdStep === 'code' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    maxLength={6}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="000000"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-10"
+                    placeholder="Min 6 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
                 <input
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-10"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
+              </div>
+              <div className="flex items-center justify-between">
                 <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => { setPwdStep('idle'); setCode(''); setNewPassword(''); setConfirmPassword(''); }}
+                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
                 >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  Cancel
                 </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSendCode}
+                    className="text-sm text-orange-500 hover:text-orange-600 transition-colors"
+                  >
+                    Resend code
+                  </button>
+                  <button
+                    onClick={handleChangePassword}
+                    disabled={savingPassword || code.length !== 6}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                  >
+                    {savingPassword ? 'Changing...' : 'Change Password'}
+                  </button>
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
-              <div className="relative">
-                <input
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent pr-10"
-                  placeholder="Min 6 characters"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button
-              onClick={handleChangePassword}
-              disabled={savingPassword}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
-            >
-              {savingPassword ? 'Changing...' : 'Change Password'}
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>

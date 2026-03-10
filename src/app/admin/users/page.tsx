@@ -15,6 +15,9 @@ import {
   EyeOff,
   Users,
   ClipboardList,
+  CheckCircle2,
+  XCircle,
+  Mail,
 } from 'lucide-react';
 
 interface User {
@@ -23,6 +26,7 @@ interface User {
   name: string;
   role: string;
   plainPassword: string | null;
+  emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -105,7 +109,12 @@ export default function AdminUsersPage() {
           const data = await res.json();
           throw new Error(data.error || 'Failed to create user');
         }
-        toast.success('User created');
+        const created = await res.json();
+        if (created.emailSent) {
+          toast.success('User created — welcome email sent');
+        } else {
+          toast.success('User created (email could not be sent)');
+        }
       } else {
         const body: Record<string, string> = {};
         if (formName !== editingUser?.name) body.name = formName;
@@ -218,6 +227,7 @@ export default function AdminUsersPage() {
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Name</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Email</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Password</th>
+                  <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Verified</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Role</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Created</th>
                   <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Actions</th>
@@ -230,6 +240,13 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
                     <td className="px-4 py-3 text-sm text-gray-500 font-mono">
                       {user.plainPassword || <span className="text-gray-300 italic text-xs">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {user.emailVerified ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-gray-300 mx-auto" />
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -246,6 +263,27 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-right">
                       {user.role !== 'admin' && (
                         <div className="flex items-center justify-end gap-1">
+                          {!user.emailVerified && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch('/api/admin/users/resend-welcome', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ userId: user.id }),
+                                  });
+                                  if (!res.ok) throw new Error('Failed');
+                                  toast.success('Welcome email resent');
+                                } catch {
+                                  toast.error('Failed to resend email');
+                                }
+                              }}
+                              className="p-1.5 rounded-md hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
+                              title="Resend welcome email"
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => openEdit(user)}
                             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"

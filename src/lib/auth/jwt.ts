@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
-const TOKEN_EXPIRY = '7d';
+const TOKEN_EXPIRY = '60d';
 
 export interface JWTPayload {
   userId: number;
