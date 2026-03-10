@@ -18,6 +18,7 @@ interface EditorState {
   previewDevice: PreviewDevice;
   customPreviewWidth: number;
   customPreviewHeight: number;
+  autoComputedHeight: number | null;
   canvasBackgroundColor: string;
   settingsSearchQuery: string;
 
@@ -42,6 +43,7 @@ interface EditorState {
   setActiveTab: (tab: EditorTab) => void;
   setPreviewDevice: (device: PreviewDevice) => void;
   setCustomPreviewSize: (width: number, height: number) => void;
+  setAutoComputedHeight: (height: number) => void;
   setCanvasBackgroundColor: (color: string) => void;
   setSettingsSearchQuery: (query: string) => void;
   setData: (data: DataRow[]) => void;
@@ -128,6 +130,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   previewDevice: 'desktop',
   customPreviewWidth: 800,
   customPreviewHeight: 600,
+  autoComputedHeight: null,
   canvasBackgroundColor: '#e5e7eb',
   settingsSearchQuery: '',
   data: defaultData,
@@ -145,6 +148,11 @@ export const useEditorStore = create<EditorState>((set) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   setPreviewDevice: (device) => set({ previewDevice: device, isDirty: true }),
   setCustomPreviewSize: (width, height) => set({ customPreviewWidth: width, customPreviewHeight: height, isDirty: true }),
+  setAutoComputedHeight: (height) =>
+    set((state) => {
+      if (state.autoComputedHeight === height) return state; // no-op when unchanged
+      return { autoComputedHeight: height, isDirty: true };
+    }),
   setCanvasBackgroundColor: (color) => set({ canvasBackgroundColor: color, isDirty: true }),
   setSettingsSearchQuery: (query) => set({ settingsSearchQuery: query }),
   setData: (data) => set({ data, columnOrder: deriveColumnOrder(data), isDirty: true }),
@@ -342,6 +350,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       previewDevice: (ps?.previewDevice as PreviewDevice) || 'desktop',
       customPreviewWidth: ps?.customPreviewWidth || 800,
       customPreviewHeight: ps?.customPreviewHeight || 600,
+      autoComputedHeight: ps?.autoComputedHeight || null,
       canvasBackgroundColor: ps?.canvasBackgroundColor || '#e5e7eb',
       isDirty: false,
       lastSavedAt: new Date(),

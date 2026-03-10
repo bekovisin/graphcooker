@@ -56,11 +56,17 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     setIsLoading(true);
     thumbnailCapturedRef.current = false;
 
+    // Ignore flag prevents React strict mode's double-invoke from overwriting
+    // state that was already measured by ChartPreview's ResizeObserver.
+    let ignore = false;
+
     const fetchVisualization = async () => {
       try {
         const res = await fetch(`/api/visualizations/${visualizationId}`);
+        if (ignore) return;
         if (res.ok) {
           const viz = await res.json();
+          if (ignore) return;
           const hasData = Array.isArray(viz.data) && viz.data.length > 0;
           const hasSettings = viz.settings && Object.keys(viz.settings).length > 0;
           const hasMapping = viz.columnMapping && Object.keys(viz.columnMapping).length > 0;
@@ -78,7 +84,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           if (viz.folderId) {
             try {
               const bcRes = await fetch(`/api/folders/breadcrumb?folderId=${viz.folderId}`);
-              if (bcRes.ok) {
+              if (!ignore && bcRes.ok) {
                 const path = await bcRes.json();
                 setBreadcrumbs(path);
               }
@@ -90,11 +96,15 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
       } catch (error) {
         console.error('Failed to load visualization:', error);
       } finally {
-        setIsLoading(false);
+        if (!ignore) setIsLoading(false);
       }
     };
 
     fetchVisualization();
+
+    return () => {
+      ignore = true;
+    };
   }, [visualizationId, loadVisualization]);
 
   // Capture thumbnail from chart container
@@ -161,6 +171,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           previewDevice: state.previewDevice,
           customPreviewWidth: state.customPreviewWidth,
           customPreviewHeight: state.customPreviewHeight,
+          autoComputedHeight: state.autoComputedHeight,
           canvasBackgroundColor: state.canvasBackgroundColor,
         },
         _columnOrder: state.columnOrder,

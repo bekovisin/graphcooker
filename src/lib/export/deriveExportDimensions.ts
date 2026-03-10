@@ -31,9 +31,18 @@ export function deriveExportDimensions(
 
   // --- Height ---
   let height = 500; // fallback
-  if (
+  const heightMode = chartSettings ? (chartSettings as Record<string, unknown>).heightMode : undefined;
+
+  if (heightMode === 'auto') {
+    // Auto mode: use the measured height saved from the preview
+    if (preview && typeof preview.autoComputedHeight === 'number' && preview.autoComputedHeight > 0) {
+      height = preview.autoComputedHeight;
+    } else if (preview && typeof preview.customPreviewHeight === 'number') {
+      height = preview.customPreviewHeight; // legacy fallback
+    }
+  } else if (
+    heightMode === 'standard' &&
     chartSettings &&
-    (chartSettings as Record<string, unknown>).heightMode === 'standard' &&
     typeof (chartSettings as Record<string, unknown>).standardHeight === 'number'
   ) {
     height = (chartSettings as Record<string, unknown>).standardHeight as number;

@@ -97,7 +97,7 @@ export function ChartPreview() {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const [chartAreaWidth, setChartAreaWidth] = useState(600);
-  const { settings, data, columnMapping, columnOrder, seriesNames, previewDevice, customPreviewWidth, activeTab, canvasBackgroundColor } = useEditorStore();
+  const { settings, data, columnMapping, columnOrder, seriesNames, previewDevice, customPreviewWidth, activeTab, canvasBackgroundColor, setAutoComputedHeight } = useEditorStore();
 
   // Measure chart area width — always observe so width is ready when switching tabs/chart types
   useEffect(() => {
@@ -116,6 +116,21 @@ export function ChartPreview() {
 
   const isAutoHeight = settings.chartType.heightMode === 'auto';
   const hasFixedHeight = !isAutoHeight && previewDevice === 'custom';
+
+  // Observe chart area height when in auto mode — save computed height to store for DB persistence
+  useEffect(() => {
+    if (!isAutoHeight || !chartAreaRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = Math.round(entry.contentRect.height);
+        if (h > 0) setAutoComputedHeight(h);
+      }
+    });
+    observer.observe(chartAreaRef.current);
+    const h = chartAreaRef.current.clientHeight;
+    if (h > 0) setAutoComputedHeight(h);
+    return () => observer.disconnect();
+  }, [isAutoHeight, setAutoComputedHeight]);
 
   if (activeTab !== 'preview') return null;
 

@@ -812,6 +812,7 @@ export interface PreviewState {
   previewDevice?: string;
   customPreviewWidth?: number;
   customPreviewHeight?: number;
+  autoComputedHeight?: number;
   canvasBackgroundColor?: string;
 }
 
