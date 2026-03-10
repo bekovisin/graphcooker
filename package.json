@@ -32,10 +32,12 @@
     "@tiptap/react": "^3.20.1",
     "@tiptap/starter-kit": "^3.20.1",
     "@types/d3-shape": "^3.1.8",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "d3-shape": "^3.2.0",
     "drizzle-orm": "^0.45.1",
+    "jose": "^6.2.1",
     "jspdf": "^4.1.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.564.0",
@@ -51,6 +53,7 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^18",

@@ -2,40 +2,38 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { visualizations, projects, folders } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
-// PUT: Restore a specific item from trash
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
     const body = await request.json();
-    const { type } = body; // 'visualization' or 'folder'
+    const { type } = body;
 
     if (type === 'visualization') {
       const [restored] = await db
         .update(visualizations)
         .set({ deletedAt: null })
-        .where(and(eq(visualizations.id, id), isNotNull(visualizations.deletedAt)))
+        .where(and(eq(visualizations.id, id), isNotNull(visualizations.deletedAt), eq(visualizations.userId, userId)))
         .returning();
 
       if (!restored) {
         return NextResponse.json({ error: 'Item not found in trash' }, { status: 404 });
       }
 
-      // Also restore the associated project
       await db
         .update(projects)
         .set({ deletedAt: null })
         .where(eq(projects.id, restored.projectId));
 
-      // If the project was in a folder, check if the folder is also deleted
-      // If so, restore the folder as well so the item doesn't disappear
       const [project] = await db
         .select({ folderId: projects.folderId })
         .from(projects)
@@ -55,21 +53,19 @@ export async function PUT(
       const [restored] = await db
         .update(folders)
         .set({ deletedAt: null })
-        .where(and(eq(folders.id, id), isNotNull(folders.deletedAt)))
+        .where(and(eq(folders.id, id), isNotNull(folders.deletedAt), eq(folders.userId, userId)))
         .returning();
 
       if (!restored) {
         return NextResponse.json({ error: 'Folder not found in trash' }, { status: 404 });
       }
 
-      // Restore all projects within the folder
       const restoredProjects = await db
         .update(projects)
         .set({ deletedAt: null })
-        .where(eq(projects.folderId, id))
+        .where(and(eq(projects.folderId, id), eq(projects.userId, userId)))
         .returning();
 
-      // Restore all visualizations belonging to those projects
       for (const proj of restoredProjects) {
         await db
           .update(visualizations)
@@ -87,12 +83,12 @@ export async function PUT(
   }
 }
 
-// DELETE: Permanently delete a specific item from trash
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -104,14 +100,13 @@ export async function DELETE(
     if (type === 'visualization') {
       const [deleted] = await db
         .delete(visualizations)
-        .where(and(eq(visualizations.id, id), isNotNull(visualizations.deletedAt)))
+        .where(and(eq(visualizations.id, id), isNotNull(visualizations.deletedAt), eq(visualizations.userId, userId)))
         .returning();
 
       if (!deleted) {
         return NextResponse.json({ error: 'Item not found in trash' }, { status: 404 });
       }
 
-      // Clean up orphaned project
       const remaining = await db
         .select({ id: visualizations.id })
         .from(visualizations)
@@ -125,28 +120,35 @@ export async function DELETE(
     }
 
     if (type === 'folder') {
-      // Permanently delete all contents within the folder
+      // Verify folder belongs to user
+      const [folder] = await db
+        .select()
+        .from(folders)
+        .where(and(eq(folders.id, id), eq(folders.userId, userId)));
+      if (!folder) {
+        return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
+      }
+
       const folderProjects = await db
         .select({ id: projects.id })
         .from(projects)
-        .where(eq(projects.folderId, id));
+        .where(and(eq(projects.folderId, id), eq(projects.userId, userId)));
 
       for (const proj of folderProjects) {
         await db.delete(visualizations).where(eq(visualizations.projectId, proj.id));
         await db.delete(projects).where(eq(projects.id, proj.id));
       }
 
-      // Delete child folders recursively
       const childFolders = await db
         .select({ id: folders.id })
         .from(folders)
-        .where(eq(folders.parentId, id));
+        .where(and(eq(folders.parentId, id), eq(folders.userId, userId)));
 
       for (const child of childFolders) {
         const childProjects = await db
           .select({ id: projects.id })
           .from(projects)
-          .where(eq(projects.folderId, child.id));
+          .where(and(eq(projects.folderId, child.id), eq(projects.userId, userId)));
         for (const cp of childProjects) {
           await db.delete(visualizations).where(eq(visualizations.projectId, cp.id));
           await db.delete(projects).where(eq(projects.id, cp.id));
@@ -154,7 +156,6 @@ export async function DELETE(
         await db.delete(folders).where(eq(folders.id, child.id));
       }
 
-      // Finally delete the folder itself
       await db.delete(folders).where(eq(folders.id, id));
 
       return NextResponse.json({ success: true });

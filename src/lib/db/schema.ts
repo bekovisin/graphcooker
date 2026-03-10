@@ -10,8 +10,30 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
+// ── Auth tables ──────────────────────────────────────────────
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  role: varchar('role', { length: 20 }).notNull().default('customer'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const sessions = pgTable('sessions', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── App tables ───────────────────────────────────────────────
+
 export const folders = pgTable('folders', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   parentId: integer('parent_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -20,6 +42,7 @@ export const folders = pgTable('folders', {
 
 export const projects = pgTable('projects', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   folderId: integer('folder_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -29,6 +52,7 @@ export const projects = pgTable('projects', {
 
 export const visualizations = pgTable('visualizations', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
   projectId: integer('project_id').notNull(),
   name: varchar('name', { length: 255 }).notNull().default('Untitled visualization'),
   chartType: varchar('chart_type', { length: 50 }).notNull().default('bar_stacked'),
@@ -55,6 +79,7 @@ export const reportVersions = pgTable('report_versions', {
 
 export const colorThemes = pgTable('color_themes', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id'),
   name: varchar('name', { length: 255 }).notNull(),
   colors: jsonb('colors').notNull().$type<string[]>(),
   isBuiltIn: boolean('is_built_in').default(false).notNull(),
@@ -64,27 +89,31 @@ export const colorThemes = pgTable('color_themes', {
 
 export const templates = pgTable('templates', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
   templateName: varchar('template_name', { length: 255 }).notNull(),
   chartType: varchar('chart_type', { length: 50 }).notNull().default('bar_stacked_custom'),
   settings: jsonb('settings').notNull().default({}),
   data: jsonb('data').notNull().default([]),
   columnMapping: jsonb('column_mapping').default({}),
   thumbnail: text('thumbnail'),
+  isShared: boolean('is_shared').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const preferences = pgTable('preferences', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
   key: varchar('key', { length: 100 }).notNull(),
   value: varchar('value', { length: 500 }).notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
-  uniqueIndex('preferences_key_idx').on(table.key),
+  uniqueIndex('preferences_user_key_idx').on(table.userId, table.key),
 ]);
 
 export const dashboardTemplates = pgTable('dashboard_templates', {
   id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
   visualizationId: integer('visualization_id').notNull(),
   templateName: varchar('template_name', { length: 255 }).notNull(),
   dataSourceType: varchar('data_source_type', { length: 100 }),

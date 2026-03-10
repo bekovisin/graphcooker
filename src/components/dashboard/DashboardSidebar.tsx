@@ -17,7 +17,10 @@ import {
   CheckSquare,
   Square,
   Settings,
+  Users,
+  LogOut,
 } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +88,7 @@ export function DashboardSidebar({
   trashCount,
 }: DashboardSidebarProps) {
   const router = useRouter();
+  const { user, logout } = useAuthStore();
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [creatingSubfolderId, setCreatingSubfolderId] = useState<number | null>(null);
@@ -483,6 +487,22 @@ export function DashboardSidebar({
           <Settings className="w-4 h-4 text-gray-400" />
           General Settings
         </Link>
+        {user?.role === 'admin' && (
+          <Link
+            href="/admin/users"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <Users className="w-4 h-4 text-gray-400" />
+            User Management
+          </Link>
+        )}
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 w-full px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+        >
+          <LogOut className="w-4 h-4 text-gray-400" />
+          Sign Out
+        </button>
       </div>
     </div>
   );

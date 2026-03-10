@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { visualizations, projects, folders } from '@/lib/db/schema';
-import { isNotNull, eq, desc } from 'drizzle-orm';
+import { isNotNull, eq, desc, and } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
-// GET: List all soft-deleted items
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
     const deletedViz = await db
       .select({
         id: visualizations.id,
@@ -18,13 +19,13 @@ export async function GET() {
       })
       .from(visualizations)
       .leftJoin(projects, eq(visualizations.projectId, projects.id))
-      .where(isNotNull(visualizations.deletedAt))
+      .where(and(isNotNull(visualizations.deletedAt), eq(visualizations.userId, userId)))
       .orderBy(desc(visualizations.deletedAt));
 
     const deletedFolders = await db
       .select()
       .from(folders)
-      .where(isNotNull(folders.deletedAt))
+      .where(and(isNotNull(folders.deletedAt), eq(folders.userId, userId)))
       .orderBy(desc(folders.deletedAt));
 
     return NextResponse.json({
@@ -37,21 +38,21 @@ export async function GET() {
   }
 }
 
-// DELETE: Empty trash (permanently delete all trashed items)
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
-    // Get all trashed visualizations to find their project IDs
+    const userId = getUserId(request);
+
     const trashedViz = await db
       .select({ id: visualizations.id, projectId: visualizations.projectId })
       .from(visualizations)
-      .where(isNotNull(visualizations.deletedAt));
+      .where(and(isNotNull(visualizations.deletedAt), eq(visualizations.userId, userId)));
 
-    // Permanently delete all trashed visualizations
     if (trashedViz.length > 0) {
-      await db.delete(visualizations).where(isNotNull(visualizations.deletedAt));
+      for (const viz of trashedViz) {
+        await db.delete(visualizations).where(and(eq(visualizations.id, viz.id), eq(visualizations.userId, userId)));
+      }
     }
 
-    // Clean up orphaned projects (soft-deleted or with no remaining visualizations)
     const projectIds = Array.from(new Set(trashedViz.map((v) => v.projectId)));
     for (const projId of projectIds) {
       const remaining = await db
@@ -60,15 +61,12 @@ export async function DELETE() {
         .where(eq(visualizations.projectId, projId))
         .limit(1);
       if (remaining.length === 0) {
-        await db.delete(projects).where(eq(projects.id, projId));
+        await db.delete(projects).where(and(eq(projects.id, projId), eq(projects.userId, userId)));
       }
     }
 
-    // Also delete any remaining soft-deleted projects
-    await db.delete(projects).where(isNotNull(projects.deletedAt));
-
-    // Permanently delete all trashed folders
-    await db.delete(folders).where(isNotNull(folders.deletedAt));
+    await db.delete(projects).where(and(isNotNull(projects.deletedAt), eq(projects.userId, userId)));
+    await db.delete(folders).where(and(isNotNull(folders.deletedAt), eq(folders.userId, userId)));
 
     return NextResponse.json({ success: true });
   } catch (error) {

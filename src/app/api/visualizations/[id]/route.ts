@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { visualizations, projects } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -16,13 +18,12 @@ export async function GET(
     const [visualization] = await db
       .select()
       .from(visualizations)
-      .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt)));
+      .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt), eq(visualizations.userId, userId)));
 
     if (!visualization) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
     }
 
-    // Include project's folderId for breadcrumb navigation
     const [project] = await db
       .select({ folderId: projects.folderId })
       .from(projects)
@@ -40,6 +41,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -58,19 +60,18 @@ export async function PUT(
     const [updated] = await db
       .update(visualizations)
       .set(updateData)
-      .where(eq(visualizations.id, id))
+      .where(and(eq(visualizations.id, id), eq(visualizations.userId, userId)))
       .returning();
 
     if (!updated) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
     }
 
-    // If folderId is provided, update the project's folder
     if (body.folderId !== undefined) {
       await db
         .update(projects)
         .set({ folderId: body.folderId })
-        .where(eq(projects.id, updated.projectId));
+        .where(and(eq(projects.id, updated.projectId), eq(projects.userId, userId)));
     }
 
     return NextResponse.json(updated);
@@ -85,6 +86,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -95,14 +97,13 @@ export async function DELETE(
     const [softDeleted] = await db
       .update(visualizations)
       .set({ deletedAt: now })
-      .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt)))
+      .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt), eq(visualizations.userId, userId)))
       .returning();
 
     if (!softDeleted) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
     }
 
-    // Also soft-delete the associated project
     await db
       .update(projects)
       .set({ deletedAt: now })

@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { templates } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -16,7 +18,7 @@ export async function GET(
     const [template] = await db
       .select()
       .from(templates)
-      .where(eq(templates.id, id));
+      .where(and(eq(templates.id, id), or(eq(templates.userId, userId), eq(templates.isShared, true))));
 
     if (!template) {
       return NextResponse.json({ error: 'Template not found' }, { status: 404 });
@@ -34,6 +36,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -52,7 +55,7 @@ export async function PUT(
     const [updated] = await db
       .update(templates)
       .set(updates)
-      .where(eq(templates.id, id))
+      .where(and(eq(templates.id, id), eq(templates.userId, userId)))
       .returning();
 
     if (!updated) {
@@ -67,16 +70,17 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    await db.delete(templates).where(eq(templates.id, id));
+    await db.delete(templates).where(and(eq(templates.id, id), eq(templates.userId, userId)));
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete template:', error);

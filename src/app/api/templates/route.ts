@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { templates } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, eq, or } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
     const result = await db
       .select()
       .from(templates)
+      .where(or(eq(templates.userId, userId), eq(templates.isShared, true)))
       .orderBy(desc(templates.updatedAt));
     return NextResponse.json(result);
   } catch (error) {
@@ -18,6 +21,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const userId = getUserId(request);
     const body = await request.json();
     const { templateName, chartType, settings, data, columnMapping, thumbnail } = body;
 
@@ -34,6 +38,7 @@ export async function POST(request: NextRequest) {
         data: data || [],
         columnMapping: columnMapping || {},
         thumbnail: thumbnail || null,
+        userId,
       })
       .returning();
 

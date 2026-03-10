@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { colorThemes } from '@/lib/db/schema';
-import { desc } from 'drizzle-orm';
+import { desc, eq, or, isNull } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userId = getUserId(request);
     const themes = await db
       .select()
       .from(colorThemes)
+      .where(or(eq(colorThemes.userId, userId), eq(colorThemes.isBuiltIn, true), isNull(colorThemes.userId)))
       .orderBy(desc(colorThemes.isBuiltIn), colorThemes.name);
     return NextResponse.json(themes);
   } catch (error) {
@@ -16,8 +19,9 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const userId = getUserId(request);
     const body = await request.json();
     const { name, colors } = body;
 
@@ -34,6 +38,7 @@ export async function POST(request: Request) {
         name,
         colors,
         isBuiltIn: false,
+        userId,
       })
       .returning();
 

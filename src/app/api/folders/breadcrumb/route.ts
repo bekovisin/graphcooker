@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { folders } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
 export async function GET(request: NextRequest) {
   const folderId = request.nextUrl.searchParams.get('folderId');
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Walk up the folder tree to build the breadcrumb path
+    const userId = getUserId(request);
     const path: { id: number; name: string }[] = [];
     let currentId: number | null = id;
 
@@ -23,13 +24,12 @@ export async function GET(request: NextRequest) {
       const [folder] = await db
         .select({ id: folders.id, name: folders.name, parentId: folders.parentId })
         .from(folders)
-        .where(eq(folders.id, currentId));
+        .where(and(eq(folders.id, currentId), eq(folders.userId, userId)));
 
       if (!folder) break;
       path.unshift({ id: folder.id, name: folder.name });
       currentId = folder.parentId;
 
-      // Safety: prevent infinite loops
       if (path.length > 20) break;
     }
 

@@ -2,12 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { folders, projects, visualizations } from '@/lib/db/schema';
 import { eq, and, isNull } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
@@ -22,7 +24,7 @@ export async function PUT(
     const [updated] = await db
       .update(folders)
       .set(updateData)
-      .where(and(eq(folders.id, id), isNull(folders.deletedAt)))
+      .where(and(eq(folders.id, id), isNull(folders.deletedAt), eq(folders.userId, userId)))
       .returning();
 
     if (!updated) {
@@ -36,22 +38,18 @@ export async function PUT(
   }
 }
 
-// Recursively soft-delete a folder and all its contents
-async function softDeleteFolderRecursive(folderId: number, now: Date) {
-  // Soft-delete the folder itself
+async function softDeleteFolderRecursive(folderId: number, userId: number, now: Date) {
   await db
     .update(folders)
     .set({ deletedAt: now })
-    .where(and(eq(folders.id, folderId), isNull(folders.deletedAt)));
+    .where(and(eq(folders.id, folderId), isNull(folders.deletedAt), eq(folders.userId, userId)));
 
-  // Soft-delete all projects in this folder
   const deletedProjects = await db
     .update(projects)
     .set({ deletedAt: now })
-    .where(and(eq(projects.folderId, folderId), isNull(projects.deletedAt)))
+    .where(and(eq(projects.folderId, folderId), isNull(projects.deletedAt), eq(projects.userId, userId)))
     .returning();
 
-  // Soft-delete all visualizations belonging to those projects
   for (const proj of deletedProjects) {
     await db
       .update(visualizations)
@@ -59,14 +57,13 @@ async function softDeleteFolderRecursive(folderId: number, now: Date) {
       .where(and(eq(visualizations.projectId, proj.id), isNull(visualizations.deletedAt)));
   }
 
-  // Recurse into child folders
   const childFolders = await db
     .select({ id: folders.id })
     .from(folders)
-    .where(and(eq(folders.parentId, folderId), isNull(folders.deletedAt)));
+    .where(and(eq(folders.parentId, folderId), isNull(folders.deletedAt), eq(folders.userId, userId)));
 
   for (const child of childFolders) {
-    await softDeleteFolderRecursive(child.id, now);
+    await softDeleteFolderRecursive(child.id, userId, now);
   }
 }
 
@@ -75,23 +72,23 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const userId = getUserId(request);
     const id = parseInt(params.id);
     if (isNaN(id)) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    // Check the folder exists and is not already deleted
     const [folder] = await db
       .select()
       .from(folders)
-      .where(and(eq(folders.id, id), isNull(folders.deletedAt)));
+      .where(and(eq(folders.id, id), isNull(folders.deletedAt), eq(folders.userId, userId)));
 
     if (!folder) {
       return NextResponse.json({ error: 'Folder not found' }, { status: 404 });
     }
 
     const now = new Date();
-    await softDeleteFolderRecursive(id, now);
+    await softDeleteFolderRecursive(id, userId, now);
 
     return NextResponse.json({ success: true });
   } catch (error) {

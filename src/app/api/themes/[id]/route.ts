@@ -1,18 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { colorThemes } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
+import { getUserId } from '@/lib/auth/helpers';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = getUserId(request);
     const { id } = await params;
     const [theme] = await db
       .select()
       .from(colorThemes)
-      .where(eq(colorThemes.id, parseInt(id)));
+      .where(and(eq(colorThemes.id, parseInt(id)), or(eq(colorThemes.userId, userId), eq(colorThemes.isBuiltIn, true))));
 
     if (!theme) {
       return NextResponse.json({ error: 'Theme not found' }, { status: 404 });
@@ -26,10 +28,11 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = getUserId(request);
     const { id } = await params;
     const [existing] = await db
       .select()
@@ -45,6 +48,10 @@ export async function PUT(
         { error: 'Cannot modify built-in themes' },
         { status: 403 }
       );
+    }
+
+    if (existing.userId !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -68,10 +75,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const userId = getUserId(request);
     const { id } = await params;
     const [existing] = await db
       .select()
@@ -87,6 +95,10 @@ export async function DELETE(
         { error: 'Cannot delete built-in themes' },
         { status: 403 }
       );
+    }
+
+    if (existing.userId !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     await db.delete(colorThemes).where(eq(colorThemes.id, parseInt(id)));
