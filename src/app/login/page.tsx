@@ -34,7 +34,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-8">
           <Image src="/logo.svg" alt="GraphCooker" width={140} height={32} className="mb-4" />
           <h1 className="text-xl font-semibold text-gray-900">
-            Sign in to <span className="font-shantell font-bold">GraphCooker</span>
+            Sign in to <span className="font-shantell font-normal">graph</span><span className="font-shantell font-normal text-orange-500">cooker</span>
           </h1>
         </div>
 

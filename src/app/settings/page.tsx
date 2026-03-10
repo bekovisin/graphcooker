@@ -6,6 +6,7 @@ import { settingsMap, getAllSettingKeys, getTotalSettingsCount } from '@/lib/set
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Plus, Trash2, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -196,14 +197,9 @@ export default function SettingsPage() {
                       )}
                     </button>
                     <label className="flex items-center gap-2 flex-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedSections.has(section.id)}
-                        ref={(el) => {
-                          if (el) el.indeterminate = isPartial;
-                        }}
-                        onChange={() => toggleSection(section.id)}
-                        className="w-4 h-4 rounded border-gray-300 accent-orange-500 cursor-pointer"
+                      <Checkbox
+                        checked={isPartial ? 'indeterminate' : selectedSections.has(section.id)}
+                        onCheckedChange={() => toggleSection(section.id)}
                       />
                       <span className="text-sm font-medium text-gray-800">{section.title}</span>
                     </label>
@@ -221,11 +217,10 @@ export default function SettingsPage() {
                             key={sub.key}
                             className="flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-white cursor-pointer select-none"
                           >
-                            <input
-                              type="checkbox"
+                            <Checkbox
                               checked={selectedSettings.has(`${section.id}.${sub.key}`)}
-                              onChange={() => toggleSetting(section.id, sub.key)}
-                              className="w-3.5 h-3.5 rounded border-gray-300 accent-orange-500 cursor-pointer"
+                              onCheckedChange={() => toggleSetting(section.id, sub.key)}
+                              className="h-3.5 w-3.5"
                             />
                             <span className="text-xs text-gray-600">{sub.label}</span>
                           </label>

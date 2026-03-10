@@ -319,6 +319,11 @@ export default function AdminUsersPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {modalMode === 'edit' && editingUser?.plainPassword && (
+                  <p className="mt-1.5 text-xs text-gray-400">
+                    Current password: <span className="font-mono text-gray-600">{editingUser.plainPassword}</span>
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
