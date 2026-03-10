@@ -67,7 +67,30 @@ function DashboardPage() {
     const folderParam = searchParams.get('folder');
     return folderParam ? parseInt(folderParam) || null : null;
   });
-  const [sortMode, setSortMode] = useState<SortMode>('updated_desc');
+  const [sortMode, setSortModeLocal] = useState<SortMode>('updated_desc');
+
+  // Load saved sort preference on mount
+  useEffect(() => {
+    fetch('/api/preferences?key=dashboard_sort')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.value && sortLabels[data.value as SortMode]) {
+          setSortModeLocal(data.value as SortMode);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Wrapper that persists sort mode to database
+  const setSortMode = useCallback((mode: SortMode) => {
+    setSortModeLocal(mode);
+    fetch('/api/preferences', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'dashboard_sort', value: mode }),
+    }).catch(() => {});
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());

@@ -7,6 +7,7 @@ import {
   jsonb,
   text,
   boolean,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const folders = pgTable('folders', {
@@ -72,6 +73,15 @@ export const templates = pgTable('templates', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const preferences = pgTable('preferences', {
+  id: serial('id').primaryKey(),
+  key: varchar('key', { length: 100 }).notNull(),
+  value: varchar('value', { length: 500 }).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('preferences_key_idx').on(table.key),
+]);
 
 export const dashboardTemplates = pgTable('dashboard_templates', {
   id: serial('id').primaryKey(),
