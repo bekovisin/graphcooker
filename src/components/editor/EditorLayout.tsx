@@ -80,6 +80,11 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
             columnMapping: hasMapping ? viz.columnMapping : defaultColumnMapping,
           });
 
+          // Sync URL-based template ID into store so "Update template" button works
+          if (fromTemplateId) {
+            useEditorStore.getState().setEditingTemplateId(fromTemplateId);
+          }
+
           // Fetch folder breadcrumbs if visualization is in a folder
           if (viz.folderId) {
             try {

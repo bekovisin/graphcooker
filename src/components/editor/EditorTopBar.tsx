@@ -12,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowLeft,
   BookmarkPlus,
   Check,
+  ChefHat,
   ChevronDown,
   ChevronRight,
   Download,
@@ -22,14 +22,15 @@ import {
   FileCode,
   FileText,
   FileType,
-  Home,
   Loader2,
+  Pencil,
   RefreshCw,
   Save,
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { SaveTemplateDialog } from './SaveTemplateDialog';
+import { TemplatePickerDialog } from './TemplatePickerDialog';
 
 interface BreadcrumbItem {
   id: number;
@@ -55,11 +56,15 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
     data,
     columnMapping,
     chartType,
+    editingTemplateId,
   } = useEditorStore();
+
+  const activeTemplateId = editingTemplateId ?? fromTemplateId ?? null;
 
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(visualizationName);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [updatingTemplate, setUpdatingTemplate] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -80,10 +85,10 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
   };
 
   const handleUpdateTemplate = async () => {
-    if (!fromTemplateId) return;
+    if (!activeTemplateId) return;
     setUpdatingTemplate(true);
     try {
-      const res = await fetch(`/api/templates/${fromTemplateId}`, {
+      const res = await fetch(`/api/templates/${activeTemplateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,19 +112,15 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
 
   return (
     <div className="flex items-center h-14 px-4 border-b bg-white shrink-0">
-      {/* Left: Back + Breadcrumbs + Name */}
+      {/* Left: Logo + Breadcrumbs + Name */}
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
         <Link
-          href={breadcrumbs.length > 0 ? `/?folder=${breadcrumbs[breadcrumbs.length - 1].id}` : '/'}
-          className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
-          title="Back to dashboard"
+          href="/"
+          className="flex items-center gap-1 px-1.5 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
+          title="GraphCooker — Back to dashboard"
         >
-          <ArrowLeft className="w-4 h-4 text-gray-600" />
-        </Link>
-
-        {/* Breadcrumbs */}
-        <Link href="/" className="flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 transition-colors shrink-0" title="Dashboard">
-          <Home className="w-3.5 h-3.5 text-gray-400" />
+          <ChefHat className="w-5 h-5 text-orange-500" />
+          <span className="text-sm font-bold text-gray-700 hidden sm:inline">GC</span>
         </Link>
         {breadcrumbs.map((bc) => (
           <span key={bc.id} className="flex items-center gap-1.5 shrink-0">
@@ -210,7 +211,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
           )}
         </div>
 
-        {fromTemplateId && (
+        {activeTemplateId && (
           <Button
             variant="outline"
             size="sm"
@@ -225,11 +226,26 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
           </Button>
         )}
 
-        <Button variant="outline" size="sm" className="gap-1" onClick={() => setShowSaveTemplate(true)} title="Save as template">
-          <BookmarkPlus className="w-4 h-4" />
-          <span className="hidden xl:inline">Save as template</span>
-          <span className="xl:hidden">Template</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1">
+              <BookmarkPlus className="w-4 h-4" />
+              <span className="hidden xl:inline">Templates</span>
+              <ChevronDown className="w-3 h-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => setShowSaveTemplate(true)} className="gap-2">
+              <BookmarkPlus className="w-4 h-4" />
+              Save as new template
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowTemplatePicker(true)} className="gap-2">
+              <Pencil className="w-4 h-4" />
+              Edit existing template...
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -266,6 +282,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
       </div>
 
       <SaveTemplateDialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate} />
+      <TemplatePickerDialog open={showTemplatePicker} onOpenChange={setShowTemplatePicker} />
     </div>
   );
 }

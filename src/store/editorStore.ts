@@ -32,6 +32,9 @@ interface EditorState {
   // Settings
   settings: ChartSettings;
 
+  // Template editing
+  editingTemplateId: number | null;
+
   // Dirty tracking
   isDirty: boolean;
   isSaving: boolean;
@@ -64,6 +67,7 @@ interface EditorState {
   setSeriesName: (colName: string, displayName: string) => void;
   updateSettings: <K extends keyof ChartSettings>(section: K, updates: Partial<ChartSettings[K]>) => void;
   setSettings: (settings: ChartSettings) => void;
+  setEditingTemplateId: (id: number | null) => void;
   setIsDirty: (dirty: boolean) => void;
   setIsSaving: (saving: boolean) => void;
   setLastSavedAt: (date: Date | null) => void;
@@ -131,6 +135,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   customPreviewWidth: 800,
   customPreviewHeight: 600,
   autoComputedHeight: null,
+  editingTemplateId: null,
   canvasBackgroundColor: '#e5e7eb',
   settingsSearchQuery: '',
   data: defaultData,
@@ -293,6 +298,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     })),
 
   setSettings: (settings) => set({ settings, isDirty: true }),
+  setEditingTemplateId: (id) => set({ editingTemplateId: id }),
   setIsDirty: (dirty) => set({ isDirty: dirty }),
   setIsSaving: (saving) => set({ isSaving: saving }),
   setLastSavedAt: (date) => set({ lastSavedAt: date }),
@@ -314,6 +320,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       columnTypes: {},
       seriesNames: {},
       settings: defaultChartSettings,
+      editingTemplateId: null,
       isDirty: false,
       isSaving: false,
       lastSavedAt: null,
