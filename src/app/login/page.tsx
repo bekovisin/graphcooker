@@ -35,7 +35,7 @@ function LoginContent() {
   return (
     <div className="min-h-screen flex items-start justify-center pt-[10vh] sm:pt-[12vh] md:pt-[14vh] px-4 bg-orange-50">
       <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-8 lg:mb-5">
           <Link href="/" className="mb-3">
             <Image src="/graphcooker-icon.svg" alt="GraphCooker" width={48} height={48} />
           </Link>
@@ -44,7 +44,7 @@ function LoginContent() {
           </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-7 md:p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-7 md:p-8 lg:p-7 space-y-5">
           {resetSuccess && (
             <div className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
               Password reset successfully. You can now sign in with your new password.
@@ -58,7 +58,7 @@ function LoginContent() {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-base font-medium text-gray-700 mb-1.5">
+            <label htmlFor="email" className="block text-base lg:text-sm font-medium text-gray-700 mb-1.5">
               Email
             </label>
             <input
@@ -69,14 +69,14 @@ function LoginContent() {
               required
               autoComplete="email"
               autoFocus
-              className="w-full px-4 py-3 h-[44px] border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-3 lg:px-3.5 lg:py-2.5 h-[44px] lg:h-[40px] border border-gray-300 rounded-lg text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="password" className="block text-base font-medium text-gray-700">
+              <label htmlFor="password" className="block text-base lg:text-sm font-medium text-gray-700">
                 Password
               </label>
               <Link href="/forgot-password" className="text-sm text-orange-500 hover:text-orange-600 transition-colors">
@@ -90,7 +90,7 @@ function LoginContent() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full px-4 py-3 h-[44px] border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-3 lg:px-3.5 lg:py-2.5 h-[44px] lg:h-[40px] border border-gray-300 rounded-lg text-base lg:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               placeholder="Enter your password"
             />
           </div>
@@ -98,7 +98,7 @@ function LoginContent() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-[44px] px-4 bg-orange-500 text-white text-base font-medium rounded-lg hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full h-[44px] lg:h-[40px] px-4 bg-orange-500 text-white text-base lg:text-sm font-medium rounded-lg hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>

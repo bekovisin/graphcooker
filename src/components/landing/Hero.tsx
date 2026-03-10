@@ -83,7 +83,7 @@ export default function Hero() {
             </div>
           </motion.div>
 
-          {/* Visual Content / Mockups */}
+          {/* Visual Content / Mockups — Static stacked cards */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -91,11 +91,7 @@ export default function Hero() {
             className="relative h-[400px] lg:h-[500px] w-full"
           >
             {/* Main Dashboard Card */}
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] sm:w-[85%] bg-white rounded-xl shadow-2xl border border-slate-100 p-6 z-10"
-            >
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[88%] sm:w-[80%] bg-white rounded-xl shadow-2xl border border-slate-100 p-6 z-10">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="font-outfit font-bold text-lg text-slate-900">
@@ -140,19 +136,10 @@ export default function Hero() {
                   <span key={month} className="text-[10px] text-slate-400 font-medium">{month}</span>
                 ))}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Floating Pie Chart Card */}
-            <motion.div
-              animate={{ y: [0, 15, 0], rotate: [0, 2, 0] }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 1,
-              }}
-              className="absolute top-[5%] right-[2%] sm:right-0 w-52 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20"
-            >
+            {/* Pie Chart Card — overlaid on top-right of main card */}
+            <div className="absolute top-[5%] right-[0%] sm:-right-[3%] w-52 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20">
               <div className="mb-4">
                 <h4 className="font-outfit font-bold text-sm text-slate-900">
                   Market Share
@@ -198,19 +185,10 @@ export default function Hero() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            {/* Floating Line Chart Card */}
-            <motion.div
-              animate={{ y: [0, -15, 0], rotate: [0, -2, 0] }}
-              transition={{
-                duration: 4.5,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 0.5,
-              }}
-              className="absolute bottom-[5%] left-[2%] sm:left-0 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20"
-            >
+            {/* Line Chart Card — overlaid on bottom-left of main card */}
+            <div className="absolute bottom-[5%] left-[0%] sm:-left-[2%] w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20">
               <div className="mb-4 flex justify-between items-start">
                 <div>
                   <h4 className="font-outfit font-bold text-sm text-slate-900">
@@ -260,7 +238,7 @@ export default function Hero() {
                   <motion.circle initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 3.5 }} cx="100" cy="5" r="2.5" fill="white" stroke="#F97316" strokeWidth="1.5" />
                 </svg>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         </div>
       </div>
