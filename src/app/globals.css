@@ -39,6 +39,9 @@
   body {
     @apply bg-background text-foreground;
   }
+  ::selection {
+    background: rgba(249, 115, 22, 0.3);
+  }
 }
 
 /* Spreadsheet styles */

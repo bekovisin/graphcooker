@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Roboto, Montserrat, Shantell_Sans } from "next/font/google";
+import { Inter, Roboto, Montserrat, Outfit, Shantell_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
@@ -19,6 +19,11 @@ const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-montserrat",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
 });
 
 const shantellSans = Shantell_Sans({
@@ -47,8 +52,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${roboto.variable} ${montserrat.variable} ${shantellSans.variable} font-sans antialiased`}>
+    <html lang="en" className="scroll-smooth">
+      <body className={`${inter.variable} ${roboto.variable} ${montserrat.variable} ${outfit.variable} ${shantellSans.variable} font-sans antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>
