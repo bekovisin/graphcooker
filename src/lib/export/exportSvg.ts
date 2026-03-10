@@ -135,44 +135,35 @@ function inlineStyles(svgEl: SVGSVGElement) {
     // modifying y would shift position along the wrong axis).
     const db = el.getAttribute('dominant-baseline');
     if (db && db !== 'auto' && db !== 'alphabetic' && !hasTransform) {
-      // Read font-size from attribute first, then fall back to CSS style
-      let fontSize = parseFloat(el.getAttribute('font-size') || '0');
-      if (!fontSize) {
-        const styleStr = el.getAttribute('style') || '';
-        const fsMatch = styleStr.match(/font-size\s*:\s*([\d.]+)/);
-        if (fsMatch) fontSize = parseFloat(fsMatch[1]);
-      }
-      if (!fontSize) fontSize = 12;
-      const currentY = parseFloat(el.getAttribute('y') || '0');
+      // Check if text has child tspans with a different font-size than the parent.
+      // Mixed-size tspans make baseline conversion unreliable (font-metrics vary),
+      // so we keep dominant-baseline as-is — all modern SVG viewers support it.
+      const parentFontSize = parseFloat(el.getAttribute('font-size') || '0');
+      const tspans = el.querySelectorAll('tspan');
+      const hasMixedSizeTspans = Array.from(tspans).some((ts) => {
+        const tsFs = parseFloat(ts.getAttribute('font-size') || '0');
+        return tsFs > 0 && tsFs !== parentFontSize;
+      });
 
-      if (db === 'central') {
-        // Shift alphabetic baseline down so the text visually centres at the original y
-        el.setAttribute('y', String(currentY + fontSize * 0.35));
+      if (!hasMixedSizeTspans) {
+        // Simple text (no tspans or same-size tspans): safe to convert
+        let fontSize = parentFontSize;
+        if (!fontSize) {
+          const styleStr = el.getAttribute('style') || '';
+          const fsMatch = styleStr.match(/font-size\s*:\s*([\d.]+)/);
+          if (fsMatch) fontSize = parseFloat(fsMatch[1]);
+        }
+        if (!fontSize) fontSize = 12;
+        const currentY = parseFloat(el.getAttribute('y') || '0');
 
-        // Adjust dy on child tspans with different font-sizes.
-        // When dominant-baseline was "central", ALL content centred at the original y.
-        // After removing it the alphabetic baseline is used, so tspans with a
-        // smaller/larger font-size need an individual dy correction to stay centred.
-        const tspans = el.querySelectorAll('tspan');
-        let cumulativeCorrection = 0;
-        tspans.forEach((tspan) => {
-          const tsFontSize =
-            parseFloat(tspan.getAttribute('font-size') || '0') || fontSize;
-          // Correction this tspan needs relative to parent baseline
-          const neededCorrection = -(fontSize - tsFontSize) * 0.35;
-          // Delta from whatever the previous tspan left the y-cursor at
-          const delta = neededCorrection - cumulativeCorrection;
-          if (Math.abs(delta) > 0.01) {
-            const existingDy = parseFloat(tspan.getAttribute('dy') || '0');
-            tspan.setAttribute('dy', String(+(existingDy + delta).toFixed(2)));
-          }
-          cumulativeCorrection = neededCorrection;
-        });
-      } else if (db === 'hanging') {
-        // Shift alphabetic baseline down so the text top aligns with the original y
-        el.setAttribute('y', String(currentY + fontSize * 0.8));
+        if (db === 'central') {
+          el.setAttribute('y', String(currentY + fontSize * 0.35));
+        } else if (db === 'hanging') {
+          el.setAttribute('y', String(currentY + fontSize * 0.8));
+        }
+        el.removeAttribute('dominant-baseline');
       }
-      el.removeAttribute('dominant-baseline');
+      // else: keep dominant-baseline for mixed-size tspan text (browsers handle it)
     }
 
     // Convert inline CSS `style` to SVG presentation attributes
