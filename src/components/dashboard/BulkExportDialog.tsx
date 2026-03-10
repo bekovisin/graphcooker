@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,15 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Download, FileImage, FileCode, FileText, FileType, Loader2 } from 'lucide-react';
+import {
+  Download,
+  FileImage,
+  FileCode,
+  FileText,
+  FileType,
+  Loader2,
+  RotateCcw,
+} from 'lucide-react';
 
 export type BulkExportFormat = 'png' | 'svg' | 'pdf' | 'html';
 
@@ -23,12 +31,14 @@ export interface BulkExportOptions {
   height: number;
   transparent: boolean;
   pixelRatio: number;
+  usePerChartDimensions: boolean;
 }
 
 interface BulkExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedCount: number;
+  selectedIds: number[];
   onExport: (options: BulkExportOptions) => Promise<void>;
 }
 
@@ -43,6 +53,7 @@ export function BulkExportDialog({
   open,
   onOpenChange,
   selectedCount,
+  selectedIds,
   onExport,
 }: BulkExportDialogProps) {
   const [format, setFormat] = useState<BulkExportFormat>('png');
@@ -51,23 +62,75 @@ export function BulkExportDialog({
   const [transparent, setTransparent] = useState(false);
   const [pixelRatio, setPixelRatio] = useState(2);
   const [isExporting, setIsExporting] = useState(false);
+  const [usePerChart, setUsePerChart] = useState(false);
+
+  // Saved (default) dimensions fetched from DB
+  const [defaultWidth, setDefaultWidth] = useState(800);
+  const [defaultHeight, setDefaultHeight] = useState(500);
+  const [isLoadingDims, setIsLoadingDims] = useState(false);
+
+  const isMultiple = selectedCount > 1;
+  const isCustomWidth = width !== defaultWidth;
+  const isCustomHeight = height !== defaultHeight;
+
+  // Fetch saved dimensions when dialog opens
+  const fetchDimensions = useCallback(async () => {
+    if (selectedIds.length === 0) return;
+    setIsLoadingDims(true);
+    try {
+      const res = await fetch('/api/visualizations/dimensions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      if (!res.ok) return;
+      const dims: Record<number, { width: number; height: number }> = await res.json();
+
+      // For single chart: use its exact saved dimensions
+      // For multiple: use the first chart's dimensions as the default
+      const firstId = selectedIds[0];
+      const firstDim = dims[firstId];
+      if (firstDim) {
+        setDefaultWidth(firstDim.width);
+        setDefaultHeight(firstDim.height);
+        setWidth(firstDim.width);
+        setHeight(firstDim.height);
+      }
+    } catch {
+      // Fallback: keep 800x500
+    } finally {
+      setIsLoadingDims(false);
+    }
+  }, [selectedIds]);
 
   // Reset when dialog opens
   useEffect(() => {
     if (open) {
       setFormat('png');
-      setWidth(800);
-      setHeight(500);
       setTransparent(false);
       setPixelRatio(2);
       setIsExporting(false);
+      setUsePerChart(false);
+      // Reset to fallback first, then fetch overwrites
+      setDefaultWidth(800);
+      setDefaultHeight(500);
+      setWidth(800);
+      setHeight(500);
+      fetchDimensions();
     }
-  }, [open]);
+  }, [open, fetchDimensions]);
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      await onExport({ format, width, height, transparent, pixelRatio });
+      await onExport({
+        format,
+        width,
+        height,
+        transparent,
+        pixelRatio,
+        usePerChartDimensions: usePerChart,
+      });
     } finally {
       setIsExporting(false);
       onOpenChange(false);
@@ -113,35 +176,97 @@ export function BulkExportDialog({
             </div>
           </div>
 
+          {/* Per-chart dimensions toggle (only for multiple charts) */}
+          {isMultiple && (
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="per-chart-dims" className="text-sm">
+                  Use each chart&apos;s saved dimensions
+                </Label>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Each chart exports at its own saved preview size
+                </p>
+              </div>
+              <Switch
+                id="per-chart-dims"
+                checked={usePerChart}
+                onCheckedChange={setUsePerChart}
+              />
+            </div>
+          )}
+
           {/* Dimensions */}
-          <div className="flex gap-3">
+          <div className={`flex gap-3 ${usePerChart ? 'opacity-40 pointer-events-none' : ''}`}>
             <div className="flex-1">
               <Label htmlFor="bulk-width" className="text-sm">
                 Width (px)
               </Label>
-              <Input
-                id="bulk-width"
-                type="number"
-                value={width}
-                onChange={(e) => setWidth(parseInt(e.target.value) || 0)}
-                className="h-8 text-sm mt-1"
-                min={1}
-              />
+              <div className="flex gap-1 mt-1">
+                <Input
+                  id="bulk-width"
+                  type="number"
+                  value={width}
+                  onChange={(e) => setWidth(parseInt(e.target.value) || 0)}
+                  className="h-8 text-sm"
+                  min={1}
+                  disabled={usePerChart}
+                />
+                {isCustomWidth && !usePerChart && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-gray-400 hover:text-blue-600"
+                    onClick={() => setWidth(defaultWidth)}
+                    title={`Reset to saved (${defaultWidth}px)`}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="flex-1">
               <Label htmlFor="bulk-height" className="text-sm">
                 Height (px)
               </Label>
-              <Input
-                id="bulk-height"
-                type="number"
-                value={height}
-                onChange={(e) => setHeight(parseInt(e.target.value) || 0)}
-                className="h-8 text-sm mt-1"
-                min={1}
-              />
+              <div className="flex gap-1 mt-1">
+                <Input
+                  id="bulk-height"
+                  type="number"
+                  value={height}
+                  onChange={(e) => setHeight(parseInt(e.target.value) || 0)}
+                  className="h-8 text-sm"
+                  min={1}
+                  disabled={usePerChart}
+                />
+                {isCustomHeight && !usePerChart && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-gray-400 hover:text-blue-600"
+                    onClick={() => setHeight(defaultHeight)}
+                    title={`Reset to saved (${defaultHeight}px)`}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
+
+          {/* Info text when per-chart mode is on */}
+          {usePerChart && (
+            <p className="text-xs text-blue-500 -mt-2">
+              Each chart will use its own saved preview dimensions.
+            </p>
+          )}
+
+          {/* Loading indicator for dimension fetch */}
+          {isLoadingDims && (
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Loading saved dimensions...
+            </p>
+          )}
 
           {/* Transparent background */}
           {supportsTransparency && (
@@ -178,7 +303,8 @@ export function BulkExportDialog({
                   >
                     {opt.label}
                     <span className="text-[10px] ml-1 opacity-60">
-                      {width * opt.value}x{height * opt.value}
+                      {(usePerChart ? defaultWidth : width) * opt.value}x
+                      {(usePerChart ? defaultHeight : height) * opt.value}
                     </span>
                   </button>
                 ))}

@@ -602,7 +602,7 @@ function DashboardPage() {
     const toExport = visualizations.filter((v) => selectedIds.has(v.id));
     if (toExport.length === 0) return;
 
-    const { format, width, height, transparent, pixelRatio } = exportOptions;
+    const { format, width, height, transparent, pixelRatio, usePerChartDimensions } = exportOptions;
 
     const extMap: Record<string, string> = { png: '.png', svg: '.svg', pdf: '.pdf', html: '.html' };
     const ext = extMap[format] || `.${format}`;
@@ -642,6 +642,18 @@ function DashboardPage() {
                 : defaultColumnMapping;
             const vizName = (viz.name || 'chart').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim();
 
+            // Determine export dimensions (per-chart or uniform)
+            let chartWidth = width;
+            let chartHeight = height;
+            if (usePerChartDimensions) {
+              const { deriveExportDimensions } = await import(
+                '@/lib/export/deriveExportDimensions'
+              );
+              const dims = deriveExportDimensions(fullViz.settings, fullViz.columnMapping);
+              chartWidth = dims.width;
+              chartHeight = dims.height;
+            }
+
             // Build a safe filename (deduplicate if needed)
             const fileName = `${vizName}${ext}`;
 
@@ -649,8 +661,8 @@ function DashboardPage() {
               // HTML export doesn't need offscreen rendering — build HTML blob directly
               const { captureAsHtmlBlob } = await import('@/lib/export/captureChart');
               const blob = await captureAsHtmlBlob(vizSettings, vizData, vizMapping, {
-                width,
-                height,
+                width: chartWidth,
+                height: chartHeight,
                 transparent,
               });
               zip.file(fileName, blob);
@@ -663,7 +675,7 @@ function DashboardPage() {
                 vizSettings,
                 vizData,
                 vizMapping,
-                { width, height, transparent }
+                { width: chartWidth, height: chartHeight, transparent }
               );
 
               try {
@@ -1286,6 +1298,7 @@ function DashboardPage() {
         open={showBulkExport}
         onOpenChange={setShowBulkExport}
         selectedCount={selectedIds.size}
+        selectedIds={Array.from(selectedIds)}
         onExport={handleBulkExport}
       />
 
