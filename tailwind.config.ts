@@ -11,6 +11,7 @@ const config: Config = {
   	extend: {
   		fontFamily: {
   			sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+  			shantell: ['var(--font-shantell)', 'cursive'],
   		},
   		colors: {
   			background: 'hsl(var(--background))',

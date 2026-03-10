@@ -18,9 +18,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { BarChart3, BookmarkPlus, Loader2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { BarChart3, BookmarkPlus, Loader2, MoreHorizontal, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { captureThumbnail } from '@/lib/capture-thumbnail';
+import { useAuthStore } from '@/store/authStore';
+import { ShareTemplateDialog } from './ShareTemplateDialog';
 
 interface Template {
   id: number;
@@ -45,8 +53,11 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [showWarning, setShowWarning] = useState(false);
   const [pendingTemplateId, setPendingTemplateId] = useState<number | null>(null);
+  const [shareTemplate, setShareTemplate] = useState<{ id: number; name: string } | null>(null);
 
   const { isDirty, loadVisualization, setEditingTemplateId, setIsDirty, settings, data, columnMapping, chartType } = useEditorStore();
+  const user = useAuthStore((s) => s.user);
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     if (open) {
@@ -168,7 +179,7 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
                   tabIndex={0}
                   onClick={() => loadingId === null && handleSelectTemplate(template.id)}
                   onKeyDown={(e) => { if (e.key === 'Enter' && loadingId === null) handleSelectTemplate(template.id); }}
-                  className={`group relative rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm overflow-hidden transition-all text-left cursor-pointer ${loadingId !== null ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`group relative rounded-lg border border-gray-200 hover:border-orange-300 hover:shadow-sm overflow-hidden transition-all text-left cursor-pointer ${loadingId !== null ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                   <div className="aspect-[16/10] bg-gray-50 flex items-center justify-center border-b relative">
                     {template.thumbnail ? (
@@ -179,10 +190,36 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
                     )}
                     {loadingId === template.id && (
                       <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                        <Loader2 className="w-5 h-5 animate-spin text-orange-500" />
                       </div>
                     )}
                   </div>
+                  {isAdmin && (
+                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1 rounded-md bg-white/90 hover:bg-white shadow-sm border border-gray-200"
+                          >
+                            <MoreHorizontal className="w-3.5 h-3.5 text-gray-500" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShareTemplate({ id: template.id, name: template.templateName });
+                            }}
+                            className="gap-2"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Share to user
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                   <div className="px-2.5 py-2">
                     <p className="text-xs font-medium text-gray-800 truncate">{template.templateName}</p>
                     <p className="text-[10px] text-gray-400 mt-0.5 truncate">
@@ -224,13 +261,23 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
                 setShowWarning(false);
                 setPendingTemplateId(null);
               }}
-              className={updateMode ? 'bg-blue-500 hover:bg-blue-600' : replaceMode ? 'bg-orange-500 hover:bg-orange-600' : undefined}
+              className={updateMode ? 'bg-orange-500 hover:bg-orange-600' : replaceMode ? 'bg-orange-500 hover:bg-orange-600' : undefined}
             >
               {updateMode ? 'Update' : replaceMode ? 'Replace' : 'Continue'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {shareTemplate && (
+        <ShareTemplateDialog
+          open={!!shareTemplate}
+          onOpenChange={(open) => { if (!open) setShareTemplate(null); }}
+          templateId={shareTemplate.id}
+          templateName={shareTemplate.name}
+          currentUserId={user?.id ?? 0}
+        />
+      )}
     </>
   );
 }

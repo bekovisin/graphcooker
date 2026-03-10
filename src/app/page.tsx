@@ -19,8 +19,8 @@ import {
   ChevronRight,
   ChevronDown,
   Trash2,
-  ChefHat,
 } from 'lucide-react';
+import Image from 'next/image';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1105,13 +1105,9 @@ function DashboardPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setActiveFolderId(null); setIsTrashView(false); exitSelectionMode(); }}
-              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+              className="flex items-center hover:opacity-80 transition-opacity"
             >
-              <ChefHat className="w-5 h-5 text-orange-500" />
-              <h1 className="text-lg font-bold tracking-tight">
-                <span className="text-gray-900">Graph</span>
-                <span className="text-orange-500">Cooker</span>
-              </h1>
+              <Image src="/logo.svg" alt="GraphCooker" width={140} height={32} />
             </button>
           </div>
 
@@ -1170,8 +1166,7 @@ function DashboardPage() {
                 className="flex items-center gap-1 px-1.5 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
                 title="GraphCooker — All visualizations"
               >
-                <ChefHat className="w-5 h-5 text-orange-500" />
-                <span className="text-sm font-bold text-gray-700">GC</span>
+                <Image src="/icon-sm.svg" alt="GC" width={20} height={20} />
               </button>
             )}
             {(activeFolderId !== null || isTrashView) && (

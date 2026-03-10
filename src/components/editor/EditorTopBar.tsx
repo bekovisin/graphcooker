@@ -15,7 +15,6 @@ import {
   ArrowRightLeft,
   BookmarkPlus,
   Check,
-  ChefHat,
   ChevronDown,
   ChevronRight,
   Download,
@@ -29,6 +28,7 @@ import {
   Save,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { SaveTemplateDialog } from './SaveTemplateDialog';
 import { TemplatePickerDialog } from './TemplatePickerDialog';
 
@@ -86,8 +86,7 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
           className="flex items-center gap-1 px-1.5 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
           title="GraphCooker — Back to dashboard"
         >
-          <ChefHat className="w-5 h-5 text-orange-500" />
-          <span className="text-sm font-bold text-gray-700 hidden sm:inline">GC</span>
+          <Image src="/icon-sm.svg" alt="GC" width={20} height={20} />
         </Link>
         {breadcrumbs.map((bc) => (
           <span key={bc.id} className="flex items-center gap-1.5 shrink-0">

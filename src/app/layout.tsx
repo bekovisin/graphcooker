@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Roboto, Montserrat } from "next/font/google";
+import { Inter, Roboto, Montserrat, Shantell_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
@@ -21,6 +21,12 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
 });
 
+const shantellSans = Shantell_Sans({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-shantell",
+});
+
 export const metadata: Metadata = {
   title: "GraphCooker | Data Visualization",
   description: "Create beautiful data visualizations",
@@ -36,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${roboto.variable} ${montserrat.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${roboto.variable} ${montserrat.variable} ${shantellSans.variable} font-sans antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>

@@ -166,7 +166,7 @@ export default function AdminUsersPage() {
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <Image src="/icon.svg" alt="GraphCooker" width={28} height={28} />
+          <Image src="/icon-sm.svg" alt="GraphCooker" width={20} height={20} />
           <h1 className="text-sm font-semibold text-gray-900">User Management</h1>
         </div>
       </div>
@@ -180,7 +180,7 @@ export default function AdminUsersPage() {
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add User
@@ -327,7 +327,7 @@ export default function AdminUsersPage() {
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
                 >
                   {formLoading ? 'Saving...' : modalMode === 'create' ? 'Create User' : 'Save Changes'}
                 </button>

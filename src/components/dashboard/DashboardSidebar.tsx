@@ -521,7 +521,7 @@ export function DashboardSidebar({
               </div>
             </div>
             <LogOut
-              className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+              className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 group-hover:text-red-500 transition-all shrink-0"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); logout(); }}
             />
           </Link>
