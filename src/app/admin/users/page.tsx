@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   XCircle,
   Mail,
+  KeyRound,
 } from 'lucide-react';
 
 interface User {
@@ -52,6 +53,17 @@ export default function AdminUsersPage() {
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState<User | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Password change modal
+  const [pwdUser, setPwdUser] = useState<User | null>(null);
+  const [pwdStep, setPwdStep] = useState<'idle' | 'code_sent'>('idle');
+  const [pwdCode, setPwdCode] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdError, setPwdError] = useState('');
+  const [pwdEmail, setPwdEmail] = useState('');
+  const [showPwdNew, setShowPwdNew] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -144,6 +156,75 @@ export default function AdminUsersPage() {
       setFormError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const openPwdChange = (user: User) => {
+    setPwdUser(user);
+    setPwdStep('idle');
+    setPwdCode('');
+    setPwdNew('');
+    setPwdConfirm('');
+    setPwdError('');
+    setPwdEmail('');
+    setShowPwdNew(false);
+  };
+
+  const handleSendPwdCode = async () => {
+    if (!pwdUser) return;
+    setPwdLoading(true);
+    setPwdError('');
+
+    try {
+      const res = await fetch('/api/admin/users/send-password-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: pwdUser.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send code');
+      setPwdEmail(data.email || pwdUser.email);
+      setPwdStep('code_sent');
+      toast.success('Verification code sent');
+    } catch (err) {
+      setPwdError(err instanceof Error ? err.message : 'Failed to send code');
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
+  const handlePwdChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pwdUser) return;
+
+    if (pwdNew !== pwdConfirm) {
+      setPwdError('Passwords do not match');
+      return;
+    }
+
+    if (pwdNew.length < 8) {
+      setPwdError('Password must be at least 8 characters');
+      return;
+    }
+
+    setPwdLoading(true);
+    setPwdError('');
+
+    try {
+      const res = await fetch('/api/admin/users/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: pwdUser.id, code: pwdCode, newPassword: pwdNew }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to change password');
+      toast.success(`Password changed for ${pwdUser.name}`);
+      setPwdUser(null);
+      fetchUsers();
+    } catch (err) {
+      setPwdError(err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setPwdLoading(false);
     }
   };
 
@@ -261,45 +342,54 @@ export default function AdminUsersPage() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {user.role !== 'admin' && (
-                        <div className="flex items-center justify-end gap-1">
-                          {!user.emailVerified && (
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openPwdChange(user)}
+                          className="p-1.5 rounded-md hover:bg-orange-50 text-gray-500 hover:text-orange-600 transition-colors"
+                          title="Change password"
+                        >
+                          <KeyRound className="w-3.5 h-3.5" />
+                        </button>
+                        {user.role !== 'admin' && (
+                          <>
+                            {!user.emailVerified && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch('/api/admin/users/resend-welcome', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ userId: user.id }),
+                                    });
+                                    if (!res.ok) throw new Error('Failed');
+                                    toast.success('Welcome email resent');
+                                  } catch {
+                                    toast.error('Failed to resend email');
+                                  }
+                                }}
+                                className="p-1.5 rounded-md hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
+                                title="Resend welcome email"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                             <button
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch('/api/admin/users/resend-welcome', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ userId: user.id }),
-                                  });
-                                  if (!res.ok) throw new Error('Failed');
-                                  toast.success('Welcome email resent');
-                                } catch {
-                                  toast.error('Failed to resend email');
-                                }
-                              }}
-                              className="p-1.5 rounded-md hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
-                              title="Resend welcome email"
+                              onClick={() => openEdit(user)}
+                              className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
+                              title="Edit"
                             >
-                              <Mail className="w-3.5 h-3.5" />
+                              <Pencil className="w-3.5 h-3.5" />
                             </button>
-                          )}
-                          <button
-                            onClick={() => openEdit(user)}
-                            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(user)}
-                            className="p-1.5 rounded-md hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
+                            <button
+                              onClick={() => setDeleteConfirm(user)}
+                              className="p-1.5 rounded-md hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -398,6 +488,138 @@ export default function AdminUsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {pwdUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => setPwdUser(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-gray-900">
+                Change Password — {pwdUser.name}
+              </h2>
+              <button onClick={() => setPwdUser(null)} className="p-1 rounded-md hover:bg-gray-100 text-gray-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5">
+              {pwdError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-4">
+                  {pwdError}
+                </div>
+              )}
+
+              {pwdStep === 'idle' ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    A 6-digit verification code will be sent to <strong>{pwdUser.email}</strong>.
+                    The user must share this code with you to proceed.
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPwdUser(null)}
+                      className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSendPwdCode}
+                      disabled={pwdLoading}
+                      className="px-4 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                    >
+                      {pwdLoading ? 'Sending...' : 'Send Code'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handlePwdChange} className="space-y-4">
+                  <p className="text-sm text-gray-500">
+                    Code sent to <strong>{pwdEmail}</strong>. Expires in 10 minutes.
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+                    <input
+                      type="text"
+                      value={pwdCode}
+                      onChange={(e) => setPwdCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      required
+                      maxLength={6}
+                      placeholder="000000"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-center font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPwdNew ? 'text' : 'password'}
+                        value={pwdNew}
+                        onChange={(e) => setPwdNew(e.target.value)}
+                        required
+                        minLength={8}
+                        maxLength={128}
+                        placeholder="Min 8 characters"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPwdNew(!showPwdNew)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPwdNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                    <input
+                      type={showPwdNew ? 'text' : 'password'}
+                      value={pwdConfirm}
+                      onChange={(e) => setPwdConfirm(e.target.value)}
+                      required
+                      minLength={8}
+                      maxLength={128}
+                      placeholder="Confirm new password"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <button
+                      type="button"
+                      onClick={handleSendPwdCode}
+                      disabled={pwdLoading}
+                      className="text-xs text-orange-600 hover:text-orange-700 disabled:opacity-50"
+                    >
+                      Resend code
+                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPwdUser(null)}
+                        className="px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={pwdLoading || pwdCode.length !== 6}
+                        className="px-4 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                      >
+                        {pwdLoading ? 'Changing...' : 'Change Password'}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}
