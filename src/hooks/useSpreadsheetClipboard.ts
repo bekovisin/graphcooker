@@ -7,6 +7,7 @@ import {
   normalizeRange,
   parseClipboardText,
   serializeSelectionToClipboard,
+  generateUniqueColumnName,
 } from '@/components/editor/spreadsheet/utils';
 
 interface UseSpreadsheetClipboardProps {
@@ -96,20 +97,41 @@ export function useSpreadsheetClipboard({
 
       pushHistory();
       const parsed = parseClipboardText(text);
-      const newData = data.map((row) => ({ ...row }));
-      const newColumnOrder = [...columnOrder];
+      let newData = data.map((row) => ({ ...row }));
+      let newColumnOrder = [...columnOrder];
 
       // Auto-detect header row: when pasting at top-left (0,0) with multiple rows,
       // or when header is explicitly selected (Ctrl+A), treat first row as series names.
       const shouldTreatFirstAsHeader = headerSelected ||
         (activeCell.row === 0 && activeCell.col === 0 && parsed.length > 1);
 
-      // Expand columns first so header names can be applied to new columns too
       const maxPasteCols = Math.max(...parsed.map((r) => r.length));
-      while (newColumnOrder.length < activeCell.col + maxPasteCols) {
-        const newColName = `Column ${newColumnOrder.length + 1}`;
-        newColumnOrder.push(newColName);
-        newData.forEach((row) => (row[newColName] = ''));
+
+      // Full grid paste: when replacing the entire grid (selectAll + paste at origin),
+      // reset the column order to match the paste data exactly. This avoids
+      // leftover columns and prevents duplicate column name conflicts.
+      const isFullGridPaste = shouldTreatFirstAsHeader &&
+        activeCell.row === 0 && activeCell.col === 0;
+
+      if (isFullGridPaste) {
+        // Trim excess columns from the target
+        if (newColumnOrder.length > maxPasteCols) {
+          newColumnOrder = newColumnOrder.slice(0, maxPasteCols);
+        }
+        // Add missing columns using unique names
+        while (newColumnOrder.length < maxPasteCols) {
+          const newColName = generateUniqueColumnName(newColumnOrder);
+          newColumnOrder.push(newColName);
+        }
+        // Start with fresh data (full replacement)
+        newData = [];
+      } else {
+        // Normal partial paste: expand columns if needed, using unique names
+        while (newColumnOrder.length < activeCell.col + maxPasteCols) {
+          const newColName = generateUniqueColumnName(newColumnOrder);
+          newColumnOrder.push(newColName);
+          newData.forEach((row) => (row[newColName] = ''));
+        }
       }
 
       let dataRows = parsed;
