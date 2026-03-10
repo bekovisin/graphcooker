@@ -33,16 +33,74 @@ const shantellSans = Shantell_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "GraphCooker | Data Visualization",
-  description: "Cook your raw data into stunning, interactive visualizations — charts, graphs and more. Free during beta.",
-  keywords: ["data visualization", "charts", "graphs", "bar chart", "interactive", "dashboard", "free"],
+  metadataBase: new URL("https://graphcooker.com"),
+  title: {
+    default: "GraphCooker — Cook Your Data Into Stunning Visualizations",
+    template: "%s | GraphCooker",
+  },
+  description:
+    "Turn raw spreadsheets into beautiful, interactive charts — bar, line, pie and more. No design skills needed. Free during beta with unlimited access to all premium features.",
+  keywords: [
+    "data visualization",
+    "charts",
+    "graphs",
+    "bar chart",
+    "line chart",
+    "pie chart",
+    "interactive charts",
+    "dashboard",
+    "free data visualization tool",
+    "chart maker",
+    "graph maker",
+    "spreadsheet to chart",
+    "data to chart",
+    "export SVG PNG PDF",
+    "GraphCooker",
+  ],
+  authors: [{ name: "GraphCooker Team" }],
+  creator: "GraphCooker",
+  publisher: "GraphCooker",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   openGraph: {
-    title: "GraphCooker — Data Visualization Made Easy",
-    description: "Cook your raw data into stunning visualizations. Free during beta.",
     type: "website",
+    locale: "en_US",
+    url: "https://graphcooker.com",
+    siteName: "GraphCooker",
+    title: "GraphCooker — Cook Your Data Into Stunning Visualizations",
+    description:
+      "Turn raw spreadsheets into beautiful, interactive charts. Free during beta with unlimited access.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "GraphCooker — Data Visualization Made Easy",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GraphCooker — Cook Your Data Into Stunning Visualizations",
+    description:
+      "Turn raw spreadsheets into beautiful, interactive charts. Free during beta.",
+    images: ["/og-image.png"],
   },
   icons: {
     icon: "/favicon.svg",
+    apple: "/graphcooker-icon.svg",
+  },
+  alternates: {
+    canonical: "https://graphcooker.com",
   },
 };
 
@@ -53,6 +111,38 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "GraphCooker",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web",
+              description:
+                "Turn raw spreadsheets into beautiful, interactive charts — bar, line, pie and more. No design skills needed.",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "USD",
+                description: "Free during beta",
+              },
+              featureList: [
+                "Beautiful Charts (Bar, Line, Pie)",
+                "Customizable Color Palettes",
+                "Pixel-Perfect SVG, PNG, PDF Export",
+                "HTML Embed Export",
+                "Template Library",
+                "Folder Management",
+                "Real-time Preview",
+                "Bulk Export",
+              ],
+            }),
+          }}
+        />
+      </head>
       <body className={`${inter.variable} ${roboto.variable} ${montserrat.variable} ${outfit.variable} ${shantellSans.variable} font-sans antialiased`}>
         <AuthProvider>
           {children}

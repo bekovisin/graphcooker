@@ -1,12 +1,14 @@
+import dynamic from 'next/dynamic';
 import Navbar from './Navbar';
 import Hero from './Hero';
-import Features from './Features';
-import Demo from './Demo';
-import FeatureShowcase from './FeatureShowcase';
-import FeatureTable from './FeatureTable';
-import BetaBanner from './BetaBanner';
-import Waitlist from './Waitlist';
-import Footer from './Footer';
+
+const Features = dynamic(() => import('./Features'));
+const Demo = dynamic(() => import('./Demo'));
+const FeatureShowcase = dynamic(() => import('./FeatureShowcase'));
+const FeatureTable = dynamic(() => import('./FeatureTable'));
+const BetaBanner = dynamic(() => import('./BetaBanner'));
+const Waitlist = dynamic(() => import('./Waitlist'));
+const Footer = dynamic(() => import('./Footer'));
 
 export function LandingPage() {
   return (

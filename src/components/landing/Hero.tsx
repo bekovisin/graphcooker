@@ -6,8 +6,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Hero() {
+  const { isAuthenticated, isLoading } = useAuthStore();
+
   return (
     <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
       {/* Background Elements */}
@@ -52,19 +55,31 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="#waitlist"
-                className="inline-flex items-center justify-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-base hover:bg-orange-600 transition-all hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-95"
-              >
-                Join the Waitlist
-                <ArrowRight size={20} />
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center gap-2 bg-white text-slate-700 border-2 border-slate-200 px-8 py-4 rounded-[6px] font-semibold text-base hover:border-slate-300 hover:bg-slate-50 transition-all active:scale-95"
-              >
-                Sign in
-              </Link>
+              {!isLoading && isAuthenticated ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-base hover:bg-orange-600 transition-all hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-95"
+                >
+                  Go to Dashboard
+                  <ArrowRight size={20} />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="#waitlist"
+                    className="inline-flex items-center justify-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-base hover:bg-orange-600 transition-all hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-95"
+                  >
+                    Join the Waitlist
+                    <ArrowRight size={20} />
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center gap-2 bg-white text-slate-700 border-2 border-slate-200 px-8 py-4 rounded-lg font-semibold text-base hover:border-slate-300 hover:bg-slate-50 transition-all active:scale-95"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
 
@@ -79,7 +94,7 @@ export default function Hero() {
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] sm:w-[90%] bg-white rounded-xl shadow-2xl border border-slate-100 p-6 z-10"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95%] sm:w-[85%] bg-white rounded-xl shadow-2xl border border-slate-100 p-6 z-10"
             >
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -136,7 +151,7 @@ export default function Hero() {
                 ease: "easeInOut",
                 delay: 1,
               }}
-              className="absolute -top-4 -right-4 sm:-right-12 w-52 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20"
+              className="absolute top-[5%] right-[2%] sm:right-0 w-52 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20"
             >
               <div className="mb-4">
                 <h4 className="font-outfit font-bold text-sm text-slate-900">
@@ -194,7 +209,7 @@ export default function Hero() {
                 ease: "easeInOut",
                 delay: 0.5,
               }}
-              className="absolute -bottom-8 -left-4 sm:-left-8 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20"
+              className="absolute bottom-[5%] left-[2%] sm:left-0 w-64 bg-white rounded-xl shadow-xl border border-slate-100 p-4 z-20"
             >
               <div className="mb-4 flex justify-between items-start">
                 <div>

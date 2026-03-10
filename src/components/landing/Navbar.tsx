@@ -3,8 +3,11 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuthStore } from "@/store/authStore";
 
 export default function Navbar() {
+  const { isAuthenticated, isLoading } = useAuthStore();
+
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -41,12 +44,21 @@ export default function Navbar() {
           >
             Join Waitlist
           </Link>
-          <Link
-            href="/login"
-            className="text-[14px] font-medium bg-orange-500 text-white px-5 py-2 rounded-[6px] hover:bg-orange-600 transition-all hover:shadow-lg hover:shadow-orange-500/20 active:scale-95"
-          >
-            Login →
-          </Link>
+          {!isLoading && isAuthenticated ? (
+            <Link
+              href="/dashboard"
+              className="text-[14px] font-medium bg-orange-500 text-white px-5 py-2 rounded-lg hover:bg-orange-600 transition-all hover:shadow-lg hover:shadow-orange-500/20 active:scale-95"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="text-[14px] font-medium bg-orange-500 text-white px-5 py-2 rounded-lg hover:bg-orange-600 transition-all hover:shadow-lg hover:shadow-orange-500/20 active:scale-95"
+            >
+              Login
+            </Link>
+          )}
         </nav>
       </div>
     </motion.header>

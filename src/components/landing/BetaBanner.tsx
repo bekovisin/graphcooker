@@ -70,7 +70,7 @@ export default function BetaBanner() {
 
             <Link
               href="#waitlist"
-              className="inline-flex items-center justify-center gap-2 bg-white text-orange-600 px-8 py-4 rounded-lg font-bold text-base hover:bg-orange-50 transition-all hover:shadow-xl hover:-translate-y-0.5 active:scale-95 w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-2 bg-white text-orange-600 px-8 py-4 rounded-lg font-bold text-base hover:bg-orange-50 transition-all hover:shadow-xl hover:-translate-y-0.5 active:scale-95 no-underline w-full sm:w-auto"
             >
               Join the Waitlist
               <ArrowRight size={20} />
