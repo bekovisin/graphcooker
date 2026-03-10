@@ -148,6 +148,26 @@ function inlineStyles(svgEl: SVGSVGElement) {
       if (db === 'central') {
         // Shift alphabetic baseline down so the text visually centres at the original y
         el.setAttribute('y', String(currentY + fontSize * 0.35));
+
+        // Adjust dy on child tspans with different font-sizes.
+        // When dominant-baseline was "central", ALL content centred at the original y.
+        // After removing it the alphabetic baseline is used, so tspans with a
+        // smaller/larger font-size need an individual dy correction to stay centred.
+        const tspans = el.querySelectorAll('tspan');
+        let cumulativeCorrection = 0;
+        tspans.forEach((tspan) => {
+          const tsFontSize =
+            parseFloat(tspan.getAttribute('font-size') || '0') || fontSize;
+          // Correction this tspan needs relative to parent baseline
+          const neededCorrection = -(fontSize - tsFontSize) * 0.35;
+          // Delta from whatever the previous tspan left the y-cursor at
+          const delta = neededCorrection - cumulativeCorrection;
+          if (Math.abs(delta) > 0.01) {
+            const existingDy = parseFloat(tspan.getAttribute('dy') || '0');
+            tspan.setAttribute('dy', String(+(existingDy + delta).toFixed(2)));
+          }
+          cumulativeCorrection = neededCorrection;
+        });
       } else if (db === 'hanging') {
         // Shift alphabetic baseline down so the text top aligns with the original y
         el.setAttribute('y', String(currentY + fontSize * 0.8));
