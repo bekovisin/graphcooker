@@ -117,17 +117,19 @@ export function ChartPreview() {
   const isAutoHeight = settings.chartType.heightMode === 'auto';
   const hasFixedHeight = !isAutoHeight && previewDevice === 'custom';
 
-  // Observe chart area height when in auto mode — save computed height to store for DB persistence
+  // Observe FULL chart-container height when in auto mode — save to store for DB persistence.
+  // We observe chartRef (#chart-container) instead of chartAreaRef so the measured height
+  // includes header, question, footer — matching what getContainerDimensions() returns.
+  // We use clientHeight (excludes the 1px CSS border) because the offscreen export
+  // renderer has no border, so border-free dimensions are the correct export size.
   useEffect(() => {
-    if (!isAutoHeight || !chartAreaRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const h = Math.round(entry.contentRect.height);
-        if (h > 0) setAutoComputedHeight(h);
-      }
+    if (!isAutoHeight || !chartRef.current) return;
+    const observer = new ResizeObserver(() => {
+      const h = chartRef.current?.clientHeight;
+      if (h && h > 0) setAutoComputedHeight(h);
     });
-    observer.observe(chartAreaRef.current);
-    const h = chartAreaRef.current.clientHeight;
+    observer.observe(chartRef.current);
+    const h = chartRef.current.clientHeight;
     if (h > 0) setAutoComputedHeight(h);
     return () => observer.disconnect();
   }, [isAutoHeight, setAutoComputedHeight]);
