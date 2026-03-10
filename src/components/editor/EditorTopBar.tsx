@@ -156,7 +156,7 @@ export function EditorTopBar({ onExport, fromTemplateId, breadcrumbs = [] }: Edi
               setEditValue(visualizationName);
               setIsEditing(true);
             }}
-            className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate max-w-[200px] text-left"
+            className="text-sm font-medium text-gray-900 hover:text-gray-600 truncate max-w-[400px] text-left"
           >
             {visualizationName}
           </button>
