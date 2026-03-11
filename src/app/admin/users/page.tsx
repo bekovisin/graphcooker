@@ -46,6 +46,7 @@ export default function AdminUsersPage() {
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
+  const [formRole, setFormRole] = useState<'customer' | 'admin'>('customer');
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
@@ -89,6 +90,7 @@ export default function AdminUsersPage() {
     setFormName('');
     setFormEmail('');
     setFormPassword('');
+    setFormRole('customer');
     setFormError('');
     setShowPassword(false);
     setModalOpen(true);
@@ -100,6 +102,7 @@ export default function AdminUsersPage() {
     setFormName(user.name);
     setFormEmail(user.email);
     setFormPassword('');
+    setFormRole(user.role as 'customer' | 'admin');
     setFormError('');
     setShowPassword(false);
     setModalOpen(true);
@@ -115,7 +118,7 @@ export default function AdminUsersPage() {
         const res = await fetch('/api/admin/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formName, email: formEmail, password: formPassword }),
+          body: JSON.stringify({ name: formName, email: formEmail, password: formPassword, role: formRole }),
         });
         if (!res.ok) {
           const data = await res.json();
@@ -132,6 +135,7 @@ export default function AdminUsersPage() {
         if (formName !== editingUser?.name) body.name = formName;
         if (formEmail !== editingUser?.email) body.email = formEmail;
         if (formPassword) body.password = formPassword;
+        if (formRole !== editingUser?.role) body.role = formRole;
 
         if (Object.keys(body).length === 0) {
           setModalOpen(false);
@@ -350,45 +354,41 @@ export default function AdminUsersPage() {
                         >
                           <KeyRound className="w-3.5 h-3.5" />
                         </button>
-                        {user.role !== 'admin' && (
-                          <>
-                            {!user.emailVerified && (
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const res = await fetch('/api/admin/users/resend-welcome', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ userId: user.id }),
-                                    });
-                                    if (!res.ok) throw new Error('Failed');
-                                    toast.success('Welcome email resent');
-                                  } catch {
-                                    toast.error('Failed to resend email');
-                                  }
-                                }}
-                                className="p-1.5 rounded-md hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
-                                title="Resend welcome email"
-                              >
-                                <Mail className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => openEdit(user)}
-                              className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
-                              title="Edit"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirm(user)}
-                              className="p-1.5 rounded-md hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </>
+                        {!user.emailVerified && user.role !== 'admin' && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch('/api/admin/users/resend-welcome', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ userId: user.id }),
+                                });
+                                if (!res.ok) throw new Error('Failed');
+                                toast.success('Welcome email resent');
+                              } catch {
+                                toast.error('Failed to resend email');
+                              }
+                            }}
+                            className="p-1.5 rounded-md hover:bg-blue-50 text-gray-500 hover:text-blue-600 transition-colors"
+                            title="Resend welcome email"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                          </button>
                         )}
+                        <button
+                          onClick={() => openEdit(user)}
+                          className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
+                          title="Edit"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(user)}
+                          className="p-1.5 rounded-md hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -469,6 +469,34 @@ export default function AdminUsersPage() {
                     Current password: <span className="font-mono text-gray-600">{editingUser.plainPassword}</span>
                   </p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormRole('customer')}
+                    className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                      formRole === 'customer'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
+                        : 'border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    Customer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormRole('admin')}
+                    className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
+                      formRole === 'admin'
+                        ? 'border-purple-500 bg-purple-50 text-purple-700 font-medium'
+                        : 'border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    Admin
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

@@ -49,19 +49,22 @@ export default function AdminWaitlistPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
+      {/* Top bar */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center gap-4">
           <button
-            onClick={() => router.push('/admin/users')}
-            className="p-1.5 rounded-md hover:bg-gray-200 text-gray-500 transition-colors"
+            onClick={() => router.push('/dashboard')}
+            className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <Image src="/graphcooker-icon.svg" alt="GraphCooker" width={28} height={28} />
-          <h1 className="text-lg font-bold text-gray-900">Waitlist</h1>
+          <Image src="/icon-sm.svg" alt="GraphCooker" width={20} height={20} />
+          <h1 className="text-sm font-semibold text-gray-900">User Management</h1>
         </div>
+      </div>
 
+      {/* Content */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Nav tabs */}
         <div className="flex items-center gap-2 mb-6">
           <Link
@@ -78,43 +81,35 @@ export default function AdminWaitlistPage() {
         </div>
 
         {/* Stats */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <ClipboardList className="w-4 h-4 text-gray-400" />
-            <span className="font-semibold text-gray-900">{entries.length}</span>
-            <span>people on the waitlist</span>
-          </div>
+        <div className="flex items-center gap-2 mb-6">
+          <ClipboardList className="w-5 h-5 text-gray-500" />
+          <span className="text-sm text-gray-500">{entries.length} people on the waitlist</span>
         </div>
 
         {/* Table */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-sm text-gray-500">Loading...</div>
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <ClipboardList className="w-10 h-10 mb-3" />
-            <p className="text-sm">No waitlist submissions yet.</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {loading ? (
+            <div className="p-8 text-center text-sm text-gray-500">Loading...</div>
+          ) : entries.length === 0 ? (
+            <div className="p-8 text-center text-sm text-gray-500">No waitlist submissions yet</div>
+          ) : (
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Message</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                <tr className="border-b border-gray-200 bg-gray-50/50">
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Name</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Email</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Phone</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Message</th>
+                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Date</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">{entry.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{entry.email}</td>
-                    <td className="px-4 py-3 text-gray-500">{entry.phone || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-[250px]">
+                  <tr key={entry.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
+                    <td className="px-4 py-3 text-sm text-gray-900">{entry.name}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{entry.email}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{entry.phone || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 max-w-[250px]">
                       {entry.message ? (
                         <span className="truncate block" title={entry.message}>
                           {entry.message}
@@ -123,7 +118,7 @@ export default function AdminWaitlistPage() {
                         '—'
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
                       {formatDate(entry.createdAt)}
                       <span className="ml-1 text-gray-300">{formatTime(entry.createdAt)}</span>
                     </td>
@@ -131,8 +126,8 @@ export default function AdminWaitlistPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -30,11 +30,13 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name, password } = await request.json();
+    const { email, name, password, role } = await request.json();
 
     if (!email || !name || !password) {
       return NextResponse.json({ error: 'Email, name, and password are required' }, { status: 400 });
     }
+
+    const userRole = role === 'admin' ? 'admin' : 'customer';
 
     if (typeof password !== 'string' || password.length < 8) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
@@ -54,7 +56,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password);
     const [newUser] = await db
       .insert(users)
-      .values({ email: emailNormalized, name, passwordHash, plainPassword: password, role: 'customer' })
+      .values({ email: emailNormalized, name, passwordHash, plainPassword: password, role: userRole })
       .returning({
         id: users.id,
         email: users.email,

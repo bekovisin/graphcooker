@@ -20,6 +20,14 @@ export async function PUT(
 
     if (body.name) updates.name = body.name;
     if (body.email) updates.email = body.email.toLowerCase().trim();
+    if (body.role && (body.role === 'admin' || body.role === 'customer')) {
+      // Prevent changing own role
+      const adminId = getUserId(request);
+      if (id === adminId) {
+        return NextResponse.json({ error: 'Cannot change your own role' }, { status: 400 });
+      }
+      updates.role = body.role;
+    }
     if (body.password) {
       if (typeof body.password !== 'string' || body.password.length < 8) {
         return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
