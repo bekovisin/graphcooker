@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 import { getDescendantIds } from '@/lib/folder-utils';
 
@@ -894,7 +895,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 }));
 
 // Selectors / utilities
-export const useVizCountByFolder = () => useDashboardStore((s) => {
+export const useVizCountByFolder = () => useDashboardStore(useShallow((s) => {
   const counts: Record<string, number> = {};
   s.visualizations.forEach((v) => {
     if (v.folderId !== null) {
@@ -903,9 +904,9 @@ export const useVizCountByFolder = () => useDashboardStore((s) => {
     }
   });
   return counts;
-});
+}));
 
-export const useTemplateCountByFolder = () => useDashboardStore((s) => {
+export const useTemplateCountByFolder = () => useDashboardStore(useShallow((s) => {
   const counts: Record<string, number> = {};
   s.templates.forEach((t) => {
     if (t.folderId !== null) {
@@ -914,7 +915,7 @@ export const useTemplateCountByFolder = () => useDashboardStore((s) => {
     }
   });
   return counts;
-});
+}));
 
 export const useGridClass = () => useDashboardStore((s) => {
   return s.cardSize === 'small'

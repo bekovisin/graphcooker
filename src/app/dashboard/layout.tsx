@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -42,12 +42,35 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const store = useDashboardStore();
+
+  // Use individual selectors to prevent full-store subscription
+  const folders = useDashboardStore((s) => s.folders);
+  const searchQuery = useDashboardStore((s) => s.searchQuery);
+  const sortMode = useDashboardStore((s) => s.sortMode);
+  const viewMode = useDashboardStore((s) => s.viewMode);
+  const cardSize = useDashboardStore((s) => s.cardSize);
+  const creating = useDashboardStore((s) => s.creating);
+  const confirmDialog = useDashboardStore((s) => s.confirmDialog);
+  const showBulkExport = useDashboardStore((s) => s.showBulkExport);
+  const showNewVizDialog = useDashboardStore((s) => s.showNewVizDialog);
+
+  // Actions (stable references from zustand)
+  const fetchAll = useDashboardStore((s) => s.fetchAll);
+  const loadPreferences = useDashboardStore((s) => s.loadPreferences);
+  const setSearchQuery = useDashboardStore((s) => s.setSearchQuery);
+  const setSortMode = useDashboardStore((s) => s.setSortMode);
+  const setViewMode = useDashboardStore((s) => s.setViewMode);
+  const setCardSize = useDashboardStore((s) => s.setCardSize);
+  const setShowNewVizDialog = useDashboardStore((s) => s.setShowNewVizDialog);
+  const setShowBulkExport = useDashboardStore((s) => s.setShowBulkExport);
+  const closeConfirm = useDashboardStore((s) => s.closeConfirm);
+  const createVisualization = useDashboardStore((s) => s.createVisualization);
+  const createTemplateFolder = useDashboardStore((s) => s.createTemplateFolder);
 
   // Fetch data on mount
   useEffect(() => {
-    store.fetchAll();
-    store.loadPreferences();
+    fetchAll();
+    loadPreferences();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -55,14 +78,14 @@ export default function DashboardLayout({
   const pageTitle = useMemo(() => {
     if (pathname === '/dashboard/trash') return 'Trash';
     if (pathname.startsWith('/dashboard/templates')) return 'Templates';
-    const folderMatch = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
-    if (folderMatch) {
-      const folderId = parseInt(folderMatch[1]);
-      const folder = store.folders.find((f) => f.id === folderId);
+    const match = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
+    if (match) {
+      const folderId = parseInt(match[1]);
+      const folder = folders.find((f) => f.id === folderId);
       return folder?.name || 'Unknown folder';
     }
     return 'All visualizations';
-  }, [pathname, store.folders]);
+  }, [pathname, folders]);
 
   const isTrashView = pathname === '/dashboard/trash';
   const isTemplatesView = pathname.startsWith('/dashboard/templates');
@@ -72,13 +95,18 @@ export default function DashboardLayout({
   const folderMatch = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
   const activeFolderId = folderMatch ? parseInt(folderMatch[1]) : null;
 
-  // Create new visualization handler
-  const handleCreateBlank = async () => {
-    const id = await store.createVisualization(activeFolderId);
+  // Stable callback for create blank
+  const handleCreateBlank = useCallback(async () => {
+    const id = await createVisualization(activeFolderId);
     if (id) {
       router.push(`/editor/${id}`);
     }
-  };
+  }, [createVisualization, activeFolderId, router]);
+
+  // Stable callback for confirm dialog close
+  const handleConfirmOpenChange = useCallback((open: boolean) => {
+    if (!open) closeConfirm();
+  }, [closeConfirm]);
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
@@ -99,12 +127,12 @@ export default function DashboardLayout({
 
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => store.setShowNewVizDialog(true)}
-              disabled={store.creating}
+              onClick={() => setShowNewVizDialog(true)}
+              disabled={creating}
               size="sm"
               className="gap-1.5"
             >
-              {store.creating ? (
+              {creating ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Plus className="w-4 h-4" />
@@ -151,14 +179,14 @@ export default function DashboardLayout({
               <div className="relative flex-1 max-w-xs min-w-[120px]">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input
-                  value={store.searchQuery}
-                  onChange={(e) => store.setSearchQuery(e.target.value)}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search visualizations..."
                   className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300"
                 />
-                {store.searchQuery && (
+                {searchQuery && (
                   <button
-                    onClick={() => store.setSearchQuery('')}
+                    onClick={() => setSearchQuery('')}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -179,7 +207,7 @@ export default function DashboardLayout({
                     className="gap-1.5 text-xs h-8"
                     onClick={() => {
                       const name = prompt('New template folder name:');
-                      if (name?.trim()) store.createTemplateFolder(name.trim());
+                      if (name?.trim()) createTemplateFolder(name.trim());
                     }}
                   >
                     <FolderPlus className="w-3.5 h-3.5" />
@@ -199,8 +227,8 @@ export default function DashboardLayout({
                     {(Object.keys(sortLabels) as SortMode[]).map((mode) => (
                       <DropdownMenuItem
                         key={mode}
-                        onClick={() => store.setSortMode(mode)}
-                        className={`text-xs ${store.sortMode === mode ? 'bg-blue-50 text-blue-700' : ''}`}
+                        onClick={() => setSortMode(mode)}
+                        className={`text-xs ${sortMode === mode ? 'bg-blue-50 text-blue-700' : ''}`}
                       >
                         {sortLabels[mode]}
                       </DropdownMenuItem>
@@ -209,15 +237,15 @@ export default function DashboardLayout({
                 </DropdownMenu>
 
                 {/* Card size toggle — only visible when grid mode and on sm+ screens */}
-                {store.viewMode === 'grid' && (
+                {viewMode === 'grid' && (
                   <div className="hidden sm:flex border rounded-md overflow-hidden">
                     {(['small', 'medium', 'large'] as const).map((size, idx) => (
                       <button
                         key={size}
-                        onClick={() => store.setCardSize(size)}
+                        onClick={() => setCardSize(size)}
                         title={size === 'small' ? 'Small cards' : size === 'medium' ? 'Medium cards' : 'Large cards'}
                         className={`p-1.5 transition-colors ${idx > 0 ? 'border-l' : ''} ${
-                          store.cardSize === size ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+                          cardSize === size ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
                         }`}
                       >
                         <LayoutGrid className={
@@ -231,17 +259,17 @@ export default function DashboardLayout({
                 {/* View mode */}
                 <div className="flex border rounded-md overflow-hidden">
                   <button
-                    onClick={() => store.setViewMode('grid')}
+                    onClick={() => setViewMode('grid')}
                     className={`p-1.5 transition-colors ${
-                      store.viewMode === 'grid' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+                      viewMode === 'grid' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
                     <Grid3X3 className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => store.setViewMode('list')}
+                    onClick={() => setViewMode('list')}
                     className={`p-1.5 transition-colors border-l ${
-                      store.viewMode === 'list' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+                      viewMode === 'list' ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
                     }`}
                   >
                     <List className="w-3.5 h-3.5" />
@@ -260,28 +288,26 @@ export default function DashboardLayout({
 
       {/* Shared Dialogs */}
       <ConfirmDialog
-        open={store.confirmDialog.open}
-        onOpenChange={(open) => {
-          if (!open) store.closeConfirm();
-        }}
-        title={store.confirmDialog.title}
-        description={store.confirmDialog.description}
-        confirmLabel={store.confirmDialog.confirmLabel}
-        variant={store.confirmDialog.variant}
-        onConfirm={store.confirmDialog.onConfirm}
+        open={confirmDialog.open}
+        onOpenChange={handleConfirmOpenChange}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel={confirmDialog.confirmLabel}
+        variant={confirmDialog.variant}
+        onConfirm={confirmDialog.onConfirm}
       />
 
       <BulkExportDialog
-        open={store.showBulkExport}
-        onOpenChange={store.setShowBulkExport}
+        open={showBulkExport}
+        onOpenChange={setShowBulkExport}
         selectedCount={0}
         selectedIds={[]}
         onExport={async () => {}}
       />
 
       <NewVisualizationDialog
-        open={store.showNewVizDialog}
-        onOpenChange={store.setShowNewVizDialog}
+        open={showNewVizDialog}
+        onOpenChange={setShowNewVizDialog}
         onCreateBlank={handleCreateBlank}
         activeFolderId={activeFolderId}
       />
