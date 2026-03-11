@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { EditTemplateDialog } from '@/components/dashboard/EditTemplateDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
+import { InputDialog } from '@/components/dashboard/InputDialog';
 import {
   useDashboardStore,
   useTemplateCountByFolder,
@@ -60,6 +61,8 @@ export default function TemplatesPage() {
   const [editTemplateId, setEditTemplateId] = useState<number | null>(null);
   const [showShareTemplate, setShowShareTemplate] = useState(false);
   const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
+  const [renameFolderId, setRenameFolderId] = useState<number | null>(null);
+  const [renameFolderName, setRenameFolderName] = useState('');
 
   // Computed
   const rootTemplateFolders = useMemo(() => {
@@ -354,8 +357,8 @@ export default function TemplatesPage() {
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        const newName = prompt('Rename folder:', folder.name);
-                        if (newName?.trim()) renameTemplateFolder(folder.id, newName.trim());
+                        setRenameFolderName(folder.name);
+                        setRenameFolderId(folder.id);
                       }}
                       className="gap-2 text-xs"
                     >
@@ -407,6 +410,25 @@ export default function TemplatesPage() {
         onShared={() => {
           fetchTemplates();
           exitTemplateSelectionMode();
+        }}
+      />
+
+      <InputDialog
+        open={renameFolderId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenameFolderId(null);
+            setRenameFolderName('');
+          }
+        }}
+        title="Rename folder"
+        placeholder="Folder name..."
+        confirmLabel="Rename"
+        defaultValue={renameFolderName}
+        onConfirm={(name) => {
+          if (renameFolderId !== null) {
+            renameTemplateFolder(renameFolderId, name);
+          }
         }}
       />
     </div>

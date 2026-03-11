@@ -17,6 +17,9 @@ import {
   LogOut,
   Globe,
   LayoutTemplate,
+  Copy,
+  FolderInput,
+  Check,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -24,6 +27,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { getDescendantIds } from '@/lib/folder-utils';
 import { useDashboardStore, useVizCountByFolder } from '@/store/dashboardStore';
@@ -48,6 +55,9 @@ export function DashboardSidebar() {
   const deleteFolder = useDashboardStore((s) => s.deleteFolder);
   const moveVizToFolder = useDashboardStore((s) => s.moveVizToFolder);
   const moveFolderTo = useDashboardStore((s) => s.moveFolderTo);
+  const renameViz = useDashboardStore((s) => s.renameViz);
+  const duplicateViz = useDashboardStore((s) => s.duplicateViz);
+  const deleteViz = useDashboardStore((s) => s.deleteViz);
 
   // Derived counts
   const trashCount = trashItems.visualizations.length + trashItems.folders.length;
@@ -68,9 +78,12 @@ export function DashboardSidebar() {
   const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
   const [editFolderName, setEditFolderName] = useState('');
   const [dragOverFolderId, setDragOverFolderId] = useState<number | 'root' | null>(null);
+  const [editingVizId, setEditingVizId] = useState<number | null>(null);
+  const [editVizName, setEditVizName] = useState('');
   const newFolderInputRef = useRef<HTMLInputElement>(null);
   const subFolderInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const editVizInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (creatingFolder && newFolderInputRef.current) {
@@ -90,6 +103,13 @@ export function DashboardSidebar() {
       editInputRef.current.select();
     }
   }, [editingFolderId]);
+
+  useEffect(() => {
+    if (editingVizId !== null && editVizInputRef.current) {
+      editVizInputRef.current.focus();
+      editVizInputRef.current.select();
+    }
+  }, [editingVizId]);
 
   const toggleFolder = (id: number) => {
     setExpandedFolders((prev) => {
@@ -116,6 +136,15 @@ export function DashboardSidebar() {
     }
     setNewFolderName('');
     setCreatingSubfolderId(null);
+  };
+
+  const handleRenameViz = (id: number) => {
+    const name = editVizName.trim();
+    if (name) {
+      renameViz(id, name);
+    }
+    setEditingVizId(null);
+    setEditVizName('');
   };
 
   const handleRenameFolder = (id: number) => {
@@ -297,16 +326,119 @@ export function DashboardSidebar() {
             {children.map((child) => renderFolder(child, depth + 1))}
             {/* Visualization items inside this folder */}
             {folderViz.map((v) => (
-              <button
+              <div
                 key={v.id}
-                onClick={() => router.push(`/editor/${v.id}`)}
-                className="w-full flex items-center gap-1.5 py-1 text-[11px] text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors truncate"
+                className="group/viz flex items-center gap-1 py-1 rounded transition-colors hover:bg-gray-100"
                 style={{ paddingLeft: `${16 + (depth + 1) * 16}px`, paddingRight: '8px' }}
-                title={v.name}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
-                <span className="truncate">{v.name}</span>
-              </button>
+                {editingVizId === v.id ? (
+                  <input
+                    ref={editVizInputRef}
+                    value={editVizName}
+                    onChange={(e) => setEditVizName(e.target.value)}
+                    onBlur={() => handleRenameViz(v.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRenameViz(v.id);
+                      if (e.key === 'Escape') {
+                        setEditingVizId(null);
+                        setEditVizName('');
+                      }
+                    }}
+                    className="flex-1 text-[11px] bg-white border border-blue-300 rounded px-1 py-0 outline-none min-w-0"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <button
+                    onClick={() => router.push(`/editor/${v.id}`)}
+                    className="flex-1 text-left text-[11px] text-gray-500 hover:text-gray-800 truncate"
+                    title={v.name}
+                  >
+                    <span className="truncate">{v.name}</span>
+                  </button>
+                )}
+
+                {editingVizId !== v.id && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="opacity-0 group-hover/viz:opacity-100 p-0.5 rounded hover:bg-gray-200 transition-opacity shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreHorizontal className="w-3 h-3 text-gray-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditVizName(v.name);
+                          setEditingVizId(v.id);
+                        }}
+                        className="gap-2 text-xs"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateViz(v.id);
+                        }}
+                        className="gap-2 text-xs"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Duplicate
+                      </DropdownMenuItem>
+                      {folders.length > 0 && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="gap-2 text-xs">
+                            <FolderInput className="w-3.5 h-3.5" />
+                            Move to folder
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="w-40">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                moveVizToFolder(v.id, null);
+                              }}
+                              className="text-xs"
+                            >
+                              No folder (root)
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {folders.map((f) => (
+                              <DropdownMenuItem
+                                key={f.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveVizToFolder(v.id, f.id);
+                                }}
+                                className="text-xs"
+                              >
+                                {f.name}
+                                {v.folderId === f.id && (
+                                  <Check className="w-3 h-3 ml-auto text-blue-500" />
+                                )}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteViz(v.id);
+                        }}
+                        className="gap-2 text-xs text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             ))}
             {creatingSubfolderId === folder.id && (
               <div

@@ -34,6 +34,7 @@ import { BulkExportDialog } from '@/components/dashboard/BulkExportDialog';
 import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
+import { InputDialog } from '@/components/dashboard/InputDialog';
 import {
   useDashboardStore,
   useEffectiveSelectedVizIds,
@@ -95,6 +96,9 @@ export default function DashboardLayout({
   const createVisualization = useDashboardStore((s) => s.createVisualization);
   const createTemplateFolder = useDashboardStore((s) => s.createTemplateFolder);
   const fetchTemplatesAction = useDashboardStore((s) => s.fetchTemplates);
+
+  // Template folder dialog (local)
+  const [showNewTemplateFolderDialog, setShowNewTemplateFolderDialog] = useState(false);
 
   // Share template dialog (local)
   const [showShareTemplate, setShowShareTemplate] = useState(false);
@@ -294,10 +298,7 @@ export default function DashboardLayout({
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs h-8"
-                    onClick={() => {
-                      const name = prompt('New template folder name:');
-                      if (name?.trim()) createTemplateFolder(name.trim());
-                    }}
+                    onClick={() => setShowNewTemplateFolderDialog(true)}
                   >
                     <FolderPlus className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">New folder</span>
@@ -549,6 +550,16 @@ export default function DashboardLayout({
         onOpenChange={setShowNewVizDialog}
         onCreateBlank={handleCreateBlank}
         activeFolderId={activeFolderId}
+      />
+
+      <InputDialog
+        open={showNewTemplateFolderDialog}
+        onOpenChange={setShowNewTemplateFolderDialog}
+        title="New template folder"
+        description="Create a folder to organize your templates."
+        placeholder="Folder name..."
+        confirmLabel="Create"
+        onConfirm={(name) => createTemplateFolder(name)}
       />
     </div>
   );
