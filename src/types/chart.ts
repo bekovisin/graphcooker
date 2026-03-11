@@ -827,4 +827,5 @@ export interface ColumnMapping {
   seriesNames?: Record<string, string>;
   _previewState?: PreviewState;
   _columnOrder?: string[];
+  _columnTypes?: Record<string, { type: 'number' | 'text'; inputFormat?: string; decimalPlaces?: number; outputFormat?: string }>;
 }

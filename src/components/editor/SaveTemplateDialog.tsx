@@ -21,7 +21,7 @@ interface SaveTemplateDialogProps {
 }
 
 export function SaveTemplateDialog({ open, onOpenChange }: SaveTemplateDialogProps) {
-  const { settings, data, columnMapping, chartType } = useEditorStore();
+  const { settings, data, columnMapping, chartType, seriesNames, columnOrder, columnTypes } = useEditorStore();
   const [templateName, setTemplateName] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -31,6 +31,14 @@ export function SaveTemplateDialog({ open, onOpenChange }: SaveTemplateDialogPro
 
     setSaving(true);
     try {
+      // Embed seriesNames, columnOrder, and columnTypes into columnMapping
+      // so they survive the round-trip through the database (same as auto-save)
+      const mappingWithExtras = {
+        ...columnMapping,
+        seriesNames: Object.keys(seriesNames).length > 0 ? seriesNames : undefined,
+        _columnOrder: columnOrder,
+        _columnTypes: Object.keys(columnTypes).length > 0 ? columnTypes : undefined,
+      };
       const thumbnail = await captureThumbnail();
       const res = await fetch('/api/templates', {
         method: 'POST',
@@ -40,7 +48,7 @@ export function SaveTemplateDialog({ open, onOpenChange }: SaveTemplateDialogPro
           chartType,
           settings,
           data,
-          columnMapping,
+          columnMapping: mappingWithExtras,
           thumbnail,
         }),
       });

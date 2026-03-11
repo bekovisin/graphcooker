@@ -55,7 +55,7 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
   const [pendingTemplateId, setPendingTemplateId] = useState<number | null>(null);
   const [shareTemplate, setShareTemplate] = useState<{ id: number; name: string } | null>(null);
 
-  const { isDirty, loadVisualization, setEditingTemplateId, setIsDirty, settings, data, columnMapping, chartType } = useEditorStore();
+  const { isDirty, loadVisualization, setEditingTemplateId, setIsDirty, settings, data, columnMapping, chartType, seriesNames, columnOrder, columnTypes } = useEditorStore();
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
 
@@ -88,10 +88,17 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
     setLoadingId(templateId);
     try {
       const thumbnail = await captureThumbnail();
+      // Embed seriesNames, columnOrder, and columnTypes into columnMapping
+      const mappingWithExtras = {
+        ...columnMapping,
+        seriesNames: Object.keys(seriesNames).length > 0 ? seriesNames : undefined,
+        _columnOrder: columnOrder,
+        _columnTypes: Object.keys(columnTypes).length > 0 ? columnTypes : undefined,
+      };
       const res = await fetch(`/api/templates/${templateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chartType, settings, data, columnMapping, thumbnail }),
+        body: JSON.stringify({ chartType, settings, data, columnMapping: mappingWithExtras, thumbnail }),
       });
       if (!res.ok) {
         toast.error('Failed to update template');

@@ -352,7 +352,7 @@ export const useEditorStore = create<EditorState>((set) => ({
       settings: mergeSettings(viz.settings),
       columnMapping: viz.columnMapping,
       seriesNames: viz.columnMapping?.seriesNames || {},
-      columnTypes: {},
+      columnTypes: viz.columnMapping?._columnTypes || {},
       settingsSearchQuery: '',
       previewDevice: (ps?.previewDevice as PreviewDevice) || 'desktop',
       customPreviewWidth: ps?.customPreviewWidth || 800,

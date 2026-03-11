@@ -138,6 +138,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
           canvasBackgroundColor: state.canvasBackgroundColor,
         },
         _columnOrder: state.columnOrder,
+        _columnTypes: Object.keys(state.columnTypes).length > 0 ? state.columnTypes : undefined,
       };
       const body: Record<string, unknown> = {
         name: state.visualizationName,
