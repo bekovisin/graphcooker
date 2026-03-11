@@ -151,6 +151,11 @@ export default function TemplateFolderPage() {
     return (
       <div
         key={tpl.id}
+        draggable={!isTemplateSelectionMode}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', String(tpl.id));
+          e.dataTransfer.effectAllowed = 'move';
+        }}
         className={`group flex items-center gap-3 px-4 py-2.5 rounded-md cursor-pointer transition-colors ${
           isTplSelected ? 'bg-blue-50' : 'hover:bg-gray-50'
         }`}
@@ -210,6 +215,11 @@ export default function TemplateFolderPage() {
     return (
       <div
         key={tpl.id}
+        draggable={!isTemplateSelectionMode}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('text/plain', String(tpl.id));
+          e.dataTransfer.effectAllowed = 'move';
+        }}
         className={`group relative rounded-lg border bg-white overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-gray-300 ${
           isTplSelected ? 'ring-2 ring-blue-400 border-blue-300' : ''
         }`}
