@@ -100,17 +100,24 @@ export function useSpreadsheetClipboard({
       let newData = data.map((row) => ({ ...row }));
       let newColumnOrder = [...columnOrder];
 
-      // Treat first clipboard row as series names ONLY when user explicitly
-      // selected all cells (Ctrl+A / corner click). Never auto-detect from
-      // cursor position — pasting at (0,0) without select-all is a normal
-      // partial paste that should not replace headers or resize the grid.
-      const shouldTreatFirstAsHeader = headerSelected;
+      // Detect whether ALL cells are selected — works for Ctrl+A, corner click,
+      // or manual drag-select covering the entire grid.
+      const allSelected = (() => {
+        if (headerSelected) return true;
+        if (!selectionRange || data.length === 0 || columnOrder.length === 0) return false;
+        const range = normalizeRange(selectionRange);
+        return range.minRow === 0 && range.minCol === 0 &&
+          range.maxRow >= data.length - 1 && range.maxCol >= columnOrder.length - 1;
+      })();
+
+      // Treat first clipboard row as series names only when the entire grid
+      // is selected — regardless of how the selection was made.
+      const shouldTreatFirstAsHeader = allSelected;
 
       const maxPasteCols = Math.max(...parsed.map((r) => r.length));
 
-      // Full grid paste: ONLY when user explicitly selected all (Ctrl+A / corner click).
-      // This replaces the entire grid to match the paste data exactly.
-      const isFullGridPaste = headerSelected &&
+      // Full grid paste: replace the entire grid to match the clipboard exactly.
+      const isFullGridPaste = allSelected &&
         activeCell.row === 0 && activeCell.col === 0;
 
       if (isFullGridPaste) {
@@ -179,7 +186,7 @@ export function useSpreadsheetClipboard({
 
       onDataChange(newData, newColumnOrder);
     },
-    [data, columnOrder, columnTypes, activeCell, headerSelected, onDataChange, setSeriesName, pushHistory]
+    [data, columnOrder, columnTypes, activeCell, selectionRange, headerSelected, onDataChange, setSeriesName, pushHistory]
   );
 
   const handleDelete = useCallback(() => {
