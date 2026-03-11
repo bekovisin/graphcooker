@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   FolderOpen,
   FolderPlus,
@@ -30,73 +30,41 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getDescendantIds } from '@/lib/folder-utils';
+import { useDashboardStore, useVizCountByFolder } from '@/store/dashboardStore';
+import type { FolderItem, VizItem } from '@/store/dashboardStore';
 
-export interface FolderItem {
-  id: number;
-  name: string;
-  parentId: number | null;
-  createdAt: string;
-}
-
-export interface VizItem {
-  id: number;
-  name: string;
-  folderId: number | null;
-  chartType: string;
-  thumbnail: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface DashboardSidebarProps {
-  folders: FolderItem[];
-  visualizations: VizItem[];
-  activeFolderId: number | null;
-  onFolderSelect: (folderId: number | null) => void;
-  onCreateFolder: (name: string, parentId?: number | null) => void;
-  onRenameFolder: (id: number, name: string) => void;
-  onDeleteFolder: (id: number) => void;
-  onMoveToFolder: (vizId: number, folderId: number | null) => void;
-  onMoveFolderToFolder?: (folderId: number, targetParentId: number | null) => void;
-  vizCountByFolder: Record<string, number>;
-  totalVizCount: number;
-  isSelectionMode: boolean;
-  selectedIds: Set<number>;
-  onToggleSelect: (id: number) => void;
-  onExportSingle: (id: number) => void;
-  onTrashSelect?: () => void;
-  isTrashActive?: boolean;
-  trashCount?: number;
-  onTemplatesSelect?: () => void;
-  isTemplatesActive?: boolean;
-  templateCount?: number;
-}
-
-export function DashboardSidebar({
-  folders,
-  visualizations,
-  activeFolderId,
-  onFolderSelect,
-  onCreateFolder,
-  onRenameFolder,
-  onDeleteFolder,
-  onMoveToFolder,
-  onMoveFolderToFolder,
-  vizCountByFolder,
-  totalVizCount,
-  isSelectionMode,
-  selectedIds,
-  onToggleSelect,
-  onExportSingle,
-  onTrashSelect,
-  isTrashActive,
-  trashCount,
-  onTemplatesSelect,
-  isTemplatesActive,
-  templateCount,
-}: DashboardSidebarProps) {
+export function DashboardSidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, logout } = useAuthStore();
+
+  // Read data from store
+  const folders = useDashboardStore((s) => s.folders);
+  const visualizations = useDashboardStore((s) => s.visualizations);
+  const templates = useDashboardStore((s) => s.templates);
+  const trashItems = useDashboardStore((s) => s.trashItems);
+  const vizCountByFolder = useVizCountByFolder();
+  const totalVizCount = useDashboardStore((s) => s.visualizations.length);
+
+  // Store actions
+  const createFolder = useDashboardStore((s) => s.createFolder);
+  const renameFolder = useDashboardStore((s) => s.renameFolder);
+  const deleteFolder = useDashboardStore((s) => s.deleteFolder);
+  const moveVizToFolder = useDashboardStore((s) => s.moveVizToFolder);
+  const moveFolderTo = useDashboardStore((s) => s.moveFolderTo);
+
+  // Derived counts
+  const trashCount = trashItems.visualizations.length + trashItems.folders.length;
+  const templateCount = templates.length;
+
+  // Determine active state from pathname
+  const isTrashActive = pathname === '/dashboard/trash';
+  const isTemplatesActive = pathname.startsWith('/dashboard/templates');
+  const folderMatch = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
+  const activeFolderId = folderMatch ? parseInt(folderMatch[1]) : null;
+  const isRootActive = pathname === '/dashboard' && !isTrashActive && !isTemplatesActive;
+
+  // Local UI state
   const [expandedFolders, setExpandedFolders] = useState<Set<number>>(new Set());
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [creatingSubfolderId, setCreatingSubfolderId] = useState<number | null>(null);
@@ -139,7 +107,7 @@ export function DashboardSidebar({
   const handleCreateFolder = () => {
     const name = newFolderName.trim();
     if (name) {
-      onCreateFolder(name);
+      createFolder(name);
     }
     setNewFolderName('');
     setCreatingFolder(false);
@@ -148,7 +116,7 @@ export function DashboardSidebar({
   const handleCreateSubfolder = (parentId: number) => {
     const name = newFolderName.trim();
     if (name) {
-      onCreateFolder(name, parentId);
+      createFolder(name, parentId);
     }
     setNewFolderName('');
     setCreatingSubfolderId(null);
@@ -157,7 +125,7 @@ export function DashboardSidebar({
   const handleRenameFolder = (id: number) => {
     const name = editFolderName.trim();
     if (name) {
-      onRenameFolder(id, name);
+      renameFolder(id, name);
     }
     setEditingFolderId(null);
     setEditFolderName('');
@@ -189,14 +157,14 @@ export function DashboardSidebar({
         const descendants = getDescendantIds(draggedFolderId, folders);
         if (descendants.has(targetFolderId)) return;
       }
-      onMoveFolderToFolder?.(draggedFolderId, targetFolderId);
+      moveFolderTo(draggedFolderId, targetFolderId);
       return;
     }
 
     // Otherwise it's a viz drop
     const vizId = parseInt(e.dataTransfer.getData('text/plain'));
     if (!isNaN(vizId)) {
-      onMoveToFolder(vizId, targetFolderId);
+      moveVizToFolder(vizId, targetFolderId);
     }
   };
 
@@ -204,50 +172,6 @@ export function DashboardSidebar({
   const rootFolders = folders.filter((f) => f.parentId === null);
   const childFolders = (parentId: number) => folders.filter((f) => f.parentId === parentId);
   const vizInFolder = (folderId: number) => visualizations.filter((v) => v.folderId === folderId);
-
-  const renderVizItem = (viz: VizItem, depth: number) => {
-    const isSelected = selectedIds.has(viz.id);
-    return (
-      <div
-        key={`viz-${viz.id}`}
-        className={`group flex items-center gap-1.5 py-1 rounded-md cursor-pointer transition-colors text-xs ${
-          isSelected ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
-        }`}
-        style={{ paddingLeft: `${16 + (depth + 1) * 16}px`, paddingRight: '8px' }}
-        onClick={() => {
-          if (isSelectionMode) {
-            onToggleSelect(viz.id);
-          } else {
-            router.push(`/editor/${viz.id}`);
-          }
-        }}
-      >
-        {isSelectionMode && (
-          <span className="shrink-0">
-            {isSelected ? (
-              <CheckSquare className="w-3 h-3 text-blue-500" />
-            ) : (
-              <Square className="w-3 h-3 text-gray-400" />
-            )}
-          </span>
-        )}
-        <BarChart3 className="w-3 h-3 shrink-0 text-gray-400" />
-        <span className="flex-1 truncate">{viz.name}</span>
-        {!isSelectionMode && (
-          <button
-            className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-200 transition-opacity"
-            onClick={(e) => {
-              e.stopPropagation();
-              onExportSingle(viz.id);
-            }}
-            title="Export"
-          >
-            <Download className="w-3 h-3 text-gray-500" />
-          </button>
-        )}
-      </div>
-    );
-  };
 
   const renderFolder = (folder: FolderItem, depth: number = 0) => {
     const children = childFolders(folder.id);
@@ -276,7 +200,7 @@ export function DashboardSidebar({
           }`}
           style={{ paddingLeft: `${8 + depth * 16}px` }}
           onClick={() => {
-            onFolderSelect(folder.id);
+            router.push(`/dashboard/folder/${folder.id}`);
             if (hasChildren) toggleFolder(folder.id);
           }}
           onDragOver={(e) => handleDragOver(e, folder.id)}
@@ -359,7 +283,7 @@ export function DashboardSidebar({
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDeleteFolder(folder.id);
+                    deleteFolder(folder.id);
                   }}
                   className="gap-2 text-xs text-red-600 focus:text-red-600"
                 >
@@ -371,7 +295,7 @@ export function DashboardSidebar({
           )}
         </div>
 
-        {/* Expanded: child folders + visualizations + sub-folder input */}
+        {/* Expanded: child folders + sub-folder input */}
         {isExpanded && (
           <>
             {children.map((child) => renderFolder(child, depth + 1))}
@@ -398,7 +322,6 @@ export function DashboardSidebar({
                 />
               </div>
             )}
-            {folderViz.map((viz) => renderVizItem(viz, depth))}
           </>
         )}
       </div>
@@ -427,37 +350,35 @@ export function DashboardSidebar({
           className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
             dragOverFolderId === 'root'
               ? 'bg-blue-100 ring-2 ring-blue-300'
-              : activeFolderId === null && !isTemplatesActive && !isTrashActive
+              : isRootActive
               ? 'bg-blue-50 text-blue-700'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
-          onClick={() => onFolderSelect(null)}
+          onClick={() => router.push('/dashboard')}
           onDragOver={(e) => handleDragOver(e, 'root')}
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, null)}
         >
-          <Home className={`w-4 h-4 ${activeFolderId === null && !isTemplatesActive && !isTrashActive ? 'text-blue-500' : 'text-gray-400'}`} />
+          <Home className={`w-4 h-4 ${isRootActive ? 'text-blue-500' : 'text-gray-400'}`} />
           <span className="flex-1 text-left">All visualizations</span>
           <span className="text-[10px] text-gray-400 tabular-nums">{totalVizCount}</span>
         </div>
 
         {/* Templates */}
-        {onTemplatesSelect && (
-          <button
-            onClick={onTemplatesSelect}
-            className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
-              isTemplatesActive
-                ? 'bg-orange-50 text-orange-700'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <LayoutTemplate className={`w-4 h-4 ${isTemplatesActive ? 'text-orange-500' : 'text-gray-400'}`} />
-            <span className="flex-1 text-left">Templates</span>
-            {(templateCount ?? 0) > 0 && (
-              <span className="text-[10px] text-gray-400 tabular-nums">{templateCount}</span>
-            )}
-          </button>
-        )}
+        <button
+          onClick={() => router.push('/dashboard/templates')}
+          className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
+            isTemplatesActive
+              ? 'bg-orange-50 text-orange-700'
+              : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          <LayoutTemplate className={`w-4 h-4 ${isTemplatesActive ? 'text-orange-500' : 'text-gray-400'}`} />
+          <span className="flex-1 text-left">Templates</span>
+          {templateCount > 0 && (
+            <span className="text-[10px] text-gray-400 tabular-nums">{templateCount}</span>
+          )}
+        </button>
 
         {/* Separator */}
         {folders.length > 0 && <div className="border-b border-gray-200 my-2" />}
@@ -490,22 +411,20 @@ export function DashboardSidebar({
 
       {/* Bottom: Trash, Settings, User Profile */}
       <div className="border-t border-gray-200 p-2 space-y-0.5">
-        {onTrashSelect && (
-          <button
-            onClick={onTrashSelect}
-            className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm transition-colors ${
-              isTrashActive
-                ? 'bg-red-50 text-red-700'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            <Trash2 className={`w-4 h-4 ${isTrashActive ? 'text-red-500' : 'text-gray-400'}`} />
-            <span className="flex-1 text-left">Trash</span>
-            {(trashCount ?? 0) > 0 && (
-              <span className="text-[10px] text-gray-400 tabular-nums">{trashCount}</span>
-            )}
-          </button>
-        )}
+        <button
+          onClick={() => router.push('/dashboard/trash')}
+          className={`flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm transition-colors ${
+            isTrashActive
+              ? 'bg-red-50 text-red-700'
+              : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Trash2 className={`w-4 h-4 ${isTrashActive ? 'text-red-500' : 'text-gray-400'}`} />
+          <span className="flex-1 text-left">Trash</span>
+          {trashCount > 0 && (
+            <span className="text-[10px] text-gray-400 tabular-nums">{trashCount}</span>
+          )}
+        </button>
         <Link
           href="/settings"
           className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md transition-colors"

@@ -1,13 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
-import { DashboardSidebar, DashboardSidebarProps } from './DashboardSidebar';
+import { DashboardSidebar } from './DashboardSidebar';
 
-export function MobileSidebar(props: DashboardSidebarProps) {
+export function MobileSidebar() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Auto-close on navigation
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -17,21 +24,7 @@ export function MobileSidebar(props: DashboardSidebarProps) {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="p-0 w-72 [&>button]:hidden">
-        <DashboardSidebar
-          {...props}
-          onFolderSelect={(id) => {
-            props.onFolderSelect(id);
-            setOpen(false);
-          }}
-          onTrashSelect={props.onTrashSelect ? () => {
-            props.onTrashSelect?.();
-            setOpen(false);
-          } : undefined}
-          onTemplatesSelect={props.onTemplatesSelect ? () => {
-            props.onTemplatesSelect?.();
-            setOpen(false);
-          } : undefined}
-        />
+        <DashboardSidebar />
       </SheetContent>
     </Sheet>
   );

@@ -22,7 +22,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { FolderItem } from './DashboardSidebar';
+import type { FolderItem } from '@/store/dashboardStore';
 
 export interface VizItem {
   id: number;
