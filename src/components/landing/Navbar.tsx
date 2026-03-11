@@ -20,7 +20,7 @@ export default function Navbar() {
           <Image src="/graphcooker-icon.svg" alt="GraphCooker" width={22} height={22} />
           <span className="font-shantell text-xl font-normal tracking-tight text-slate-900 relative">
             graph<span className="text-orange-500">cooker</span>
-            <svg className="absolute w-full h-[6px] -bottom-[2px] left-0 text-orange-400 overflow-visible scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" viewBox="0 0 100 10" preserveAspectRatio="none">
+            <svg className="absolute w-full h-[6px] -bottom-[2px] left-0 text-orange-400 overflow-visible scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" viewBox="0 0 100 10" preserveAspectRatio="none">
               <path d="M2,6 Q30,10 50,4 T98,7" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </span>
