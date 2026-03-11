@@ -11,15 +11,13 @@ import {
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function TrashPage() {
-  const store = useDashboardStore();
-  const {
-    trashItems,
-    loading,
-    fetchTrash,
-    restoreTrashItem,
-    permanentDeleteTrashItem,
-    emptyTrash,
-  } = store;
+  // Individual selectors to prevent full-store subscription
+  const trashItems = useDashboardStore((s) => s.trashItems);
+  const loading = useDashboardStore((s) => s.loading);
+  const fetchTrash = useDashboardStore((s) => s.fetchTrash);
+  const restoreTrashItem = useDashboardStore((s) => s.restoreTrashItem);
+  const permanentDeleteTrashItem = useDashboardStore((s) => s.permanentDeleteTrashItem);
+  const emptyTrash = useDashboardStore((s) => s.emptyTrash);
 
   // Fetch trash on mount
   useEffect(() => {

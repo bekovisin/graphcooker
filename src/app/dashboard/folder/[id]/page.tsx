@@ -27,28 +27,26 @@ export default function FolderPage() {
   const params = useParams();
   const folderId = Number(params.id);
 
-  const store = useDashboardStore();
-  const {
-    visualizations,
-    folders,
-    searchQuery,
-    viewMode,
-    cardSize,
-    loading,
-    creating,
-    setSearchQuery,
-    setShowBulkExport,
-    deleteViz,
-    duplicateViz,
-    renameViz,
-    moveVizToFolder,
-    moveFolderTo,
-    renameFolder,
-    duplicateFolder,
-    deleteFolder,
-    handleBulkDelete,
-    createVisualization,
-  } = store;
+  // Individual selectors to prevent full-store subscription
+  const visualizations = useDashboardStore((s) => s.visualizations);
+  const folders = useDashboardStore((s) => s.folders);
+  const searchQuery = useDashboardStore((s) => s.searchQuery);
+  const viewMode = useDashboardStore((s) => s.viewMode);
+  const cardSize = useDashboardStore((s) => s.cardSize);
+  const loading = useDashboardStore((s) => s.loading);
+  const creating = useDashboardStore((s) => s.creating);
+  const setSearchQuery = useDashboardStore((s) => s.setSearchQuery);
+  const setShowBulkExport = useDashboardStore((s) => s.setShowBulkExport);
+  const deleteViz = useDashboardStore((s) => s.deleteViz);
+  const duplicateViz = useDashboardStore((s) => s.duplicateViz);
+  const renameViz = useDashboardStore((s) => s.renameViz);
+  const moveVizToFolder = useDashboardStore((s) => s.moveVizToFolder);
+  const moveFolderTo = useDashboardStore((s) => s.moveFolderTo);
+  const renameFolder = useDashboardStore((s) => s.renameFolder);
+  const duplicateFolder = useDashboardStore((s) => s.duplicateFolder);
+  const deleteFolder = useDashboardStore((s) => s.deleteFolder);
+  const handleBulkDelete = useDashboardStore((s) => s.handleBulkDelete);
+  const createVisualization = useDashboardStore((s) => s.createVisualization);
 
   const sortViz = useSortViz();
   const gridClass = useGridClass();

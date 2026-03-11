@@ -33,22 +33,21 @@ import {
 
 export default function TemplatesPage() {
   const router = useRouter();
-  const store = useDashboardStore();
-  const {
-    templates,
-    templateFolders,
-    cardSize,
-    searchQuery,
-    loading,
-    deleteTemplate,
-    applyTemplate,
-    renameTemplateFolder,
-    deleteTemplateFolder,
-    moveTemplateToFolder,
-    bulkDeleteTemplates,
-    fetchTemplates,
-    setShowBulkExport,
-  } = store;
+
+  // Individual selectors to prevent full-store subscription
+  const templates = useDashboardStore((s) => s.templates);
+  const templateFolders = useDashboardStore((s) => s.templateFolders);
+  const cardSize = useDashboardStore((s) => s.cardSize);
+  const searchQuery = useDashboardStore((s) => s.searchQuery);
+  const loading = useDashboardStore((s) => s.loading);
+  const deleteTemplate = useDashboardStore((s) => s.deleteTemplate);
+  const applyTemplate = useDashboardStore((s) => s.applyTemplate);
+  const renameTemplateFolder = useDashboardStore((s) => s.renameTemplateFolder);
+  const deleteTemplateFolder = useDashboardStore((s) => s.deleteTemplateFolder);
+  const moveTemplateToFolder = useDashboardStore((s) => s.moveTemplateToFolder);
+  const bulkDeleteTemplates = useDashboardStore((s) => s.bulkDeleteTemplates);
+  const fetchTemplates = useDashboardStore((s) => s.fetchTemplates);
+  const setShowBulkExport = useDashboardStore((s) => s.setShowBulkExport);
 
   const templateCountByFolder = useTemplateCountByFolder();
   const gridClass = useGridClass();
