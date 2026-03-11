@@ -17,12 +17,15 @@ import {
   LayoutGrid,
   List,
   FolderOpen,
+  FolderPlus,
   ChevronRight,
   ChevronDown,
   Trash2,
   LayoutTemplate,
   Pencil,
   MoreVertical,
+  Share2,
+  MoreHorizontal,
 } from 'lucide-react';
 import Image from 'next/image';
 import {
@@ -38,6 +41,7 @@ import { BulkExportDialog, BulkExportOptions } from '@/components/dashboard/Bulk
 import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { EditTemplateDialog } from '@/components/dashboard/EditTemplateDialog';
+import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import { MobileSidebar } from '@/components/dashboard/MobileSidebar';
 import { toast } from 'sonner';
 import { getDescendantIds } from '@/lib/folder-utils';
@@ -67,9 +71,9 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
-  // Dashboard state
+  // Dashboard state — initialize from URL
   const searchParams = useSearchParams();
-  const [activeFolderId, setActiveFolderId] = useState<number | null>(() => {
+  const [activeFolderId, setActiveFolderIdRaw] = useState<number | null>(() => {
     const folderParam = searchParams.get('folder');
     return folderParam ? parseInt(folderParam) || null : null;
   });
@@ -147,13 +151,43 @@ function DashboardPage() {
     onConfirm: () => {},
   });
 
+  // URL sync helper — update URL search params without full page reload
+  const syncUrl = useCallback((params: { view?: string | null; folder?: number | null }) => {
+    const url = new URL(window.location.href);
+    // Clear existing
+    url.searchParams.delete('view');
+    url.searchParams.delete('folder');
+    if (params.view) {
+      url.searchParams.set('view', params.view);
+    } else if (params.folder !== undefined && params.folder !== null) {
+      url.searchParams.set('folder', String(params.folder));
+    }
+    router.replace(url.pathname + url.search, { scroll: false });
+  }, [router]);
+
+  // Wrapped setters that also update the URL
+  const setActiveFolderId = useCallback((folderId: number | null) => {
+    setActiveFolderIdRaw(folderId);
+    if (folderId !== null) {
+      syncUrl({ folder: folderId });
+    } else {
+      syncUrl({});
+    }
+  }, [syncUrl]);
+
   // Templates state
-  const [isTemplatesView, setIsTemplatesView] = useState(false);
+  const [isTemplatesView, setIsTemplatesViewRaw] = useState(() => searchParams.get('view') === 'templates');
+  const setIsTemplatesView = useCallback((val: boolean) => {
+    setIsTemplatesViewRaw(val);
+    if (val) syncUrl({ view: 'templates' });
+  }, [syncUrl]);
+
   interface TemplateItem {
     id: number;
     templateName: string;
     chartType: string;
     thumbnail: string | null;
+    folderId: number | null;
     createdAt: string;
     updatedAt: string;
   }
@@ -161,8 +195,28 @@ function DashboardPage() {
   const [editTemplateId, setEditTemplateId] = useState<number | null>(null);
   const [showEditTemplate, setShowEditTemplate] = useState(false);
 
+  // Template folders state
+  interface TemplateFolderItem {
+    id: number;
+    name: string;
+    parentId: number | null;
+    createdAt: string;
+  }
+  const [templateFolders, setTemplateFolders] = useState<TemplateFolderItem[]>([]);
+  const [activeTemplateFolderId, setActiveTemplateFolderId] = useState<number | null>(null);
+
+  // Template selection state
+  const [isTemplateSelectionMode, setIsTemplateSelectionMode] = useState(false);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<number>>(new Set());
+  const [showShareTemplate, setShowShareTemplate] = useState(false);
+  const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
+
   // Trash state
-  const [isTrashView, setIsTrashView] = useState(false);
+  const [isTrashView, setIsTrashViewRaw] = useState(() => searchParams.get('view') === 'trash');
+  const setIsTrashView = useCallback((val: boolean) => {
+    setIsTrashViewRaw(val);
+    if (val) syncUrl({ view: 'trash' });
+  }, [syncUrl]);
   const [trashItems, setTrashItems] = useState<{
     visualizations: Array<VizItem & { deletedAt: string }>;
     folders: Array<FolderItem & { deletedAt: string }>;
@@ -297,10 +351,22 @@ function DashboardPage() {
     }
   }, []);
 
+  const fetchTemplateFolders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/template-folders');
+      if (res.ok) {
+        const data = await res.json();
+        setTemplateFolders(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch template folders:', error);
+    }
+  }, []);
+
   // Fetch data
   useEffect(() => {
-    Promise.all([fetchVisualizations(), fetchFolders(), fetchTemplates()]).finally(() => setLoading(false));
-  }, [fetchTemplates]);
+    Promise.all([fetchVisualizations(), fetchFolders(), fetchTemplates(), fetchTemplateFolders()]).finally(() => setLoading(false));
+  }, [fetchTemplates, fetchTemplateFolders]);
 
   // Create new visualization
   const createNew = async () => {
@@ -590,6 +656,164 @@ function DashboardPage() {
       toast.error('Failed to create from template');
     }
   };
+
+  // Template folder operations
+  const handleCreateTemplateFolder = async (name: string, parentId?: number | null) => {
+    try {
+      const res = await fetch('/api/template-folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, parentId: parentId || null }),
+      });
+      if (res.ok) {
+        const folder = await res.json();
+        setTemplateFolders((prev) => [...prev, folder]);
+        toast.success(`Folder "${name}" created`);
+      }
+    } catch {
+      toast.error('Failed to create folder');
+    }
+  };
+
+  const handleRenameTemplateFolder = async (id: number, name: string) => {
+    try {
+      const res = await fetch(`/api/template-folders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        setTemplateFolders((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)));
+        toast.success('Folder renamed');
+      }
+    } catch {
+      toast.error('Failed to rename folder');
+    }
+  };
+
+  const handleDeleteTemplateFolder = async (id: number) => {
+    const folder = templateFolders.find((f) => f.id === id);
+    setConfirmDialog({
+      open: true,
+      title: `Delete folder "${folder?.name || 'folder'}"?`,
+      description: 'This folder will be deleted. Templates inside will be moved to root.',
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          // Move templates in this folder to root first
+          const tplsInFolder = templates.filter((t) => t.folderId === id);
+          for (const tpl of tplsInFolder) {
+            await fetch(`/api/templates/${tpl.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ folderId: null }),
+            });
+          }
+          const res = await fetch(`/api/template-folders/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            setTemplateFolders((prev) => prev.filter((f) => f.id !== id));
+            if (activeTemplateFolderId === id) setActiveTemplateFolderId(null);
+            fetchTemplates();
+            toast.success(`Folder "${folder?.name}" deleted`);
+          }
+        } catch {
+          toast.error('Failed to delete folder');
+        }
+      },
+    });
+  };
+
+  const handleMoveTemplateToFolder = async (templateId: number, folderId: number | null) => {
+    try {
+      const res = await fetch(`/api/templates/${templateId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId }),
+      });
+      if (res.ok) {
+        setTemplates((prev) =>
+          prev.map((t) => (t.id === templateId ? { ...t, folderId } : t))
+        );
+        const folderName = folderId ? templateFolders.find((f) => f.id === folderId)?.name : 'root';
+        toast.success(`Moved to ${folderName}`);
+      }
+    } catch {
+      toast.error('Failed to move template');
+    }
+  };
+
+  // Template selection helpers
+  const toggleTemplateSelect = useCallback((id: number) => {
+    setSelectedTemplateIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const exitTemplateSelectionMode = () => {
+    setIsTemplateSelectionMode(false);
+    setSelectedTemplateIds(new Set());
+  };
+
+  const handleShareTemplate = (templateId: number) => {
+    setShareTemplateIds([templateId]);
+    setShowShareTemplate(true);
+  };
+
+  const handleBulkShareTemplates = () => {
+    if (selectedTemplateIds.size === 0) return;
+    setShareTemplateIds(Array.from(selectedTemplateIds));
+    setShowShareTemplate(true);
+  };
+
+  const handleBulkDeleteTemplates = () => {
+    const count = selectedTemplateIds.size;
+    if (count === 0) return;
+    setConfirmDialog({
+      open: true,
+      title: `Delete ${count} template${count > 1 ? 's' : ''}?`,
+      description: `${count} selected template${count > 1 ? 's' : ''} will be permanently deleted.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await Promise.all(
+            Array.from(selectedTemplateIds).map((id) =>
+              fetch(`/api/templates/${id}`, { method: 'DELETE' })
+            )
+          );
+          setTemplates((prev) => prev.filter((t) => !selectedTemplateIds.has(t.id)));
+          toast.success(`Deleted ${count} template${count > 1 ? 's' : ''}`);
+          exitTemplateSelectionMode();
+        } catch {
+          toast.error('Failed to delete some templates');
+        }
+      },
+    });
+  };
+
+  // Filtered templates based on active template folder
+  const filteredTemplates = useMemo(() => {
+    if (activeTemplateFolderId !== null) {
+      return templates.filter((t) => t.folderId === activeTemplateFolderId);
+    }
+    return templates;
+  }, [templates, activeTemplateFolderId]);
+
+  // Template count by folder
+  const templateCountByFolder = useMemo(() => {
+    const counts: Record<string, number> = {};
+    templates.forEach((t) => {
+      if (t.folderId !== null) {
+        const key = String(t.folderId);
+        counts[key] = (counts[key] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [templates]);
 
   // Selection
   const toggleSelect = useCallback((id: number) => {
@@ -894,7 +1118,9 @@ function DashboardPage() {
   const activeFolderName = isTrashView
     ? 'Trash'
     : isTemplatesView
-    ? 'Templates'
+    ? (activeTemplateFolderId !== null
+      ? templateFolders.find((f) => f.id === activeTemplateFolderId)?.name || 'Templates'
+      : 'Templates')
     : activeFolderId !== null
     ? folders.find((f) => f.id === activeFolderId)?.name || 'Unknown folder'
     : 'All visualizations';
@@ -1082,7 +1308,13 @@ function DashboardPage() {
 
     // Templates view
     if (isTemplatesView) {
-      if (templates.length === 0) {
+      const rootTemplateFolders = templateFolders.filter((f) => f.parentId === null);
+      const tplsToShow = filteredTemplates;
+      const rootTemplates = activeTemplateFolderId === null
+        ? tplsToShow.filter((t) => t.folderId === null)
+        : tplsToShow;
+
+      if (templates.length === 0 && templateFolders.length === 0) {
         return (
           <div className="text-center py-20">
             <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -1095,72 +1327,45 @@ function DashboardPage() {
       }
 
       return (
-        <div className={`${gridClass}`}>
-          {templates.map((tpl) => (
-            <div
-              key={tpl.id}
-              className="group relative rounded-lg border bg-white overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-gray-300"
-            >
-              {/* Thumbnail */}
-              <div
-                className="aspect-[16/10] bg-white flex items-center justify-center border-b overflow-hidden"
-                onClick={() => handleUseTemplate(tpl.id)}
-              >
-                {tpl.thumbnail ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={tpl.thumbnail} alt={tpl.templateName} className="w-full h-full object-contain" />
-                ) : (
-                  <div className="flex flex-col items-center gap-1">
-                    <LayoutTemplate className={cardSize === 'small' ? 'w-5 h-5 text-orange-200' : cardSize === 'medium' ? 'w-6 h-6 text-orange-200' : 'w-8 h-8 text-orange-200'} />
-                    {cardSize !== 'small' && (
-                      <span className="text-[10px] text-gray-300">{tpl.chartType}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Body */}
-              <div className={cardSize === 'small' ? 'px-2 py-1.5' : cardSize === 'medium' ? 'px-2.5 py-2' : 'p-3'}>
-                <div className="flex items-center justify-between gap-1">
-                  <h3
-                    className={`font-medium text-gray-800 truncate flex-1 ${
-                      cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
-                    }`}
-                    onClick={() => handleUseTemplate(tpl.id)}
-                  >
-                    {tpl.templateName}
-                  </h3>
+        <div className="space-y-4">
+          {/* Template folder navigation bar (only at root level) */}
+          {activeTemplateFolderId === null && (rootTemplateFolders.length > 0 || true) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {rootTemplateFolders.map((folder) => (
+                <button
+                  key={folder.id}
+                  onClick={() => setActiveTemplateFolderId(folder.id)}
+                  className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-white hover:bg-orange-50 hover:border-orange-200 transition-colors text-sm"
+                >
+                  <FolderOpen className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="text-gray-700">{folder.name}</span>
+                  <span className="text-[10px] text-gray-400">{templateCountByFolder[String(folder.id)] || 0}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button
+                      <span
                         onClick={(e) => e.stopPropagation()}
-                        className={`rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors ${
-                          cardSize === 'small' ? 'p-0.5' : 'p-1.5'
-                        }`}
+                        className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-200 transition-opacity"
                       >
-                        <MoreVertical className={cardSize === 'small' ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
-                      </button>
+                        <MoreHorizontal className="w-3 h-3 text-gray-400" />
+                      </span>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuContent align="end" className="w-40">
                       <DropdownMenuItem
-                        onClick={() => handleUseTemplate(tpl.id)}
-                        className="gap-2 text-xs"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Use template
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditTemplateId(tpl.id);
-                          setShowEditTemplate(true);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newName = prompt('Rename folder:', folder.name);
+                          if (newName?.trim()) handleRenameTemplateFolder(folder.id, newName.trim());
                         }}
                         className="gap-2 text-xs"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        Edit
+                        Rename
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleDeleteTemplate(tpl.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTemplateFolder(folder.id);
+                        }}
                         className="gap-2 text-xs text-red-600 focus:text-red-600"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1168,10 +1373,181 @@ function DashboardPage() {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
-              </div>
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  const name = prompt('New template folder name:');
+                  if (name?.trim()) handleCreateTemplateFolder(name.trim());
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-gray-300 hover:border-orange-300 hover:bg-orange-50 transition-colors text-sm text-gray-500 hover:text-orange-600"
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+                New folder
+              </button>
             </div>
-          ))}
+          )}
+
+          {/* Sub-folder back button */}
+          {activeTemplateFolderId !== null && (
+            <button
+              onClick={() => setActiveTemplateFolderId(null)}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5 rotate-180" />
+              Back to all templates
+            </button>
+          )}
+
+          {/* Template cards grid */}
+          <div className={`${gridClass}`}>
+            {rootTemplates.map((tpl) => {
+              const isTplSelected = selectedTemplateIds.has(tpl.id);
+              return (
+                <div
+                  key={tpl.id}
+                  className={`group relative rounded-lg border bg-white overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-gray-300 ${
+                    isTplSelected ? 'ring-2 ring-blue-400 border-blue-300' : ''
+                  }`}
+                >
+                  {/* Selection checkbox */}
+                  {isTemplateSelectionMode && (
+                    <div
+                      className="absolute top-2 left-2 z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTemplateSelect(tpl.id);
+                      }}
+                    >
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                        isTplSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/90 border-gray-300'
+                      }`}>
+                        {isTplSelected && (
+                          <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Thumbnail */}
+                  <div
+                    className="aspect-[16/10] bg-white flex items-center justify-center border-b overflow-hidden"
+                    onClick={() => {
+                      if (isTemplateSelectionMode) {
+                        toggleTemplateSelect(tpl.id);
+                      } else {
+                        handleUseTemplate(tpl.id);
+                      }
+                    }}
+                  >
+                    {tpl.thumbnail ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={tpl.thumbnail} alt={tpl.templateName} className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-1">
+                        <LayoutTemplate className={cardSize === 'small' ? 'w-5 h-5 text-orange-200' : cardSize === 'medium' ? 'w-6 h-6 text-orange-200' : 'w-8 h-8 text-orange-200'} />
+                        {cardSize !== 'small' && (
+                          <span className="text-[10px] text-gray-300">{tpl.chartType}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Body */}
+                  <div className={cardSize === 'small' ? 'px-2 py-1.5' : cardSize === 'medium' ? 'px-2.5 py-2' : 'p-3'}>
+                    <div className="flex items-center justify-between gap-1">
+                      <h3
+                        className={`font-medium text-gray-800 truncate flex-1 ${
+                          cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
+                        }`}
+                        onClick={() => {
+                          if (isTemplateSelectionMode) {
+                            toggleTemplateSelect(tpl.id);
+                          } else {
+                            handleUseTemplate(tpl.id);
+                          }
+                        }}
+                      >
+                        {tpl.templateName}
+                      </h3>
+                      {!isTemplateSelectionMode && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              className={`rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors ${
+                                cardSize === 'small' ? 'p-0.5' : 'p-1.5'
+                              }`}
+                            >
+                              <MoreVertical className={cardSize === 'small' ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                              onClick={() => handleUseTemplate(tpl.id)}
+                              className="gap-2 text-xs"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              Use template
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleShareTemplate(tpl.id)}
+                              className="gap-2 text-xs"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                              Share
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditTemplateId(tpl.id);
+                                setShowEditTemplate(true);
+                              }}
+                              className="gap-2 text-xs"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                              Edit
+                            </DropdownMenuItem>
+                            {templateFolders.length > 0 && (
+                              <>
+                                {tpl.folderId !== null && (
+                                  <DropdownMenuItem
+                                    onClick={() => handleMoveTemplateToFolder(tpl.id, null)}
+                                    className="gap-2 text-xs"
+                                  >
+                                    <FolderOpen className="w-3.5 h-3.5" />
+                                    Move to root
+                                  </DropdownMenuItem>
+                                )}
+                                {templateFolders.filter((f) => f.id !== tpl.folderId).map((f) => (
+                                  <DropdownMenuItem
+                                    key={f.id}
+                                    onClick={() => handleMoveTemplateToFolder(tpl.id, f.id)}
+                                    className="gap-2 text-xs"
+                                  >
+                                    <FolderOpen className="w-3.5 h-3.5" />
+                                    Move to {f.name}
+                                  </DropdownMenuItem>
+                                ))}
+                              </>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteTemplate(tpl.id)}
+                              className="gap-2 text-xs text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     }
@@ -1323,9 +1699,15 @@ function DashboardPage() {
               visualizations={visualizations}
               activeFolderId={isTrashView || isTemplatesView ? null : activeFolderId}
               onFolderSelect={(folderId) => {
-                setActiveFolderId(folderId);
-                setIsTrashView(false);
-                setIsTemplatesView(false);
+                setActiveFolderIdRaw(folderId);
+                setIsTrashViewRaw(false);
+                setIsTemplatesViewRaw(false);
+                exitTemplateSelectionMode();
+                if (folderId !== null) {
+                  syncUrl({ folder: folderId });
+                } else {
+                  syncUrl({});
+                }
               }}
               onCreateFolder={handleCreateFolder}
               onRenameFolder={handleRenameFolder}
@@ -1340,23 +1722,24 @@ function DashboardPage() {
               onExportSingle={handleExportSingle}
               onTrashSelect={() => {
                 setIsTrashView(true);
-                setIsTemplatesView(false);
-                setActiveFolderId(null);
+                setIsTemplatesViewRaw(false);
+                setActiveFolderIdRaw(null);
                 exitSelectionMode();
+                exitTemplateSelectionMode();
               }}
               isTrashActive={isTrashView}
               trashCount={trashItems.visualizations.length + trashItems.folders.length}
               onTemplatesSelect={() => {
                 setIsTemplatesView(true);
-                setIsTrashView(false);
-                setActiveFolderId(null);
+                setIsTrashViewRaw(false);
+                setActiveFolderIdRaw(null);
                 exitSelectionMode();
               }}
               isTemplatesActive={isTemplatesView}
               templateCount={templates.length}
             />
             <button
-              onClick={() => { setActiveFolderId(null); setIsTrashView(false); setIsTemplatesView(false); exitSelectionMode(); }}
+              onClick={() => { setActiveFolderIdRaw(null); setIsTrashViewRaw(false); setIsTemplatesViewRaw(false); exitSelectionMode(); exitTemplateSelectionMode(); syncUrl({}); }}
               className="flex items-center hover:opacity-80 transition-opacity"
             >
               <Image src="/logo.svg" alt="GraphCooker" width={140} height={32} className="hidden sm:block" />
@@ -1386,9 +1769,15 @@ function DashboardPage() {
             visualizations={visualizations}
             activeFolderId={isTrashView || isTemplatesView ? null : activeFolderId}
             onFolderSelect={(folderId) => {
-              setActiveFolderId(folderId);
-              setIsTrashView(false);
-              setIsTemplatesView(false);
+              setActiveFolderIdRaw(folderId);
+              setIsTrashViewRaw(false);
+              setIsTemplatesViewRaw(false);
+              exitTemplateSelectionMode();
+              if (folderId !== null) {
+                syncUrl({ folder: folderId });
+              } else {
+                syncUrl({});
+              }
             }}
             onCreateFolder={handleCreateFolder}
             onRenameFolder={handleRenameFolder}
@@ -1403,15 +1792,17 @@ function DashboardPage() {
             onExportSingle={handleExportSingle}
             onTrashSelect={() => {
               setIsTrashView(true);
-              setActiveFolderId(null);
+              setIsTemplatesViewRaw(false);
+              setActiveFolderIdRaw(null);
               exitSelectionMode();
+              exitTemplateSelectionMode();
             }}
             isTrashActive={isTrashView}
             trashCount={trashItems.visualizations.length + trashItems.folders.length}
             onTemplatesSelect={() => {
               setIsTemplatesView(true);
-              setIsTrashView(false);
-              setActiveFolderId(null);
+              setIsTrashViewRaw(false);
+              setActiveFolderIdRaw(null);
               exitSelectionMode();
             }}
             isTemplatesActive={isTemplatesView}
@@ -1426,7 +1817,7 @@ function DashboardPage() {
             {/* Logo + Title */}
             {(activeFolderId !== null || isTrashView || isTemplatesView) && (
               <button
-                onClick={() => { setActiveFolderId(null); setIsTrashView(false); setIsTemplatesView(false); exitSelectionMode(); }}
+                onClick={() => { setActiveFolderIdRaw(null); setIsTrashViewRaw(false); setIsTemplatesViewRaw(false); exitSelectionMode(); exitTemplateSelectionMode(); syncUrl({}); }}
                 className="flex items-center gap-1 px-1.5 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
                 title="GraphCooker — All visualizations"
               >
@@ -1533,7 +1924,7 @@ function DashboardPage() {
             )}
 
             {/* Selection mode */}
-            {!isTrashView && (
+            {!isTrashView && !isTemplatesView && (
               !isSelectionMode ? (
                 <Button
                   variant="outline"
@@ -1591,6 +1982,78 @@ function DashboardPage() {
                 </div>
               )
             )}
+
+            {/* Template selection mode */}
+            {isTemplatesView && (
+              !isTemplateSelectionMode ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs h-8"
+                  onClick={() => setIsTemplateSelectionMode(true)}
+                >
+                  <CheckSquare className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Select</span>
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {selectedTemplateIds.size} selected
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-xs h-7"
+                    onClick={() => setSelectedTemplateIds(new Set(filteredTemplates.map((t) => t.id)))}
+                  >
+                    <Square className="w-3 h-3" />
+                    All
+                  </Button>
+                  {selectedTemplateIds.size > 0 && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1 text-xs h-7"
+                        onClick={handleBulkShareTemplates}
+                      >
+                        <Share2 className="w-3 h-3" />
+                        Share
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="gap-1 text-xs h-7"
+                        onClick={() => {
+                          setSelectedIds(selectedTemplateIds);
+                          setShowBulkExport(true);
+                        }}
+                      >
+                        <Download className="w-3 h-3" />
+                        Export
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="gap-1 text-xs h-7"
+                        onClick={handleBulkDeleteTemplates}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 px-2"
+                    onClick={exitTemplateSelectionMode}
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )
+            )}
           </div>
 
           {/* Content area */}
@@ -1633,6 +2096,16 @@ function DashboardPage() {
         onOpenChange={setShowEditTemplate}
         templateId={editTemplateId}
         onUpdated={fetchTemplates}
+      />
+
+      <ShareTemplateDialog
+        open={showShareTemplate}
+        onOpenChange={setShowShareTemplate}
+        templateIds={shareTemplateIds}
+        onShared={() => {
+          fetchTemplates();
+          exitTemplateSelectionMode();
+        }}
       />
     </div>
   );

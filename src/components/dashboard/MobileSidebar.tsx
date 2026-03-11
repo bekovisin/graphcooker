@@ -27,6 +27,10 @@ export function MobileSidebar(props: DashboardSidebarProps) {
             props.onTrashSelect?.();
             setOpen(false);
           } : undefined}
+          onTemplatesSelect={props.onTemplatesSelect ? () => {
+            props.onTemplatesSelect?.();
+            setOpen(false);
+          } : undefined}
         />
       </SheetContent>
     </Sheet>

@@ -427,7 +427,7 @@ export function DashboardSidebar({
           className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
             dragOverFolderId === 'root'
               ? 'bg-blue-100 ring-2 ring-blue-300'
-              : activeFolderId === null
+              : activeFolderId === null && !isTemplatesActive && !isTrashActive
               ? 'bg-blue-50 text-blue-700'
               : 'text-gray-700 hover:bg-gray-100'
           }`}
@@ -436,7 +436,7 @@ export function DashboardSidebar({
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, null)}
         >
-          <Home className={`w-4 h-4 ${activeFolderId === null ? 'text-blue-500' : 'text-gray-400'}`} />
+          <Home className={`w-4 h-4 ${activeFolderId === null && !isTemplatesActive && !isTrashActive ? 'text-blue-500' : 'text-gray-400'}`} />
           <span className="flex-1 text-left">All visualizations</span>
           <span className="text-[10px] text-gray-400 tabular-nums">{totalVizCount}</span>
         </div>
