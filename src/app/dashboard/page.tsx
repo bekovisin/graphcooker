@@ -14,6 +14,7 @@ import {
   Download,
   X,
   Grid3X3,
+  LayoutGrid,
   List,
   FolderOpen,
   ChevronRight,
@@ -97,6 +98,7 @@ function DashboardPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showBulkExport, setShowBulkExport] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [cardSize, setCardSize] = useState<'small' | 'medium' | 'large'>('large');
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const [showNewVizDialog, setShowNewVizDialog] = useState(false);
 
@@ -795,6 +797,7 @@ function DashboardPage() {
     <VisualizationCard
       key={viz.id}
       viz={viz}
+      cardSize={cardSize}
       isSelected={selectedIds.has(viz.id)}
       isSelectionMode={isSelectionMode}
       onToggleSelect={toggleSelect}
@@ -850,6 +853,13 @@ function DashboardPage() {
       </div>
     );
   };
+
+  // Grid class based on card size
+  const gridClass = cardSize === 'small'
+    ? 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3'
+    : cardSize === 'medium'
+    ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3'
+    : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
 
   // Render content
   const renderContent = () => {
@@ -999,11 +1009,12 @@ function DashboardPage() {
       }
 
       return viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className={gridClass}>
           {activeSubFolders.map((sf) => (
             <FolderCard
               key={`folder-${sf.id}`}
               folder={sf}
+              cardSize={cardSize}
               vizCount={vizCountByFolder[String(sf.id)] || 0}
               allFolders={folders}
               onClick={() => setActiveFolderId(sf.id)}
@@ -1046,11 +1057,12 @@ function DashboardPage() {
       <div className="space-y-4">
         {/* Folder cards + root viz in one grid */}
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className={gridClass}>
             {rootFolders.map((folder) => (
               <FolderCard
                 key={`folder-${folder.id}`}
                 folder={folder}
+                cardSize={cardSize}
                 vizCount={vizCountByFolder[String(folder.id)] || 0}
                 allFolders={folders}
                 onClick={() => setActiveFolderId(folder.id)}
@@ -1255,6 +1267,26 @@ function DashboardPage() {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Card size toggle — only visible when grid mode and on sm+ screens */}
+                {viewMode === 'grid' && (
+                  <div className="hidden sm:flex border rounded-md overflow-hidden">
+                    {(['small', 'medium', 'large'] as const).map((size, idx) => (
+                      <button
+                        key={size}
+                        onClick={() => setCardSize(size)}
+                        title={size === 'small' ? 'Small cards' : size === 'medium' ? 'Medium cards' : 'Large cards'}
+                        className={`p-1.5 transition-colors ${idx > 0 ? 'border-l' : ''} ${
+                          cardSize === size ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      >
+                        <LayoutGrid className={
+                          size === 'small' ? 'w-2.5 h-2.5' : size === 'medium' ? 'w-3 h-3' : 'w-3.5 h-3.5'
+                        } />
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* View mode */}
                 <div className="flex border rounded-md overflow-hidden">

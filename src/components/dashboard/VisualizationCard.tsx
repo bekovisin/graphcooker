@@ -35,8 +35,11 @@ export interface VizItem {
   folderId: number | null;
 }
 
+export type CardSize = 'small' | 'medium' | 'large';
+
 interface VisualizationCardProps {
   viz: VizItem;
+  cardSize?: CardSize;
   isSelected: boolean;
   isSelectionMode: boolean;
   onToggleSelect: (id: number) => void;
@@ -49,6 +52,7 @@ interface VisualizationCardProps {
 
 export function VisualizationCard({
   viz,
+  cardSize = 'large',
   isSelected,
   isSelectionMode,
   onToggleSelect,
@@ -165,14 +169,16 @@ export function VisualizationCard({
           />
         ) : (
           <div className="flex flex-col items-center gap-1">
-            <BarChart3 className="w-8 h-8 text-gray-200" />
-            <span className="text-[10px] text-gray-300">{chartTypeLabel(viz.chartType)}</span>
+            <BarChart3 className={cardSize === 'small' ? 'w-5 h-5 text-gray-200' : cardSize === 'medium' ? 'w-6 h-6 text-gray-200' : 'w-8 h-8 text-gray-200'} />
+            {cardSize !== 'small' && (
+              <span className="text-[10px] text-gray-300">{chartTypeLabel(viz.chartType)}</span>
+            )}
           </div>
         )}
       </div>
 
       {/* Card body */}
-      <div className="p-3">
+      <div className={cardSize === 'small' ? 'px-2 py-1.5' : cardSize === 'medium' ? 'px-2.5 py-2' : 'p-3'}>
         {isEditing ? (
           <input
             ref={inputRef}
@@ -188,15 +194,21 @@ export function VisualizationCard({
               e.stopPropagation();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full text-sm font-medium bg-white border border-blue-300 rounded px-1.5 py-0.5 outline-none"
+            className={`w-full font-medium bg-white border border-blue-300 rounded px-1.5 py-0.5 outline-none ${
+              cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
+            }`}
           />
         ) : (
-          <h3 className="text-sm font-medium text-gray-800 truncate">{viz.name}</h3>
+          <h3 className={`font-medium text-gray-800 truncate ${
+            cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
+          }`}>{viz.name}</h3>
         )}
 
-        <div className="flex items-center justify-between mt-1.5">
-          <div className="flex items-center gap-1 text-xs text-gray-400">
-            <Clock className="w-3 h-3" />
+        <div className={`flex items-center justify-between ${cardSize === 'small' ? 'mt-0.5' : 'mt-1.5'}`}>
+          <div className={`flex items-center gap-1 text-gray-400 ${
+            cardSize === 'small' ? 'text-[9px]' : cardSize === 'medium' ? 'text-[10px]' : 'text-xs'
+          }`}>
+            <Clock className={cardSize === 'small' ? 'w-2 h-2' : cardSize === 'medium' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
             <span>{formatDate(viz.updatedAt)}</span>
           </div>
 
@@ -206,9 +218,11 @@ export function VisualizationCard({
               <DropdownMenuTrigger asChild>
                 <button
                   onClick={(e) => e.stopPropagation()}
-                  className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  className={`rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors ${
+                    cardSize === 'small' ? 'p-0.5' : 'p-1.5'
+                  }`}
                 >
-                  <MoreVertical className="w-5 h-5" />
+                  <MoreVertical className={cardSize === 'small' ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">

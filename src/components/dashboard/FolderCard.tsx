@@ -22,6 +22,7 @@ interface FolderItem {
 
 interface FolderCardProps {
   folder: FolderItem;
+  cardSize?: 'small' | 'medium' | 'large';
   vizCount: number;
   allFolders?: FolderItem[];
   onClick: () => void;
@@ -35,6 +36,7 @@ interface FolderCardProps {
 
 export function FolderCard({
   folder,
+  cardSize = 'large',
   vizCount,
   allFolders,
   onClick,
@@ -117,14 +119,14 @@ export function FolderCard({
     >
       {/* Folder visual */}
       <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gray-50 rounded-t-lg border-b border-gray-100">
-        <FolderOpen className={`w-12 h-12 ${isDragOver ? 'text-blue-400' : 'text-gray-300'} transition-colors`} />
-        <span className="text-xs text-gray-400 mt-1">
+        <FolderOpen className={`${cardSize === 'small' ? 'w-7 h-7' : cardSize === 'medium' ? 'w-9 h-9' : 'w-12 h-12'} ${isDragOver ? 'text-blue-400' : 'text-gray-300'} transition-colors`} />
+        <span className={`text-gray-400 mt-1 ${cardSize === 'small' ? 'text-[9px]' : cardSize === 'medium' ? 'text-[10px]' : 'text-xs'}`}>
           {vizCount} {vizCount === 1 ? 'item' : 'items'}
         </span>
       </div>
 
       {/* Name + menu */}
-      <div className="px-3 py-2.5">
+      <div className={cardSize === 'small' ? 'px-2 py-1.5' : cardSize === 'medium' ? 'px-2.5 py-2' : 'px-3 py-2.5'}>
         {isEditing ? (
           <input
             ref={inputRef}
@@ -135,18 +137,24 @@ export function FolderCard({
               if (e.key === 'Enter') handleRenameSubmit();
               if (e.key === 'Escape') setIsEditing(false);
             }}
-            className="text-sm font-medium text-gray-900 w-full border border-blue-400 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-blue-400"
+            className={`font-medium text-gray-900 w-full border border-blue-400 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-blue-400 ${
+              cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
+            }`}
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
           <div className="flex items-center justify-between gap-1">
-            <p className="text-sm font-medium text-gray-900 truncate">{folder.name}</p>
+            <p className={`font-medium text-gray-900 truncate ${
+              cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
+            }`}>{folder.name}</p>
             {hasMenu && (
               <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-                      <MoreVertical className="w-5 h-5" />
+                    <button className={`rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors ${
+                      cardSize === 'small' ? 'p-0.5' : 'p-1.5'
+                    }`}>
+                      <MoreVertical className={cardSize === 'small' ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
