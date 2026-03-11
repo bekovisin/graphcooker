@@ -71,34 +71,58 @@ function DashboardPage() {
   });
   const [sortMode, setSortModeLocal] = useState<SortMode>('updated_desc');
 
-  // Load saved sort preference on mount
+  // Load saved dashboard preferences on mount
   useEffect(() => {
-    fetch('/api/preferences?key=dashboard_sort')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.value && sortLabels[data.value as SortMode]) {
-          setSortModeLocal(data.value as SortMode);
-        }
-      })
-      .catch(() => {});
+    const loadPref = (key: string) =>
+      fetch(`/api/preferences?key=${key}`).then(r => r.json()).catch(() => null);
+
+    Promise.all([
+      loadPref('dashboard_sort'),
+      loadPref('dashboard_view_mode'),
+      loadPref('dashboard_card_size'),
+    ]).then(([sortData, viewData, sizeData]) => {
+      if (sortData?.value && sortLabels[sortData.value as SortMode]) {
+        setSortModeLocal(sortData.value as SortMode);
+      }
+      if (viewData?.value && ['grid', 'list'].includes(viewData.value)) {
+        setViewModeLocal(viewData.value as 'grid' | 'list');
+      }
+      if (sizeData?.value && ['small', 'medium', 'large'].includes(sizeData.value)) {
+        setCardSizeLocal(sizeData.value as 'small' | 'medium' | 'large');
+      }
+    });
   }, []);
 
-  // Wrapper that persists sort mode to database
-  const setSortMode = useCallback((mode: SortMode) => {
-    setSortModeLocal(mode);
+  // Helpers that persist preferences to database
+  const persistPref = useCallback((key: string, value: string) => {
     fetch('/api/preferences', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'dashboard_sort', value: mode }),
+      body: JSON.stringify({ key, value }),
     }).catch(() => {});
   }, []);
+
+  const setSortMode = useCallback((mode: SortMode) => {
+    setSortModeLocal(mode);
+    persistPref('dashboard_sort', mode);
+  }, [persistPref]);
+
+  const setViewMode = useCallback((mode: 'grid' | 'list') => {
+    setViewModeLocal(mode);
+    persistPref('dashboard_view_mode', mode);
+  }, [persistPref]);
+
+  const setCardSize = useCallback((size: 'small' | 'medium' | 'large') => {
+    setCardSizeLocal(size);
+    persistPref('dashboard_card_size', size);
+  }, [persistPref]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showBulkExport, setShowBulkExport] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [cardSize, setCardSize] = useState<'small' | 'medium' | 'large'>('large');
+  const [viewMode, setViewModeLocal] = useState<'grid' | 'list'>('grid');
+  const [cardSize, setCardSizeLocal] = useState<'small' | 'medium' | 'large'>('large');
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const [showNewVizDialog, setShowNewVizDialog] = useState(false);
 
