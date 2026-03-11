@@ -291,10 +291,23 @@ export function DashboardSidebar() {
           )}
         </div>
 
-        {/* Expanded: child folders + sub-folder input */}
+        {/* Expanded: child folders + viz items + sub-folder input */}
         {isExpanded && (
           <>
             {children.map((child) => renderFolder(child, depth + 1))}
+            {/* Visualization items inside this folder */}
+            {folderViz.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => router.push(`/editor/${v.id}`)}
+                className="w-full flex items-center gap-1.5 py-1 text-[11px] text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors truncate"
+                style={{ paddingLeft: `${16 + (depth + 1) * 16}px`, paddingRight: '8px' }}
+                title={v.name}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                <span className="truncate">{v.name}</span>
+              </button>
+            ))}
             {creatingSubfolderId === folder.id && (
               <div
                 className="flex items-center gap-1 py-1.5"

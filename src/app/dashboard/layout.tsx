@@ -65,6 +65,8 @@ export default function DashboardLayout({
   const enterSelectionMode = useDashboardStore((s) => s.enterSelectionMode);
   const exitSelectionMode = useDashboardStore((s) => s.exitSelectionMode);
   const selectAllViz = useDashboardStore((s) => s.selectAllViz);
+  const selectAllFolders = useDashboardStore((s) => s.selectAllFolders);
+  const selectedFolderIds = useDashboardStore((s) => s.selectedFolderIds);
   const handleBulkDelete = useDashboardStore((s) => s.handleBulkDelete);
   const handleBulkExport = useDashboardStore((s) => s.handleBulkExport);
   const visualizations = useDashboardStore((s) => s.visualizations);
@@ -141,6 +143,18 @@ export default function DashboardLayout({
     return visualizations.map((v) => v.id);
   }, [pathname, visualizations, isTemplatesView, isTrashView]);
 
+  // Compute visible folder IDs for "Select All" based on current route
+  const visibleFolderIds = useMemo(() => {
+    if (isTemplatesView || isTrashView) return [];
+    const folderMatch2 = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
+    if (folderMatch2) {
+      // Inside a folder view — no sub-folder cards typically, return empty
+      return [];
+    }
+    // Root — all root-level folders
+    return folders.filter((f) => f.parentId === null).map((f) => f.id);
+  }, [pathname, folders, isTemplatesView, isTrashView]);
+
   // Compute visible template IDs for "Select All" based on current route
   const visibleTemplateIds = useMemo(() => {
     if (!isTemplatesView) return [];
@@ -152,6 +166,14 @@ export default function DashboardLayout({
     // Templates root — only root-level templates
     return templates.filter((t) => t.folderId === null).map((t) => t.id);
   }, [pathname, templates, isTemplatesView]);
+
+  // Check if all visible items are selected (for "All" button active state)
+  const allVizSelected = visibleVizIds.length > 0 && visibleVizIds.every((id) => effectiveVizIds.has(id));
+  const allFoldersSelected = visibleFolderIds.length === 0 || visibleFolderIds.every((id) => selectedFolderIds.has(id));
+  const isAllSelected = isSelectionMode && allVizSelected && allFoldersSelected && (visibleVizIds.length > 0 || visibleFolderIds.length > 0);
+
+  // Check if all visible templates are selected
+  const isAllTemplatesSelected = isTemplateSelectionMode && visibleTemplateIds.length > 0 && visibleTemplateIds.every((id) => selectedTemplateIds.has(id));
 
   // Derive activeFolderId for "New visualization" dialog
   const folderMatch = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
@@ -352,8 +374,22 @@ export default function DashboardLayout({
                     {isSelectionMode ? (
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-gray-500 tabular-nums">{totalSelectedCount} selected</span>
-                        <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => selectAllViz(visibleVizIds)}>
-                          <Square className="w-3 h-3" />
+                        <Button
+                          variant={isAllSelected ? 'default' : 'outline'}
+                          size="sm"
+                          className="gap-1 text-xs h-7"
+                          onClick={() => {
+                            if (isAllSelected) {
+                              // Deselect all
+                              selectAllViz([]);
+                              selectAllFolders([]);
+                            } else {
+                              selectAllViz(visibleVizIds);
+                              selectAllFolders(visibleFolderIds);
+                            }
+                          }}
+                        >
+                          {isAllSelected ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
                           All
                         </Button>
                         {totalSelectedCount > 0 && (
@@ -402,8 +438,19 @@ export default function DashboardLayout({
                     {isTemplateSelectionMode ? (
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs text-gray-500 tabular-nums">{selectedTemplateIds.size} selected</span>
-                        <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => selectAllTemplates(visibleTemplateIds)}>
-                          <Square className="w-3 h-3" />
+                        <Button
+                          variant={isAllTemplatesSelected ? 'default' : 'outline'}
+                          size="sm"
+                          className="gap-1 text-xs h-7"
+                          onClick={() => {
+                            if (isAllTemplatesSelected) {
+                              selectAllTemplates([]);
+                            } else {
+                              selectAllTemplates(visibleTemplateIds);
+                            }
+                          }}
+                        >
+                          {isAllTemplatesSelected ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
                           All
                         </Button>
                         {selectedTemplateIds.size > 0 && (

@@ -120,6 +120,7 @@ interface DashboardState {
   toggleSelectViz: (id: number) => void;
   toggleSelectFolder: (id: number) => void;
   selectAllViz: (ids: number[]) => void;
+  selectAllFolders: (ids: number[]) => void;
   selectFolder: (folderId: number) => void;
 
   // Actions - Template Selection
@@ -346,6 +347,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     return { selectedFolderIds: next };
   }),
   selectAllViz: (ids) => set({ selectedVizIds: new Set(ids) }),
+  selectAllFolders: (ids) => set({ selectedFolderIds: new Set(ids) }),
   selectFolder: (folderId) => {
     const vizInFolder = get().visualizations.filter((v) => v.folderId === folderId);
     set((s) => {
