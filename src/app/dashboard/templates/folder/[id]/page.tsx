@@ -19,10 +19,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FolderCard } from '@/components/dashboard/FolderCard';
 import { EditTemplateDialog } from '@/components/dashboard/EditTemplateDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import {
   useDashboardStore,
+  useTemplateCountByFolder,
   useGridClass,
   type TemplateItem,
 } from '@/store/dashboardStore';
@@ -43,15 +45,22 @@ export default function TemplateFolderPage() {
   const applyTemplate = useDashboardStore((s) => s.applyTemplate);
   const applyingTemplateId = useDashboardStore((s) => s.applyingTemplateId);
   const moveTemplateToFolder = useDashboardStore((s) => s.moveTemplateToFolder);
+  const renameTemplateFolder = useDashboardStore((s) => s.renameTemplateFolder);
+  const deleteTemplateFolder = useDashboardStore((s) => s.deleteTemplateFolder);
+  const duplicateTemplateFolder = useDashboardStore((s) => s.duplicateTemplateFolder);
+  const moveTemplateFolderTo = useDashboardStore((s) => s.moveTemplateFolderTo);
   const fetchTemplates = useDashboardStore((s) => s.fetchTemplates);
 
   // Template selection from store
   const isTemplateSelectionMode = useDashboardStore((s) => s.isTemplateSelectionMode);
   const selectedTemplateIds = useDashboardStore((s) => s.selectedTemplateIds);
+  const selectedTemplateFolderIds = useDashboardStore((s) => s.selectedTemplateFolderIds);
   const toggleSelectTemplate = useDashboardStore((s) => s.toggleSelectTemplate);
+  const toggleSelectTemplateFolder = useDashboardStore((s) => s.toggleSelectTemplateFolder);
   const exitTemplateSelectionMode = useDashboardStore((s) => s.exitTemplateSelectionMode);
 
   const gridClass = useGridClass();
+  const templateCountByFolder = useTemplateCountByFolder();
 
   // Local state (dialogs only)
   const [showEditTemplate, setShowEditTemplate] = useState(false);
@@ -59,7 +68,26 @@ export default function TemplateFolderPage() {
   const [showShareTemplate, setShowShareTemplate] = useState(false);
   const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
 
-  // Computed
+  // Current folder info
+  const currentFolder = useMemo(() => templateFolders.find((f) => f.id === folderId), [templateFolders, folderId]);
+
+  // Breadcrumb path
+  const breadcrumb = useMemo(() => {
+    const path: typeof templateFolders = [];
+    let current = currentFolder;
+    while (current) {
+      path.unshift(current);
+      current = current.parentId !== null ? templateFolders.find((f) => f.id === current!.parentId) : undefined;
+    }
+    return path;
+  }, [currentFolder, templateFolders]);
+
+  // Child folders of the current folder
+  const childFolders = useMemo(() => {
+    return templateFolders.filter((f) => f.parentId === folderId);
+  }, [templateFolders, folderId]);
+
+  // Templates in this folder
   const folderTemplates = useMemo(() => {
     let result = templates.filter((t) => t.folderId === folderId);
     if (searchQuery.trim()) {
@@ -266,17 +294,31 @@ export default function TemplateFolderPage() {
 
   return (
     <div>
-      {/* Back button */}
-      <button
-        onClick={() => router.push('/dashboard/templates')}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-4"
-      >
-        <ChevronRight className="w-3.5 h-3.5 rotate-180" />
-        Back to all templates
-      </button>
+      {/* Breadcrumb navigation */}
+      <div className="flex items-center gap-1.5 text-sm mb-4 flex-wrap">
+        <button
+          onClick={() => router.push('/dashboard/templates')}
+          className="text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          Templates
+        </button>
+        {breadcrumb.map((folder) => (
+          <span key={folder.id} className="flex items-center gap-1.5">
+            <ChevronRight className="w-3 h-3 text-gray-300" />
+            <button
+              onClick={() => router.push(`/dashboard/templates/folder/${folder.id}`)}
+              className={`transition-colors ${
+                folder.id === folderId ? 'text-gray-800 font-medium' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {folder.name}
+            </button>
+          </span>
+        ))}
+      </div>
 
       {/* Empty state */}
-      {folderTemplates.length === 0 ? (
+      {folderTemplates.length === 0 && childFolders.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <LayoutTemplate className="w-8 h-8 text-orange-300" />
@@ -291,7 +333,7 @@ export default function TemplateFolderPage() {
           ) : (
             <>
               <h3 className="text-lg font-medium text-gray-700 mb-1">This folder is empty</h3>
-              <p className="text-sm text-gray-500">Move templates here from the templates root</p>
+              <p className="text-sm text-gray-500">Move templates here or create sub-folders</p>
             </>
           )}
         </div>
@@ -301,6 +343,27 @@ export default function TemplateFolderPage() {
         </div>
       ) : (
         <div className={gridClass}>
+          {/* Child folders first */}
+          {childFolders.map((folder) => (
+            <FolderCard
+              key={`folder-${folder.id}`}
+              folder={folder}
+              cardSize={cardSize}
+              vizCount={templateCountByFolder[String(folder.id)] || 0}
+              allFolders={templateFolders}
+              isSelected={selectedTemplateFolderIds.has(folder.id)}
+              isSelectionMode={isTemplateSelectionMode}
+              onToggleSelect={toggleSelectTemplateFolder}
+              onClick={() => router.push(`/dashboard/templates/folder/${folder.id}`)}
+              onDrop={(templateId) => moveTemplateToFolder(templateId, folder.id)}
+              onDropFolder={(draggedFolderId) => moveTemplateFolderTo(draggedFolderId, folder.id)}
+              onRename={(id, name) => renameTemplateFolder(id, name)}
+              onDuplicate={(id) => duplicateTemplateFolder(id)}
+              onMove={(id, targetParentId) => moveTemplateFolderTo(id, targetParentId)}
+              onDelete={(id) => deleteTemplateFolder(id)}
+            />
+          ))}
+          {/* Then templates */}
           {folderTemplates.map((tpl) => renderTemplateCard(tpl))}
         </div>
       )}

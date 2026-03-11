@@ -22,6 +22,7 @@ interface ShareTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templateIds: number[];
+  folderIds?: number[];
   onShared?: () => void;
 }
 
@@ -29,6 +30,7 @@ export function ShareTemplateDialog({
   open,
   onOpenChange,
   templateIds,
+  folderIds = [],
   onShared,
 }: ShareTemplateDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -64,26 +66,40 @@ export function ShareTemplateDialog({
   };
 
   const handleShare = async () => {
-    if (selectedUserIds.size === 0 || templateIds.length === 0) return;
+    if (selectedUserIds.size === 0 || (templateIds.length === 0 && folderIds.length === 0)) return;
     setSharing(true);
     try {
-      let totalCopied = 0;
+      const userIdsArr = Array.from(selectedUserIds);
+
+      // Share individual templates
       for (const templateId of templateIds) {
-        const res = await fetch(`/api/templates/${templateId}/share`, {
+        await fetch(`/api/templates/${templateId}/share`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userIds: Array.from(selectedUserIds) }),
+          body: JSON.stringify({ userIds: userIdsArr }),
         });
-        if (res.ok) {
-          const data = await res.json();
-          totalCopied += data.copied || 0;
-        }
       }
-      toast.success(`Shared ${templateIds.length} template${templateIds.length > 1 ? 's' : ''} with ${selectedUserIds.size} user${selectedUserIds.size > 1 ? 's' : ''} (${totalCopied} copies created)`);
+
+      // Share folders (deep copy with all templates inside)
+      for (const fId of folderIds) {
+        await fetch(`/api/template-folders/${fId}/share`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIds: userIdsArr }),
+        });
+      }
+
+      const totalItems = templateIds.length + folderIds.length;
+      const itemLabel = folderIds.length > 0 && templateIds.length > 0
+        ? `${totalItems} items`
+        : folderIds.length > 0
+          ? `${folderIds.length} folder${folderIds.length > 1 ? 's' : ''}`
+          : `${templateIds.length} template${templateIds.length > 1 ? 's' : ''}`;
+      toast.success(`Shared ${itemLabel} with ${selectedUserIds.size} user${selectedUserIds.size > 1 ? 's' : ''}`);
       onShared?.();
       onOpenChange(false);
     } catch {
-      toast.error('Failed to share templates');
+      toast.error('Failed to share');
     } finally {
       setSharing(false);
     }
@@ -95,7 +111,12 @@ export function ShareTemplateDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="w-4 h-4" />
-            Share {templateIds.length > 1 ? `${templateIds.length} templates` : 'template'}
+            Share {(() => {
+              const total = templateIds.length + folderIds.length;
+              if (folderIds.length > 0 && templateIds.length > 0) return `${total} items`;
+              if (folderIds.length > 0) return folderIds.length > 1 ? `${folderIds.length} folders` : 'folder';
+              return templateIds.length > 1 ? `${templateIds.length} templates` : 'template';
+            })()}
           </DialogTitle>
         </DialogHeader>
 

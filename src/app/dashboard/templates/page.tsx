@@ -9,7 +9,6 @@ import {
   FolderOpen,
   Pencil,
   MoreVertical,
-  MoreHorizontal,
   Share2,
   Trash2,
 } from 'lucide-react';
@@ -19,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FolderCard } from '@/components/dashboard/FolderCard';
 import { EditTemplateDialog } from '@/components/dashboard/EditTemplateDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import { InputDialog } from '@/components/dashboard/InputDialog';
@@ -43,13 +43,17 @@ export default function TemplatesPage() {
   const applyingTemplateId = useDashboardStore((s) => s.applyingTemplateId);
   const renameTemplateFolder = useDashboardStore((s) => s.renameTemplateFolder);
   const deleteTemplateFolder = useDashboardStore((s) => s.deleteTemplateFolder);
+  const duplicateTemplateFolder = useDashboardStore((s) => s.duplicateTemplateFolder);
+  const moveTemplateFolderTo = useDashboardStore((s) => s.moveTemplateFolderTo);
   const moveTemplateToFolder = useDashboardStore((s) => s.moveTemplateToFolder);
   const fetchTemplates = useDashboardStore((s) => s.fetchTemplates);
 
   // Template selection from store
   const isTemplateSelectionMode = useDashboardStore((s) => s.isTemplateSelectionMode);
   const selectedTemplateIds = useDashboardStore((s) => s.selectedTemplateIds);
+  const selectedTemplateFolderIds = useDashboardStore((s) => s.selectedTemplateFolderIds);
   const toggleSelectTemplate = useDashboardStore((s) => s.toggleSelectTemplate);
+  const toggleSelectTemplateFolder = useDashboardStore((s) => s.toggleSelectTemplateFolder);
   const exitTemplateSelectionMode = useDashboardStore((s) => s.exitTemplateSelectionMode);
 
   const viewMode = useDashboardStore((s) => s.viewMode);
@@ -332,65 +336,34 @@ export default function TemplatesPage() {
   return (
     <div>
       <div className="space-y-4">
-        {/* Template folder navigation bar */}
-        {rootTemplateFolders.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            {rootTemplateFolders.map((folder) => (
-              <button
-                key={folder.id}
-                onClick={() => router.push(`/dashboard/templates/folder/${folder.id}`)}
-                className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-white hover:bg-orange-50 hover:border-orange-200 transition-colors text-sm"
-              >
-                <FolderOpen className="w-3.5 h-3.5 text-orange-400" />
-                <span className="text-gray-700">{folder.name}</span>
-                <span className="text-[10px] text-gray-400">{templateCountByFolder[String(folder.id)] || 0}</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <span
-                      onClick={(e) => e.stopPropagation()}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-gray-200 transition-opacity"
-                    >
-                      <MoreHorizontal className="w-3 h-3 text-gray-400" />
-                    </span>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setRenameFolderName(folder.name);
-                        setRenameFolderId(folder.id);
-                      }}
-                      className="gap-2 text-xs"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteTemplateFolder(folder.id);
-                      }}
-                      className="gap-2 text-xs text-red-600 focus:text-red-600"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Template cards */}
+        {/* Template cards (grid or list) */}
         {viewMode === 'list' ? (
           /* List view */
           <div className="space-y-0.5">
             {rootTemplates.map((tpl) => renderTemplateListRow(tpl))}
           </div>
         ) : (
-          /* Grid view */
+          /* Grid view — folders first, then templates */
           <div className={gridClass}>
+            {rootTemplateFolders.map((folder) => (
+              <FolderCard
+                key={`folder-${folder.id}`}
+                folder={folder}
+                cardSize={cardSize}
+                vizCount={templateCountByFolder[String(folder.id)] || 0}
+                allFolders={templateFolders}
+                isSelected={selectedTemplateFolderIds.has(folder.id)}
+                isSelectionMode={isTemplateSelectionMode}
+                onToggleSelect={toggleSelectTemplateFolder}
+                onClick={() => router.push(`/dashboard/templates/folder/${folder.id}`)}
+                onDrop={(templateId) => moveTemplateToFolder(templateId, folder.id)}
+                onDropFolder={(draggedFolderId) => moveTemplateFolderTo(draggedFolderId, folder.id)}
+                onRename={(id, name) => renameTemplateFolder(id, name)}
+                onDuplicate={(id) => duplicateTemplateFolder(id)}
+                onMove={(id, targetParentId) => moveTemplateFolderTo(id, targetParentId)}
+                onDelete={(id) => deleteTemplateFolder(id)}
+              />
+            ))}
             {rootTemplates.map((tpl) => renderTemplateCard(tpl))}
           </div>
         )}

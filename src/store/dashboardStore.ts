@@ -91,6 +91,7 @@ interface DashboardState {
   // Template selection state (shared across template pages)
   isTemplateSelectionMode: boolean;
   selectedTemplateIds: Set<number>;
+  selectedTemplateFolderIds: Set<number>;
   applyingTemplateId: number | null;
 
   // Actions - Fetch
@@ -127,7 +128,9 @@ interface DashboardState {
   enterTemplateSelectionMode: () => void;
   exitTemplateSelectionMode: () => void;
   toggleSelectTemplate: (id: number) => void;
+  toggleSelectTemplateFolder: (id: number) => void;
   selectAllTemplates: (ids: number[]) => void;
+  selectAllTemplateFolders: (ids: number[]) => void;
 
   // Actions - Visualization CRUD
   createVisualization: (folderId: number | null) => Promise<number | null>;
@@ -153,6 +156,8 @@ interface DashboardState {
   renameTemplateFolder: (id: number, name: string) => Promise<void>;
   deleteTemplateFolder: (id: number) => void;
   moveTemplateToFolder: (templateId: number, folderId: number | null) => Promise<void>;
+  moveTemplateFolderTo: (folderId: number, targetParentId: number | null) => Promise<void>;
+  duplicateTemplateFolder: (id: number) => Promise<void>;
   bulkDeleteTemplates: (selectedIds: Set<number>, exitCb?: () => void) => void;
 
   // Actions - Trash
@@ -214,6 +219,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   // Template selection
   isTemplateSelectionMode: false,
   selectedTemplateIds: new Set<number>(),
+  selectedTemplateFolderIds: new Set<number>(),
   applyingTemplateId: null,
 
   // Fetch actions
@@ -361,13 +367,19 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   // Template selection actions
   enterTemplateSelectionMode: () => set({ isTemplateSelectionMode: true }),
-  exitTemplateSelectionMode: () => set({ isTemplateSelectionMode: false, selectedTemplateIds: new Set() }),
+  exitTemplateSelectionMode: () => set({ isTemplateSelectionMode: false, selectedTemplateIds: new Set(), selectedTemplateFolderIds: new Set() }),
   toggleSelectTemplate: (id) => set((s) => {
     const next = new Set(s.selectedTemplateIds);
     if (next.has(id)) next.delete(id); else next.add(id);
     return { selectedTemplateIds: next };
   }),
+  toggleSelectTemplateFolder: (id) => set((s) => {
+    const next = new Set(s.selectedTemplateFolderIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return { selectedTemplateFolderIds: next };
+  }),
   selectAllTemplates: (ids) => set({ selectedTemplateIds: new Set(ids) }),
+  selectAllTemplateFolders: (ids) => set({ selectedTemplateFolderIds: new Set(ids) }),
 
   // Visualization CRUD
   createVisualization: async (folderId) => {
@@ -849,6 +861,53 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       }
     } catch {
       toast.error('Failed to move template');
+    }
+  },
+
+  moveTemplateFolderTo: async (folderId, targetParentId) => {
+    if (folderId === targetParentId) return;
+    const { templateFolders } = get();
+    if (targetParentId !== null) {
+      const descendants = getDescendantIds(folderId, templateFolders);
+      if (descendants.has(targetParentId)) {
+        toast.error('Cannot move a folder into its own subfolder');
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`/api/template-folders/${folderId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentId: targetParentId }),
+      });
+      if (res.ok) {
+        set((s) => ({
+          templateFolders: s.templateFolders.map((f) => (f.id === folderId ? { ...f, parentId: targetParentId } : f)),
+        }));
+        const targetName = targetParentId ? templateFolders.find((f) => f.id === targetParentId)?.name || 'folder' : 'root';
+        toast.success(`Folder moved to ${targetName}`);
+      }
+    } catch {
+      toast.error('Failed to move folder');
+    }
+  },
+
+  duplicateTemplateFolder: async (id) => {
+    const original = get().templateFolders.find((f) => f.id === id);
+    if (!original) return;
+    try {
+      const res = await fetch('/api/template-folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${original.name} (copy)`, parentId: original.parentId || null }),
+      });
+      if (res.ok) {
+        const newFolder = await res.json();
+        set((s) => ({ templateFolders: [...s.templateFolders, newFolder] }));
+        toast.success(`Folder duplicated as "${newFolder.name}"`);
+      }
+    } catch {
+      toast.error('Failed to duplicate folder');
     }
   },
 

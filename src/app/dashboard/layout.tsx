@@ -77,10 +77,13 @@ export default function DashboardLayout({
   // Template selection state
   const isTemplateSelectionMode = useDashboardStore((s) => s.isTemplateSelectionMode);
   const selectedTemplateIds = useDashboardStore((s) => s.selectedTemplateIds);
+  const selectedTemplateFolderIds = useDashboardStore((s) => s.selectedTemplateFolderIds);
   const enterTemplateSelectionMode = useDashboardStore((s) => s.enterTemplateSelectionMode);
   const exitTemplateSelectionMode = useDashboardStore((s) => s.exitTemplateSelectionMode);
   const selectAllTemplates = useDashboardStore((s) => s.selectAllTemplates);
+  const selectAllTemplateFolders = useDashboardStore((s) => s.selectAllTemplateFolders);
   const templates = useDashboardStore((s) => s.templates);
+  const templateFolders = useDashboardStore((s) => s.templateFolders);
   const bulkDeleteTemplates = useDashboardStore((s) => s.bulkDeleteTemplates);
 
   // Actions (stable references from zustand)
@@ -103,6 +106,7 @@ export default function DashboardLayout({
   // Share template dialog (local)
   const [showShareTemplate, setShowShareTemplate] = useState(false);
   const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
+  const [shareFolderIds, setShareFolderIds] = useState<number[]>([]);
 
   // Fetch data on mount
   useEffect(() => {
@@ -171,13 +175,29 @@ export default function DashboardLayout({
     return templates.filter((t) => t.folderId === null).map((t) => t.id);
   }, [pathname, templates, isTemplatesView]);
 
+  // Compute visible template folder IDs for "Select All"
+  const visibleTemplateFolderIds = useMemo(() => {
+    if (!isTemplatesView) return [];
+    const tplFolderMatch = pathname.match(/^\/dashboard\/templates\/folder\/(\d+)$/);
+    if (tplFolderMatch) {
+      const fId = parseInt(tplFolderMatch[1]);
+      return templateFolders.filter((f) => f.parentId === fId).map((f) => f.id);
+    }
+    // Templates root — only root-level template folders
+    return templateFolders.filter((f) => f.parentId === null).map((f) => f.id);
+  }, [pathname, templateFolders, isTemplatesView]);
+
   // Check if all visible items are selected (for "All" button active state)
   const allVizSelected = visibleVizIds.length > 0 && visibleVizIds.every((id) => effectiveVizIds.has(id));
   const allFoldersSelected = visibleFolderIds.length === 0 || visibleFolderIds.every((id) => selectedFolderIds.has(id));
   const isAllSelected = isSelectionMode && allVizSelected && allFoldersSelected && (visibleVizIds.length > 0 || visibleFolderIds.length > 0);
 
-  // Check if all visible templates are selected
-  const isAllTemplatesSelected = isTemplateSelectionMode && visibleTemplateIds.length > 0 && visibleTemplateIds.every((id) => selectedTemplateIds.has(id));
+  // Check if all visible templates + template folders are selected
+  const allTemplatesSelected = visibleTemplateIds.length > 0 && visibleTemplateIds.every((id) => selectedTemplateIds.has(id));
+  const allTemplateFoldersSelected = visibleTemplateFolderIds.length === 0 || visibleTemplateFolderIds.every((id) => selectedTemplateFolderIds.has(id));
+  const isAllTemplatesSelected = isTemplateSelectionMode && allTemplatesSelected && allTemplateFoldersSelected && (visibleTemplateIds.length > 0 || visibleTemplateFolderIds.length > 0);
+
+  const totalTemplateSelectedCount = selectedTemplateIds.size + selectedTemplateFolderIds.size;
 
   // Derive activeFolderId for "New visualization" dialog
   const folderMatch = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
@@ -438,7 +458,7 @@ export default function DashboardLayout({
                   <>
                     {isTemplateSelectionMode ? (
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-gray-500 tabular-nums">{selectedTemplateIds.size} selected</span>
+                        <span className="text-xs text-gray-500 tabular-nums">{totalTemplateSelectedCount} selected</span>
                         <Button
                           variant={isAllTemplatesSelected ? 'default' : 'outline'}
                           size="sm"
@@ -446,15 +466,17 @@ export default function DashboardLayout({
                           onClick={() => {
                             if (isAllTemplatesSelected) {
                               selectAllTemplates([]);
+                              selectAllTemplateFolders([]);
                             } else {
                               selectAllTemplates(visibleTemplateIds);
+                              selectAllTemplateFolders(visibleTemplateFolderIds);
                             }
                           }}
                         >
                           {isAllTemplatesSelected ? <CheckSquare className="w-3 h-3" /> : <Square className="w-3 h-3" />}
                           All
                         </Button>
-                        {selectedTemplateIds.size > 0 && (
+                        {totalTemplateSelectedCount > 0 && (
                           <>
                             <Button
                               variant="outline"
@@ -462,6 +484,7 @@ export default function DashboardLayout({
                               className="gap-1 text-xs h-7"
                               onClick={() => {
                                 setShareTemplateIds(Array.from(selectedTemplateIds));
+                                setShareFolderIds(Array.from(selectedTemplateFolderIds));
                                 setShowShareTemplate(true);
                               }}
                             >
@@ -539,6 +562,7 @@ export default function DashboardLayout({
         open={showShareTemplate}
         onOpenChange={setShowShareTemplate}
         templateIds={shareTemplateIds}
+        folderIds={shareFolderIds}
         onShared={() => {
           fetchTemplatesAction();
           exitTemplateSelectionMode();
