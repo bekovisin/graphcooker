@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,9 @@ import {
   FolderPlus,
   X,
   CheckSquare,
+  Square,
   Download,
+  Share2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,6 +33,7 @@ import { MobileSidebar } from '@/components/dashboard/MobileSidebar';
 import { BulkExportDialog } from '@/components/dashboard/BulkExportDialog';
 import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
+import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import {
   useDashboardStore,
   useEffectiveSelectedVizIds,
@@ -57,14 +60,25 @@ export default function DashboardLayout({
   const showBulkExport = useDashboardStore((s) => s.showBulkExport);
   const showNewVizDialog = useDashboardStore((s) => s.showNewVizDialog);
 
-  // Selection state
+  // Selection state (viz)
   const isSelectionMode = useDashboardStore((s) => s.isSelectionMode);
   const enterSelectionMode = useDashboardStore((s) => s.enterSelectionMode);
   const exitSelectionMode = useDashboardStore((s) => s.exitSelectionMode);
+  const selectAllViz = useDashboardStore((s) => s.selectAllViz);
   const handleBulkDelete = useDashboardStore((s) => s.handleBulkDelete);
   const handleBulkExport = useDashboardStore((s) => s.handleBulkExport);
+  const visualizations = useDashboardStore((s) => s.visualizations);
   const effectiveVizIds = useEffectiveSelectedVizIds();
   const totalSelectedCount = effectiveVizIds.size;
+
+  // Template selection state
+  const isTemplateSelectionMode = useDashboardStore((s) => s.isTemplateSelectionMode);
+  const selectedTemplateIds = useDashboardStore((s) => s.selectedTemplateIds);
+  const enterTemplateSelectionMode = useDashboardStore((s) => s.enterTemplateSelectionMode);
+  const exitTemplateSelectionMode = useDashboardStore((s) => s.exitTemplateSelectionMode);
+  const selectAllTemplates = useDashboardStore((s) => s.selectAllTemplates);
+  const templates = useDashboardStore((s) => s.templates);
+  const bulkDeleteTemplates = useDashboardStore((s) => s.bulkDeleteTemplates);
 
   // Actions (stable references from zustand)
   const fetchAll = useDashboardStore((s) => s.fetchAll);
@@ -78,6 +92,11 @@ export default function DashboardLayout({
   const closeConfirm = useDashboardStore((s) => s.closeConfirm);
   const createVisualization = useDashboardStore((s) => s.createVisualization);
   const createTemplateFolder = useDashboardStore((s) => s.createTemplateFolder);
+  const fetchTemplatesAction = useDashboardStore((s) => s.fetchTemplates);
+
+  // Share template dialog (local)
+  const [showShareTemplate, setShowShareTemplate] = useState(false);
+  const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
 
   // Fetch data on mount
   useEffect(() => {
@@ -89,6 +108,7 @@ export default function DashboardLayout({
   // Exit selection mode when navigating between pages
   useEffect(() => {
     if (isSelectionMode) exitSelectionMode();
+    if (isTemplateSelectionMode) exitTemplateSelectionMode();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -108,6 +128,30 @@ export default function DashboardLayout({
   const isTrashView = pathname === '/dashboard/trash';
   const isTemplatesView = pathname.startsWith('/dashboard/templates');
   const isNotRoot = pathname !== '/dashboard';
+
+  // Compute visible viz IDs for "Select All" based on current route
+  const visibleVizIds = useMemo(() => {
+    if (isTemplatesView || isTrashView) return [];
+    const folderMatch2 = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
+    if (folderMatch2) {
+      const fId = parseInt(folderMatch2[1]);
+      return visualizations.filter((v) => v.folderId === fId).map((v) => v.id);
+    }
+    // Root — all viz
+    return visualizations.map((v) => v.id);
+  }, [pathname, visualizations, isTemplatesView, isTrashView]);
+
+  // Compute visible template IDs for "Select All" based on current route
+  const visibleTemplateIds = useMemo(() => {
+    if (!isTemplatesView) return [];
+    const tplFolderMatch = pathname.match(/^\/dashboard\/templates\/folder\/(\d+)$/);
+    if (tplFolderMatch) {
+      const fId = parseInt(tplFolderMatch[1]);
+      return templates.filter((t) => t.folderId === fId).map((t) => t.id);
+    }
+    // Templates root — only root-level templates
+    return templates.filter((t) => t.folderId === null).map((t) => t.id);
+  }, [pathname, templates, isTemplatesView]);
 
   // Derive activeFolderId for "New visualization" dialog
   const folderMatch = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
@@ -302,46 +346,116 @@ export default function DashboardLayout({
                 {/* Divider */}
                 <div className="w-px h-5 bg-gray-200" />
 
-                {/* Select / Selection controls */}
-                {isSelectionMode ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500 tabular-nums">{totalSelectedCount} selected</span>
-                    {totalSelectedCount > 0 && (
-                      <>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="gap-1 text-xs h-7"
-                          onClick={() => setShowBulkExport(true)}
-                        >
-                          <Download className="w-3 h-3" />
-                          Export
+                {/* Select / Selection controls — VIZ pages */}
+                {!isTemplatesView && (
+                  <>
+                    {isSelectionMode ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500 tabular-nums">{totalSelectedCount} selected</span>
+                        <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => selectAllViz(visibleVizIds)}>
+                          <Square className="w-3 h-3" />
+                          All
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="gap-1 text-xs h-7"
-                          onClick={() => handleBulkDelete(effectiveVizIds)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          Delete
+                        {totalSelectedCount > 0 && (
+                          <>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="gap-1 text-xs h-7"
+                              onClick={() => setShowBulkExport(true)}
+                            >
+                              <Download className="w-3 h-3" />
+                              Export
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="gap-1 text-xs h-7"
+                              onClick={() => handleBulkDelete(effectiveVizIds)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitSelectionMode}>
+                          <X className="w-3.5 h-3.5" />
                         </Button>
-                      </>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs h-8"
+                        onClick={enterSelectionMode}
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Select</span>
+                      </Button>
                     )}
-                    <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitSelectionMode}>
-                      <X className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs h-8"
-                    onClick={enterSelectionMode}
-                  >
-                    <CheckSquare className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Select</span>
-                  </Button>
+                  </>
+                )}
+
+                {/* Select / Selection controls — TEMPLATE pages */}
+                {isTemplatesView && (
+                  <>
+                    {isTemplateSelectionMode ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500 tabular-nums">{selectedTemplateIds.size} selected</span>
+                        <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={() => selectAllTemplates(visibleTemplateIds)}>
+                          <Square className="w-3 h-3" />
+                          All
+                        </Button>
+                        {selectedTemplateIds.size > 0 && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-xs h-7"
+                              onClick={() => {
+                                setShareTemplateIds(Array.from(selectedTemplateIds));
+                                setShowShareTemplate(true);
+                              }}
+                            >
+                              <Share2 className="w-3 h-3" />
+                              Share
+                            </Button>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="gap-1 text-xs h-7"
+                              onClick={() => setShowBulkExport(true)}
+                            >
+                              <Download className="w-3 h-3" />
+                              Export
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="gap-1 text-xs h-7"
+                              onClick={() => bulkDeleteTemplates(selectedTemplateIds)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                        <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitTemplateSelectionMode}>
+                          <X className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs h-8"
+                        onClick={enterTemplateSelectionMode}
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Select</span>
+                      </Button>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -371,6 +485,16 @@ export default function DashboardLayout({
         selectedCount={totalSelectedCount}
         selectedIds={Array.from(effectiveVizIds)}
         onExport={handleExportSelected}
+      />
+
+      <ShareTemplateDialog
+        open={showShareTemplate}
+        onOpenChange={setShowShareTemplate}
+        templateIds={shareTemplateIds}
+        onShared={() => {
+          fetchTemplatesAction();
+          exitTemplateSelectionMode();
+        }}
       />
 
       <NewVisualizationDialog

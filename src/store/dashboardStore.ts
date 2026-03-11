@@ -88,6 +88,11 @@ interface DashboardState {
   selectedVizIds: Set<number>;
   selectedFolderIds: Set<number>;
 
+  // Template selection state (shared across template pages)
+  isTemplateSelectionMode: boolean;
+  selectedTemplateIds: Set<number>;
+  applyingTemplateId: number | null;
+
   // Actions - Fetch
   fetchAll: () => Promise<void>;
   fetchVisualizations: () => Promise<void>;
@@ -117,6 +122,12 @@ interface DashboardState {
   selectAllViz: (ids: number[]) => void;
   selectFolder: (folderId: number) => void;
 
+  // Actions - Template Selection
+  enterTemplateSelectionMode: () => void;
+  exitTemplateSelectionMode: () => void;
+  toggleSelectTemplate: (id: number) => void;
+  selectAllTemplates: (ids: number[]) => void;
+
   // Actions - Visualization CRUD
   createVisualization: (folderId: number | null) => Promise<number | null>;
   deleteViz: (id: number) => void;
@@ -141,7 +152,7 @@ interface DashboardState {
   renameTemplateFolder: (id: number, name: string) => Promise<void>;
   deleteTemplateFolder: (id: number) => void;
   moveTemplateToFolder: (templateId: number, folderId: number | null) => Promise<void>;
-  bulkDeleteTemplates: (selectedIds: Set<number>, exitSelectionMode: () => void) => void;
+  bulkDeleteTemplates: (selectedIds: Set<number>, exitCb?: () => void) => void;
 
   // Actions - Trash
   restoreTrashItem: (id: number, type: 'visualization' | 'folder') => Promise<void>;
@@ -198,6 +209,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   isSelectionMode: false,
   selectedVizIds: new Set<number>(),
   selectedFolderIds: new Set<number>(),
+
+  // Template selection
+  isTemplateSelectionMode: false,
+  selectedTemplateIds: new Set<number>(),
+  applyingTemplateId: null,
 
   // Fetch actions
   fetchVisualizations: async () => {
@@ -340,6 +356,16 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       return { selectedVizIds: next, selectedFolderIds: nextFolders, isSelectionMode: true };
     });
   },
+
+  // Template selection actions
+  enterTemplateSelectionMode: () => set({ isTemplateSelectionMode: true }),
+  exitTemplateSelectionMode: () => set({ isTemplateSelectionMode: false, selectedTemplateIds: new Set() }),
+  toggleSelectTemplate: (id) => set((s) => {
+    const next = new Set(s.selectedTemplateIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return { selectedTemplateIds: next };
+  }),
+  selectAllTemplates: (ids) => set({ selectedTemplateIds: new Set(ids) }),
 
   // Visualization CRUD
   createVisualization: async (folderId) => {
@@ -721,6 +747,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   applyTemplate: async (templateId) => {
+    set({ applyingTemplateId: templateId });
     try {
       const res = await fetch(`/api/templates/${templateId}/apply`, {
         method: 'POST',
@@ -731,6 +758,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       }
     } catch {
       toast.error('Failed to create from template');
+    } finally {
+      set({ applyingTemplateId: null });
     }
     return null;
   },
@@ -821,7 +850,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
   },
 
-  bulkDeleteTemplates: (selectedIds, exitSelectionMode) => {
+  bulkDeleteTemplates: (selectedIds, exitCb) => {
     const count = selectedIds.size;
     if (count === 0) return;
     set({
@@ -838,7 +867,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
             );
             set((s) => ({ templates: s.templates.filter((t) => !selectedIds.has(t.id)) }));
             toast.success(`Deleted ${count} template${count > 1 ? 's' : ''}`);
-            exitSelectionMode();
+            get().exitTemplateSelectionMode();
+            exitCb?.();
           } catch {
             toast.error('Failed to delete some templates');
           }

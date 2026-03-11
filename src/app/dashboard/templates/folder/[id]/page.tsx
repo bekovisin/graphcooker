@@ -1,15 +1,11 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import {
   Plus,
   LayoutTemplate,
   Loader2,
-  Square,
-  Download,
-  X,
   Trash2,
   FolderOpen,
   Pencil,
@@ -43,16 +39,19 @@ export default function TemplateFolderPage() {
   const loading = useDashboardStore((s) => s.loading);
   const deleteTemplate = useDashboardStore((s) => s.deleteTemplate);
   const applyTemplate = useDashboardStore((s) => s.applyTemplate);
+  const applyingTemplateId = useDashboardStore((s) => s.applyingTemplateId);
   const moveTemplateToFolder = useDashboardStore((s) => s.moveTemplateToFolder);
-  const bulkDeleteTemplates = useDashboardStore((s) => s.bulkDeleteTemplates);
   const fetchTemplates = useDashboardStore((s) => s.fetchTemplates);
-  const setShowBulkExport = useDashboardStore((s) => s.setShowBulkExport);
+
+  // Template selection from store
+  const isTemplateSelectionMode = useDashboardStore((s) => s.isTemplateSelectionMode);
+  const selectedTemplateIds = useDashboardStore((s) => s.selectedTemplateIds);
+  const toggleSelectTemplate = useDashboardStore((s) => s.toggleSelectTemplate);
+  const exitTemplateSelectionMode = useDashboardStore((s) => s.exitTemplateSelectionMode);
 
   const gridClass = useGridClass();
 
-  // Local state (template-specific selection)
-  const [isTemplateSelectionMode, setIsTemplateSelectionMode] = useState(false);
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<number>>(new Set());
+  // Local state (dialogs only)
   const [showEditTemplate, setShowEditTemplate] = useState(false);
   const [editTemplateId, setEditTemplateId] = useState<number | null>(null);
   const [showShareTemplate, setShowShareTemplate] = useState(false);
@@ -68,33 +67,8 @@ export default function TemplateFolderPage() {
     return result;
   }, [templates, folderId, searchQuery]);
 
-  // Selection helpers
-  const toggleTemplateSelect = useCallback((id: number) => {
-    setSelectedTemplateIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const exitTemplateSelectionMode = useCallback(() => {
-    setIsTemplateSelectionMode(false);
-    setSelectedTemplateIds(new Set());
-  }, []);
-
-  const selectAllTemplates = () => {
-    setSelectedTemplateIds(new Set(folderTemplates.map((t) => t.id)));
-  };
-
   const handleShareTemplate = (templateId: number) => {
     setShareTemplateIds([templateId]);
-    setShowShareTemplate(true);
-  };
-
-  const handleBulkShareTemplates = () => {
-    if (selectedTemplateIds.size === 0) return;
-    setShareTemplateIds(Array.from(selectedTemplateIds));
     setShowShareTemplate(true);
   };
 
@@ -122,51 +96,6 @@ export default function TemplateFolderPage() {
         <ChevronRight className="w-3.5 h-3.5 rotate-180" />
         Back to all templates
       </button>
-
-      {/* Template selection toolbar */}
-      {isTemplateSelectionMode ? (
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs text-gray-500">{selectedTemplateIds.size} selected</span>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={selectAllTemplates}>
-            <Square className="w-3 h-3" />
-            All
-          </Button>
-          {selectedTemplateIds.size > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1 text-xs h-7"
-                onClick={handleBulkShareTemplates}
-              >
-                <Share2 className="w-3 h-3" />
-                Share
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1 text-xs h-7"
-                onClick={() => setShowBulkExport(true)}
-              >
-                <Download className="w-3 h-3" />
-                Export
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-1 text-xs h-7"
-                onClick={() => bulkDeleteTemplates(selectedTemplateIds, exitTemplateSelectionMode)}
-              >
-                <Trash2 className="w-3 h-3" />
-                Delete
-              </Button>
-            </>
-          )}
-          <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitTemplateSelectionMode}>
-            <X className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      ) : null}
 
       {/* Empty state */}
       {folderTemplates.length === 0 ? (
@@ -206,7 +135,7 @@ export default function TemplateFolderPage() {
                     className="absolute top-2 left-2 z-10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleTemplateSelect(tpl.id);
+                      toggleSelectTemplate(tpl.id);
                     }}
                   >
                     <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
@@ -223,11 +152,11 @@ export default function TemplateFolderPage() {
 
                 {/* Thumbnail */}
                 <div
-                  className="aspect-[16/10] bg-white flex items-center justify-center border-b overflow-hidden"
+                  className="aspect-[16/10] bg-white flex items-center justify-center border-b overflow-hidden relative"
                   onClick={() => {
                     if (isTemplateSelectionMode) {
-                      toggleTemplateSelect(tpl.id);
-                    } else {
+                      toggleSelectTemplate(tpl.id);
+                    } else if (!applyingTemplateId) {
                       handleUseTemplate(tpl.id);
                     }
                   }}
@@ -243,6 +172,12 @@ export default function TemplateFolderPage() {
                       )}
                     </div>
                   )}
+                  {/* Loading overlay */}
+                  {applyingTemplateId === tpl.id && (
+                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 animate-spin text-orange-500" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Body */}
@@ -254,8 +189,8 @@ export default function TemplateFolderPage() {
                       }`}
                       onClick={() => {
                         if (isTemplateSelectionMode) {
-                          toggleTemplateSelect(tpl.id);
-                        } else {
+                          toggleSelectTemplate(tpl.id);
+                        } else if (!applyingTemplateId) {
                           handleUseTemplate(tpl.id);
                         }
                       }}
