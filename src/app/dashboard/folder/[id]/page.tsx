@@ -1,17 +1,12 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Plus,
   BarChart3,
   Loader2,
-  Square,
-  CheckSquare,
-  Download,
-  X,
-  Trash2,
 } from 'lucide-react';
 import { VisualizationCard } from '@/components/dashboard/VisualizationCard';
 import { FolderCard } from '@/components/dashboard/FolderCard';
@@ -37,7 +32,6 @@ export default function FolderPage() {
   const loading = useDashboardStore((s) => s.loading);
   const creating = useDashboardStore((s) => s.creating);
   const setSearchQuery = useDashboardStore((s) => s.setSearchQuery);
-  const setShowBulkExport = useDashboardStore((s) => s.setShowBulkExport);
   const deleteViz = useDashboardStore((s) => s.deleteViz);
   const duplicateViz = useDashboardStore((s) => s.duplicateViz);
   const renameViz = useDashboardStore((s) => s.renameViz);
@@ -46,31 +40,18 @@ export default function FolderPage() {
   const renameFolder = useDashboardStore((s) => s.renameFolder);
   const duplicateFolder = useDashboardStore((s) => s.duplicateFolder);
   const deleteFolder = useDashboardStore((s) => s.deleteFolder);
-  const handleBulkDelete = useDashboardStore((s) => s.handleBulkDelete);
   const createVisualization = useDashboardStore((s) => s.createVisualization);
+
+  // Selection from store
+  const isSelectionMode = useDashboardStore((s) => s.isSelectionMode);
+  const selectedVizIds = useDashboardStore((s) => s.selectedVizIds);
+  const selectedFolderIds = useDashboardStore((s) => s.selectedFolderIds);
+  const toggleSelectViz = useDashboardStore((s) => s.toggleSelectViz);
+  const toggleSelectFolder = useDashboardStore((s) => s.toggleSelectFolder);
 
   const sortViz = useSortViz();
   const gridClass = useGridClass();
   const vizCountByFolder = useVizCountByFolder();
-
-  // Local state
-  const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-
-  // Selection helpers
-  const toggleSelect = useCallback((id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const exitSelectionMode = useCallback(() => {
-    setIsSelectionMode(false);
-    setSelectedIds(new Set());
-  }, []);
 
   // Computed
   const filteredViz = useMemo(() => {
@@ -86,10 +67,6 @@ export default function FolderPage() {
     return folders.filter((f) => f.parentId === folderId);
   }, [folders, folderId]);
 
-  const selectAll = () => {
-    setSelectedIds(new Set(filteredViz.map((v) => v.id)));
-  };
-
   const createNew = async () => {
     const id = await createVisualization(folderId);
     if (id) router.push(`/editor/${id}`);
@@ -101,9 +78,9 @@ export default function FolderPage() {
       key={viz.id}
       viz={viz}
       cardSize={cardSize}
-      isSelected={selectedIds.has(viz.id)}
+      isSelected={selectedVizIds.has(viz.id)}
       isSelectionMode={isSelectionMode}
-      onToggleSelect={toggleSelect}
+      onToggleSelect={toggleSelectViz}
       onDelete={deleteViz}
       onDuplicate={duplicateViz}
       onRename={renameViz}
@@ -116,9 +93,9 @@ export default function FolderPage() {
     <ListViewRow
       key={viz.id}
       viz={viz}
-      isSelected={selectedIds.has(viz.id)}
+      isSelected={selectedVizIds.has(viz.id)}
       isSelectionMode={isSelectionMode}
-      onToggleSelect={toggleSelect}
+      onToggleSelect={toggleSelectViz}
       onDelete={deleteViz}
       onDuplicate={duplicateViz}
       onRename={renameViz}
@@ -171,49 +148,6 @@ export default function FolderPage() {
 
   return (
     <div>
-      {/* Selection toolbar */}
-      {isSelectionMode ? (
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs text-gray-500">{selectedIds.size} selected</span>
-          <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={selectAll}>
-            <Square className="w-3 h-3" />
-            All
-          </Button>
-          {selectedIds.size > 0 && (
-            <>
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1 text-xs h-7"
-                onClick={() => setShowBulkExport(true)}
-              >
-                <Download className="w-3 h-3" />
-                Export
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="gap-1 text-xs h-7"
-                onClick={() => handleBulkDelete(selectedIds)}
-              >
-                <Trash2 className="w-3 h-3" />
-                Delete
-              </Button>
-            </>
-          )}
-          <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitSelectionMode}>
-            <X className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      ) : filteredViz.length > 0 && (
-        <div className="flex justify-end mb-3">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setIsSelectionMode(true)}>
-            <CheckSquare className="w-3 h-3" />
-            Select
-          </Button>
-        </div>
-      )}
-
       {viewMode === 'grid' ? (
         <div className={gridClass}>
           {activeSubFolders.map((sf) => (
@@ -223,6 +157,9 @@ export default function FolderPage() {
               cardSize={cardSize}
               vizCount={vizCountByFolder[String(sf.id)] || 0}
               allFolders={folders}
+              isSelected={selectedFolderIds.has(sf.id)}
+              isSelectionMode={isSelectionMode}
+              onToggleSelect={toggleSelectFolder}
               onClick={() => router.push(`/dashboard/folder/${sf.id}`)}
               onDrop={(vizId) => moveVizToFolder(vizId, sf.id)}
               onDropFolder={(draggedFolderId) => moveFolderTo(draggedFolderId, sf.id)}

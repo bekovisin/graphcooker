@@ -83,6 +83,11 @@ interface DashboardState {
   showBulkExport: boolean;
   creating: boolean;
 
+  // Selection state (shared across pages)
+  isSelectionMode: boolean;
+  selectedVizIds: Set<number>;
+  selectedFolderIds: Set<number>;
+
   // Actions - Fetch
   fetchAll: () => Promise<void>;
   fetchVisualizations: () => Promise<void>;
@@ -104,6 +109,14 @@ interface DashboardState {
   setShowNewVizDialog: (show: boolean) => void;
   setShowBulkExport: (show: boolean) => void;
 
+  // Actions - Selection
+  enterSelectionMode: () => void;
+  exitSelectionMode: () => void;
+  toggleSelectViz: (id: number) => void;
+  toggleSelectFolder: (id: number) => void;
+  selectAllViz: (ids: number[]) => void;
+  selectFolder: (folderId: number) => void;
+
   // Actions - Visualization CRUD
   createVisualization: (folderId: number | null) => Promise<number | null>;
   deleteViz: (id: number) => void;
@@ -112,7 +125,7 @@ interface DashboardState {
   moveVizToFolder: (vizId: number, folderId: number | null) => Promise<void>;
   handleBulkDelete: (selectedIds: Set<number>) => void;
   handleBulkExport: (selectedIds: Set<number>, exportOptions: BulkExportOptions) => Promise<void>;
-  handleExportSingle: (id: number, setSelectedIds: (ids: Set<number>) => void, setIsSelectionMode: (v: boolean) => void) => void;
+  handleExportSingle: (id: number) => void;
 
   // Actions - Folder CRUD
   createFolder: (name: string, parentId?: number | null) => Promise<void>;
@@ -180,6 +193,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   showNewVizDialog: false,
   showBulkExport: false,
   creating: false,
+
+  // Selection
+  isSelectionMode: false,
+  selectedVizIds: new Set<number>(),
+  selectedFolderIds: new Set<number>(),
 
   // Fetch actions
   fetchVisualizations: async () => {
@@ -297,6 +315,31 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   closeConfirm: () => set((s) => ({ confirmDialog: { ...s.confirmDialog, open: false } })),
   setShowNewVizDialog: (show) => set({ showNewVizDialog: show }),
   setShowBulkExport: (show) => set({ showBulkExport: show }),
+
+  // Selection actions
+  enterSelectionMode: () => set({ isSelectionMode: true }),
+  exitSelectionMode: () => set({ isSelectionMode: false, selectedVizIds: new Set(), selectedFolderIds: new Set() }),
+  toggleSelectViz: (id) => set((s) => {
+    const next = new Set(s.selectedVizIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return { selectedVizIds: next };
+  }),
+  toggleSelectFolder: (id) => set((s) => {
+    const next = new Set(s.selectedFolderIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return { selectedFolderIds: next };
+  }),
+  selectAllViz: (ids) => set({ selectedVizIds: new Set(ids) }),
+  selectFolder: (folderId) => {
+    const vizInFolder = get().visualizations.filter((v) => v.folderId === folderId);
+    set((s) => {
+      const next = new Set(s.selectedVizIds);
+      vizInFolder.forEach((v) => next.add(v.id));
+      const nextFolders = new Set(s.selectedFolderIds);
+      nextFolders.add(folderId);
+      return { selectedVizIds: next, selectedFolderIds: nextFolders, isSelectionMode: true };
+    });
+  },
 
   // Visualization CRUD
   createVisualization: async (folderId) => {
@@ -531,10 +574,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     );
   },
 
-  handleExportSingle: (id, setSelectedIds, setIsSelectionMode) => {
-    setSelectedIds(new Set([id]));
-    setIsSelectionMode(true);
-    set({ showBulkExport: true });
+  handleExportSingle: (id) => {
+    set({ selectedVizIds: new Set([id]), selectedFolderIds: new Set(), isSelectionMode: true, showBulkExport: true });
   },
 
   // Folder CRUD
@@ -912,6 +953,17 @@ export const useGridClass = () => useDashboardStore((s) => {
     ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3'
     : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
 });
+
+// Returns all viz IDs that should be exported (direct selections + viz inside selected folders)
+export const useEffectiveSelectedVizIds = () => useDashboardStore(useShallow((s) => {
+  const ids = new Set(s.selectedVizIds);
+  s.selectedFolderIds.forEach((folderId) => {
+    s.visualizations.forEach((v) => {
+      if (v.folderId === folderId) ids.add(v.id);
+    });
+  });
+  return ids;
+}));
 
 export const useSortViz = () => {
   const sortMode = useDashboardStore((s) => s.sortMode);

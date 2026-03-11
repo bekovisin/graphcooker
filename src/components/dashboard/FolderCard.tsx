@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FolderOpen, MoreVertical, Copy, Pencil, FolderInput, Trash2 } from 'lucide-react';
+import { FolderOpen, MoreVertical, Copy, Pencil, FolderInput, Trash2, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +25,9 @@ interface FolderCardProps {
   cardSize?: 'small' | 'medium' | 'large';
   vizCount: number;
   allFolders?: FolderItem[];
+  isSelected?: boolean;
+  isSelectionMode?: boolean;
+  onToggleSelect?: (id: number) => void;
   onClick: () => void;
   onDrop: (vizId: number) => void;
   onDropFolder?: (draggedFolderId: number) => void;
@@ -39,6 +42,9 @@ export function FolderCard({
   cardSize = 'large',
   vizCount,
   allFolders,
+  isSelected = false,
+  isSelectionMode = false,
+  onToggleSelect,
   onClick,
   onDrop,
   onDropFolder,
@@ -85,10 +91,14 @@ export function FolderCard({
         e.dataTransfer.effectAllowed = 'move';
       }}
       className={`group relative rounded-lg border bg-white transition-all cursor-pointer hover:shadow-md ${
-        isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : 'border-gray-200 hover:border-gray-300'
+        isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : isSelected ? 'ring-2 ring-blue-500 border-blue-300 shadow-md' : 'border-gray-200 hover:border-gray-300'
       }`}
       onClick={() => {
         if (isEditing) return;
+        if (isSelectionMode && onToggleSelect) {
+          onToggleSelect(folder.id);
+          return;
+        }
         onClick();
       }}
       onDragOver={(e) => {
@@ -117,6 +127,27 @@ export function FolderCard({
         if (!isNaN(vizId)) onDrop(vizId);
       }}
     >
+      {/* Selection checkbox */}
+      {isSelectionMode && onToggleSelect && (
+        <div
+          className="absolute top-2 left-2 z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(folder.id);
+          }}
+        >
+          <div
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+              isSelected
+                ? 'bg-blue-500 border-blue-500'
+                : 'bg-white/90 border-gray-300 hover:border-blue-400'
+            }`}
+          >
+            {isSelected && <Check className="w-3 h-3 text-white" />}
+          </div>
+        </div>
+      )}
+
       {/* Folder visual */}
       <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gray-50 rounded-t-lg border-b border-gray-100">
         <FolderOpen className={`${cardSize === 'small' ? 'w-7 h-7' : cardSize === 'medium' ? 'w-9 h-9' : 'w-12 h-12'} ${isDragOver ? 'text-blue-400' : 'text-gray-300'} transition-colors`} />

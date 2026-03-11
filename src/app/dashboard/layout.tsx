@@ -17,6 +17,8 @@ import {
   LayoutTemplate,
   FolderPlus,
   X,
+  CheckSquare,
+  Download,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,6 +33,7 @@ import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationD
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import {
   useDashboardStore,
+  useEffectiveSelectedVizIds,
   sortLabels,
   type SortMode,
 } from '@/store/dashboardStore';
@@ -54,6 +57,15 @@ export default function DashboardLayout({
   const showBulkExport = useDashboardStore((s) => s.showBulkExport);
   const showNewVizDialog = useDashboardStore((s) => s.showNewVizDialog);
 
+  // Selection state
+  const isSelectionMode = useDashboardStore((s) => s.isSelectionMode);
+  const enterSelectionMode = useDashboardStore((s) => s.enterSelectionMode);
+  const exitSelectionMode = useDashboardStore((s) => s.exitSelectionMode);
+  const handleBulkDelete = useDashboardStore((s) => s.handleBulkDelete);
+  const handleBulkExport = useDashboardStore((s) => s.handleBulkExport);
+  const effectiveVizIds = useEffectiveSelectedVizIds();
+  const totalSelectedCount = effectiveVizIds.size;
+
   // Actions (stable references from zustand)
   const fetchAll = useDashboardStore((s) => s.fetchAll);
   const loadPreferences = useDashboardStore((s) => s.loadPreferences);
@@ -73,6 +85,12 @@ export default function DashboardLayout({
     loadPreferences();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Exit selection mode when navigating between pages
+  useEffect(() => {
+    if (isSelectionMode) exitSelectionMode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // Derive page title from pathname
   const pageTitle = useMemo(() => {
@@ -102,6 +120,11 @@ export default function DashboardLayout({
       router.push(`/editor/${id}`);
     }
   }, [createVisualization, activeFolderId, router]);
+
+  // Export callback
+  const handleExportSelected = useCallback(async (options: import('@/store/dashboardStore').BulkExportOptions) => {
+    await handleBulkExport(effectiveVizIds, options);
+  }, [handleBulkExport, effectiveVizIds]);
 
   // Stable callback for confirm dialog close
   const handleConfirmOpenChange = useCallback((open: boolean) => {
@@ -275,6 +298,51 @@ export default function DashboardLayout({
                     <List className="w-3.5 h-3.5" />
                   </button>
                 </div>
+
+                {/* Divider */}
+                <div className="w-px h-5 bg-gray-200" />
+
+                {/* Select / Selection controls */}
+                {isSelectionMode ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 tabular-nums">{totalSelectedCount} selected</span>
+                    {totalSelectedCount > 0 && (
+                      <>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="gap-1 text-xs h-7"
+                          onClick={() => setShowBulkExport(true)}
+                        >
+                          <Download className="w-3 h-3" />
+                          Export
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="gap-1 text-xs h-7"
+                          onClick={() => handleBulkDelete(effectiveVizIds)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete
+                        </Button>
+                      </>
+                    )}
+                    <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitSelectionMode}>
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs h-8"
+                    onClick={enterSelectionMode}
+                  >
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Select</span>
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -300,9 +368,9 @@ export default function DashboardLayout({
       <BulkExportDialog
         open={showBulkExport}
         onOpenChange={setShowBulkExport}
-        selectedCount={0}
-        selectedIds={[]}
-        onExport={async () => {}}
+        selectedCount={totalSelectedCount}
+        selectedIds={Array.from(effectiveVizIds)}
+        onExport={handleExportSelected}
       />
 
       <NewVisualizationDialog

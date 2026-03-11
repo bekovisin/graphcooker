@@ -8,7 +8,6 @@ import {
   LayoutTemplate,
   Loader2,
   Square,
-  CheckSquare,
   Download,
   X,
   Trash2,
@@ -51,7 +50,7 @@ export default function TemplateFolderPage() {
 
   const gridClass = useGridClass();
 
-  // Local state
+  // Local state (template-specific selection)
   const [isTemplateSelectionMode, setIsTemplateSelectionMode] = useState(false);
   const [selectedTemplateIds, setSelectedTemplateIds] = useState<Set<number>>(new Set());
   const [showEditTemplate, setShowEditTemplate] = useState(false);
@@ -124,7 +123,7 @@ export default function TemplateFolderPage() {
         Back to all templates
       </button>
 
-      {/* Selection toolbar */}
+      {/* Template selection toolbar */}
       {isTemplateSelectionMode ? (
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-gray-500">{selectedTemplateIds.size} selected</span>
@@ -167,14 +166,7 @@ export default function TemplateFolderPage() {
             <X className="w-3.5 h-3.5" />
           </Button>
         </div>
-      ) : folderTemplates.length > 0 && (
-        <div className="flex justify-end mb-3">
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setIsTemplateSelectionMode(true)}>
-            <CheckSquare className="w-3 h-3" />
-            Select
-          </Button>
-        </div>
-      )}
+      ) : null}
 
       {/* Empty state */}
       {folderTemplates.length === 0 ? (
