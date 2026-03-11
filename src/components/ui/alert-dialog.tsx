@@ -83,11 +83,11 @@ const AlertDialogContent = React.forwardRef<
         )}
         {...props}
       >
-        {/* Drag handle */}
+        {/* Drag handle — centered top bar */}
         <button
           type="button"
           onMouseDown={handleDragStart}
-          className="absolute left-3.5 top-[18px] rounded-sm opacity-40 ring-offset-background transition-opacity hover:opacity-70 focus:outline-none cursor-grab active:cursor-grabbing z-10"
+          className="absolute left-1/2 -translate-x-1/2 top-1.5 rounded-sm opacity-30 ring-offset-background transition-opacity hover:opacity-60 focus:outline-none cursor-grab active:cursor-grabbing z-10"
           title="Drag to move"
         >
           <GripHorizontal className="h-4 w-4" />
@@ -105,7 +105,7 @@ const AlertDialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-2 text-center sm:text-left pl-6",
+      "flex flex-col space-y-2 text-center sm:text-left",
       className
     )}
     {...props}

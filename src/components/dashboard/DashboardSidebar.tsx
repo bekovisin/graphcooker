@@ -20,6 +20,7 @@ import {
   Users,
   LogOut,
   Globe,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -66,6 +67,9 @@ export interface DashboardSidebarProps {
   onTrashSelect?: () => void;
   isTrashActive?: boolean;
   trashCount?: number;
+  onTemplatesSelect?: () => void;
+  isTemplatesActive?: boolean;
+  templateCount?: number;
 }
 
 export function DashboardSidebar({
@@ -87,6 +91,9 @@ export function DashboardSidebar({
   onTrashSelect,
   isTrashActive,
   trashCount,
+  onTemplatesSelect,
+  isTemplatesActive,
+  templateCount,
 }: DashboardSidebarProps) {
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -433,6 +440,24 @@ export function DashboardSidebar({
           <span className="flex-1 text-left">All visualizations</span>
           <span className="text-[10px] text-gray-400 tabular-nums">{totalVizCount}</span>
         </div>
+
+        {/* Templates */}
+        {onTemplatesSelect && (
+          <button
+            onClick={onTemplatesSelect}
+            className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors cursor-pointer ${
+              isTemplatesActive
+                ? 'bg-orange-50 text-orange-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <LayoutTemplate className={`w-4 h-4 ${isTemplatesActive ? 'text-orange-500' : 'text-gray-400'}`} />
+            <span className="flex-1 text-left">Templates</span>
+            {(templateCount ?? 0) > 0 && (
+              <span className="text-[10px] text-gray-400 tabular-nums">{templateCount}</span>
+            )}
+          </button>
+        )}
 
         {/* Separator */}
         {folders.length > 0 && <div className="border-b border-gray-200 my-2" />}
