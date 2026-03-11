@@ -223,22 +223,21 @@ export function ColorsSection() {
         />
       </SettingRow>
 
-      {/* Custom Overrides - only visible when Extend is on */}
-      {settings.extend && (
-        <div className="space-y-1.5">
-          <Label className="text-xs text-gray-600 font-medium">Custom overrides</Label>
-          <Textarea
-            value={settings.customOverrides}
-            onChange={(e) => update({ customOverrides: e.target.value })}
-            placeholder={"SeriesName: #hexcolor\nAnother Series: #ff0000"}
-            className="text-xs font-mono min-h-[80px] resize-y"
-            rows={4}
-          />
-          <p className="text-[10px] text-gray-400">
-            Format: SeriesName: #hexcolor (one per line)
-          </p>
-        </div>
-      )}
+      {/* Custom Overrides */}
+      <div className="space-y-1.5">
+        <Label className="text-xs text-gray-600 font-medium">Custom overrides</Label>
+        <Textarea
+          value={settings.customOverrides}
+          onChange={(e) => update({ customOverrides: e.target.value })}
+          placeholder={"SeriesName: #hexcolor\nAnother Series: #ff0000"}
+          className="text-xs font-mono min-h-[80px] resize-y"
+          rows={4}
+        />
+        <p className="text-[10px] text-gray-400">
+          Override colors by name. Format: Name: #hex (one per line).
+          Use column headers or row labels depending on color mode.
+        </p>
+      </div>
 
       {/* Palette Editor Dialog */}
       <PaletteEditor

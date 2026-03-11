@@ -5,21 +5,56 @@ import { getPaletteColors, extendColors } from '@/lib/chart/palettes';
 
 export function parseCustomOverrides(overrides: string): Record<string, string> {
   const map: Record<string, string> = {};
-  if (!overrides.trim()) return map;
+  if (!overrides || !overrides.trim()) return map;
   overrides.split('\n').forEach((line) => {
-    const [key, value] = line.split(':').map((s) => s.trim());
+    const colonIdx = line.indexOf(':');
+    if (colonIdx === -1) return;
+    const key = line.slice(0, colonIdx).trim();
+    const value = line.slice(colonIdx + 1).trim();
     if (key && value) map[key] = value;
   });
   return map;
 }
 
-export function resolveColors(colorsSettings: ChartSettings['colors'], names: string[]): string[] {
+/**
+ * Resolve colors for a list of names, applying palette + optional extend + custom overrides.
+ * @param colorsSettings - The colors section from chart settings
+ * @param names - Raw identifiers (column keys or category labels) used for override matching
+ * @param displayNames - Optional map of raw key → display name. Overrides also match display names.
+ */
+export function resolveColors(
+  colorsSettings: ChartSettings['colors'],
+  names: string[],
+  displayNames?: Record<string, string>,
+): string[] {
   let colors = getPaletteColors(colorsSettings.palette, colorsSettings.customPaletteColors);
   if (colorsSettings.extend) {
     colors = extendColors(colors, Math.max(names.length, colors.length));
   }
   const overrides = parseCustomOverrides(colorsSettings.customOverrides);
-  return names.map((name, i) => overrides[name] || colors[i % colors.length]);
+  if (Object.keys(overrides).length === 0) {
+    return names.map((_, i) => colors[i % colors.length]);
+  }
+  // Build a case-insensitive lookup for overrides
+  const overridesLower: Record<string, string> = {};
+  for (const [k, v] of Object.entries(overrides)) {
+    overridesLower[k.toLowerCase()] = v;
+  }
+  return names.map((name, i) => {
+    // Try exact match first, then case-insensitive
+    if (overrides[name]) return overrides[name];
+    // Try display name (if a rename was set)
+    const display = displayNames?.[name];
+    if (display && overrides[display]) return overrides[display];
+    // Case-insensitive fallback
+    const lower = name.toLowerCase();
+    if (overridesLower[lower]) return overridesLower[lower];
+    if (display) {
+      const displayLower = display.toLowerCase();
+      if (overridesLower[displayLower]) return overridesLower[displayLower];
+    }
+    return colors[i % colors.length];
+  });
 }
 
 export function getContrastColor(hexColor: string): string {

@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { getPaletteColors, extendColors } from '@/lib/chart/palettes';
+import { resolveColors } from '@/lib/chart/utils';
 
 // ─── Rounded rect helper ──────────────────────────────────────────────
 function roundedRectPath(
@@ -54,26 +54,6 @@ interface GroupedBarChartProps {
   seriesNames?: Record<string, string>;
   /** Skip animation and render at full values immediately (used for export) */
   skipAnimation?: boolean;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────
-function parseCustomOverrides(overrides: string): Record<string, string> {
-  const map: Record<string, string> = {};
-  if (!overrides.trim()) return map;
-  overrides.split('\n').forEach((line) => {
-    const [key, value] = line.split(':').map((s) => s.trim());
-    if (key && value) map[key] = value;
-  });
-  return map;
-}
-
-function resolveColors(colorsSettings: ChartSettings['colors'], seriesNames: string[]): string[] {
-  let colors = getPaletteColors(colorsSettings.palette, colorsSettings.customPaletteColors);
-  if (colorsSettings.extend) {
-    colors = extendColors(colors, Math.max(seriesNames.length, colors.length));
-  }
-  const overrides = parseCustomOverrides(colorsSettings.customOverrides);
-  return seriesNames.map((name, i) => overrides[name] || colors[i % colors.length]);
 }
 
 function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number): string {
@@ -237,7 +217,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
     const seriesNames = columnOrderProp
       ? columnOrderProp.filter((col) => valuesSet.has(col))
       : columnMapping.values;
-    const colors = resolveColors(settings.colors, seriesNames);
+    const colors = resolveColors(settings.colors, seriesNames, seriesNamesProp);
 
     let cats = data.map((row) => String(row[columnMapping.labels] || ''));
 

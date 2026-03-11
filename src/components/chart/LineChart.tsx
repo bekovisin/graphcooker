@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { getPaletteColors, extendColors } from '@/lib/chart/palettes';
+import { resolveColors } from '@/lib/chart/utils';
 import {
   line as d3Line,
   area as d3Area,
@@ -42,26 +42,6 @@ interface LineChartProps {
   columnOrder?: string[];
   seriesNames?: Record<string, string>;
   skipAnimation?: boolean;
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────
-function parseCustomOverrides(overrides: string): Record<string, string> {
-  const map: Record<string, string> = {};
-  if (!overrides.trim()) return map;
-  overrides.split('\n').forEach((line) => {
-    const [key, value] = line.split(':').map((s) => s.trim());
-    if (key && value) map[key] = value;
-  });
-  return map;
-}
-
-function resolveColors(colorsSettings: ChartSettings['colors'], seriesNames: string[]): string[] {
-  let colors = getPaletteColors(colorsSettings.palette, colorsSettings.customPaletteColors);
-  if (colorsSettings.extend) {
-    colors = extendColors(colors, Math.max(seriesNames.length, colors.length));
-  }
-  const overrides = parseCustomOverrides(colorsSettings.customOverrides);
-  return seriesNames.map((name, i) => overrides[name] || colors[i % colors.length]);
 }
 
 function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number): string {
@@ -213,7 +193,7 @@ export function LineChart({
     return columnMapping.values || [];
   }, [columnMapping.values]);
 
-  const colors = useMemo(() => resolveColors(settings.colors, valueColumns), [settings.colors, valueColumns]);
+  const colors = useMemo(() => resolveColors(settings.colors, valueColumns, seriesNameMap), [settings.colors, valueColumns, seriesNameMap]);
 
   const series: SeriesData[] = useMemo(() => {
     return valueColumns.map((col, i) => ({
