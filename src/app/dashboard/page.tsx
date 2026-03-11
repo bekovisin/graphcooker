@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Plus,
   BarChart3,
   Loader2,
-  CheckSquare,
   Square,
   Download,
   X,
@@ -48,7 +47,6 @@ export default function AllVisualizationsPage() {
     duplicateFolder,
     deleteFolder,
     handleBulkDelete,
-    handleExportSingle,
     createVisualization,
   } = store;
 

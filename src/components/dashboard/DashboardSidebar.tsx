@@ -12,10 +12,6 @@ import {
   Pencil,
   Trash2,
   Home,
-  BarChart3,
-  Download,
-  CheckSquare,
-  Square,
   Settings,
   Users,
   LogOut,
@@ -31,7 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { getDescendantIds } from '@/lib/folder-utils';
 import { useDashboardStore, useVizCountByFolder } from '@/store/dashboardStore';
-import type { FolderItem, VizItem } from '@/store/dashboardStore';
+import type { FolderItem } from '@/store/dashboardStore';
 
 export function DashboardSidebar() {
   const router = useRouter();

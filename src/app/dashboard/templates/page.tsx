@@ -16,7 +16,6 @@ import {
   MoreVertical,
   MoreHorizontal,
   Share2,
-  CheckSquare,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -38,12 +37,11 @@ export default function TemplatesPage() {
   const {
     templates,
     templateFolders,
-    viewMode,
     cardSize,
     searchQuery,
     loading,
     deleteTemplate,
-    useTemplate,
+    applyTemplate,
     renameTemplateFolder,
     deleteTemplateFolder,
     moveTemplateToFolder,
@@ -108,7 +106,7 @@ export default function TemplatesPage() {
   };
 
   const handleUseTemplate = async (templateId: number) => {
-    const id = await useTemplate(templateId);
+    const id = await applyTemplate(templateId);
     if (id) router.push(`/editor/${id}`);
   };
 

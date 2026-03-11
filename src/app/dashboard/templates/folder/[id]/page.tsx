@@ -39,12 +39,11 @@ export default function TemplateFolderPage() {
   const {
     templates,
     templateFolders,
-    viewMode,
     cardSize,
     searchQuery,
     loading,
     deleteTemplate,
-    useTemplate,
+    applyTemplate,
     moveTemplateToFolder,
     bulkDeleteTemplates,
     fetchTemplates,
@@ -62,10 +61,6 @@ export default function TemplateFolderPage() {
   const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
 
   // Computed
-  const currentFolder = useMemo(() => {
-    return templateFolders.find((f) => f.id === folderId);
-  }, [templateFolders, folderId]);
-
   const folderTemplates = useMemo(() => {
     let result = templates.filter((t) => t.folderId === folderId);
     if (searchQuery.trim()) {
@@ -106,7 +101,7 @@ export default function TemplateFolderPage() {
   };
 
   const handleUseTemplate = async (templateId: number) => {
-    const id = await useTemplate(templateId);
+    const id = await applyTemplate(templateId);
     if (id) router.push(`/editor/${id}`);
   };
 

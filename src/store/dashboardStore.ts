@@ -122,7 +122,7 @@ interface DashboardState {
 
   // Actions - Template CRUD
   deleteTemplate: (id: number) => void;
-  useTemplate: (templateId: number) => Promise<number | null>;
+  applyTemplate: (templateId: number) => Promise<number | null>;
   createTemplateFolder: (name: string, parentId?: number | null) => Promise<void>;
   renameTemplateFolder: (id: number, name: string) => Promise<void>;
   deleteTemplateFolder: (id: number) => void;
@@ -678,7 +678,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     });
   },
 
-  useTemplate: async (templateId) => {
+  applyTemplate: async (templateId) => {
     try {
       const res = await fetch(`/api/templates/${templateId}`);
       if (!res.ok) return null;

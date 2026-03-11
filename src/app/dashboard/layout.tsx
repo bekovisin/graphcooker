@@ -33,7 +33,6 @@ import {
   useDashboardStore,
   sortLabels,
   type SortMode,
-  type BulkExportOptions,
 } from '@/store/dashboardStore';
 
 export default function DashboardLayout({
