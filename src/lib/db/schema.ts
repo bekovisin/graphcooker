@@ -108,8 +108,17 @@ export const templates = pgTable('templates', {
   columnMapping: jsonb('column_mapping').default({}),
   thumbnail: text('thumbnail'),
   isShared: boolean('is_shared').default(false).notNull(),
+  folderId: integer('folder_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const templateFolders = pgTable('template_folders', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  parentId: integer('parent_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const preferences = pgTable('preferences', {

@@ -51,6 +51,7 @@ export async function PUT(
     if (body.data !== undefined) updates.data = body.data;
     if (body.columnMapping !== undefined) updates.columnMapping = body.columnMapping;
     if (body.thumbnail !== undefined) updates.thumbnail = body.thumbnail;
+    if (body.folderId !== undefined) updates.folderId = body.folderId;
 
     const [updated] = await db
       .update(templates)
