@@ -100,17 +100,16 @@ export function useSpreadsheetClipboard({
       let newData = data.map((row) => ({ ...row }));
       let newColumnOrder = [...columnOrder];
 
-      // Auto-detect header row: when pasting at top-left (0,0) with multiple rows,
-      // or when header is explicitly selected (Ctrl+A), treat first row as series names.
-      const shouldTreatFirstAsHeader = headerSelected ||
-        (activeCell.row === 0 && activeCell.col === 0 && parsed.length > 1);
+      // Treat first clipboard row as series names ONLY when user explicitly
+      // selected all cells (Ctrl+A / corner click). Never auto-detect from
+      // cursor position — pasting at (0,0) without select-all is a normal
+      // partial paste that should not replace headers or resize the grid.
+      const shouldTreatFirstAsHeader = headerSelected;
 
       const maxPasteCols = Math.max(...parsed.map((r) => r.length));
 
       // Full grid paste: ONLY when user explicitly selected all (Ctrl+A / corner click).
       // This replaces the entire grid to match the paste data exactly.
-      // When pasting at (0,0) without explicit select-all, treat as a partial
-      // paste so unselected columns are preserved.
       const isFullGridPaste = headerSelected &&
         activeCell.row === 0 && activeCell.col === 0;
 
