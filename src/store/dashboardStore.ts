@@ -681,23 +681,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   applyTemplate: async (templateId) => {
     try {
-      const res = await fetch(`/api/templates/${templateId}`);
-      if (!res.ok) return null;
-      const tpl = await res.json();
-
-      const createRes = await fetch('/api/visualizations', {
+      const res = await fetch(`/api/templates/${templateId}/apply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: tpl.templateName,
-          chartType: tpl.chartType,
-          data: tpl.data,
-          settings: tpl.settings,
-          columnMapping: tpl.columnMapping,
-        }),
       });
-      if (createRes.ok) {
-        const viz = await createRes.json();
+      if (res.ok) {
+        const viz = await res.json();
         return viz.id as number;
       }
     } catch {

@@ -8,6 +8,7 @@ import {
   LayoutTemplate,
   Loader2,
   Square,
+  CheckSquare,
   Download,
   X,
   Trash2,
@@ -134,7 +135,7 @@ export default function TemplatesPage() {
   return (
     <div>
       {/* Selection toolbar */}
-      {isTemplateSelectionMode && (
+      {isTemplateSelectionMode ? (
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-gray-500">{selectedTemplateIds.size} selected</span>
           <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={selectAllTemplates}>
@@ -174,6 +175,13 @@ export default function TemplatesPage() {
           )}
           <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitTemplateSelectionMode}>
             <X className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ) : rootTemplates.length > 0 && (
+        <div className="flex justify-end mb-3">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setIsTemplateSelectionMode(true)}>
+            <CheckSquare className="w-3 h-3" />
+            Select
           </Button>
         </div>
       )}

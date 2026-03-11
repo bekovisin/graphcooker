@@ -8,6 +8,7 @@ import {
   BarChart3,
   Loader2,
   Square,
+  CheckSquare,
   Download,
   X,
   Trash2,
@@ -171,7 +172,7 @@ export default function FolderPage() {
   return (
     <div>
       {/* Selection toolbar */}
-      {isSelectionMode && (
+      {isSelectionMode ? (
         <div className="flex items-center gap-2 mb-4">
           <span className="text-xs text-gray-500">{selectedIds.size} selected</span>
           <Button variant="outline" size="sm" className="gap-1 text-xs h-7" onClick={selectAll}>
@@ -202,6 +203,13 @@ export default function FolderPage() {
           )}
           <Button variant="ghost" size="sm" className="text-xs h-7 px-2" onClick={exitSelectionMode}>
             <X className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ) : filteredViz.length > 0 && (
+        <div className="flex justify-end mb-3">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => setIsSelectionMode(true)}>
+            <CheckSquare className="w-3 h-3" />
+            Select
           </Button>
         </div>
       )}
