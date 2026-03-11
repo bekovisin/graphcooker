@@ -65,6 +65,7 @@ export default function TemplatesPage() {
   const [editTemplateId, setEditTemplateId] = useState<number | null>(null);
   const [showShareTemplate, setShowShareTemplate] = useState(false);
   const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
+  const [shareFolderIds, setShareFolderIds] = useState<number[]>([]);
   const [renameFolderId, setRenameFolderId] = useState<number | null>(null);
   const [renameFolderName, setRenameFolderName] = useState('');
 
@@ -84,6 +85,13 @@ export default function TemplatesPage() {
 
   const handleShareTemplate = (templateId: number) => {
     setShareTemplateIds([templateId]);
+    setShareFolderIds([]);
+    setShowShareTemplate(true);
+  };
+
+  const handleShareFolder = (folderId: number) => {
+    setShareTemplateIds([]);
+    setShareFolderIds([folderId]);
     setShowShareTemplate(true);
   };
 
@@ -372,6 +380,7 @@ export default function TemplatesPage() {
                 onDuplicate={(id) => duplicateTemplateFolder(id)}
                 onMove={(id, targetParentId) => moveTemplateFolderTo(id, targetParentId)}
                 onDelete={(id) => deleteTemplateFolder(id)}
+                onShare={(id) => handleShareFolder(id)}
               />
             ))}
             {rootTemplates.map((tpl) => renderTemplateCard(tpl))}
@@ -390,6 +399,7 @@ export default function TemplatesPage() {
         open={showShareTemplate}
         onOpenChange={setShowShareTemplate}
         templateIds={shareTemplateIds}
+        folderIds={shareFolderIds}
         onShared={() => {
           fetchTemplates();
           exitTemplateSelectionMode();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FolderOpen, MoreVertical, Copy, Pencil, FolderInput, Trash2, Check } from 'lucide-react';
+import { FolderOpen, MoreVertical, Copy, Pencil, FolderInput, Trash2, Check, Share2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +35,7 @@ interface FolderCardProps {
   onDuplicate?: (id: number) => void;
   onMove?: (id: number, targetFolderId: number | null) => void;
   onDelete?: (id: number) => void;
+  onShare?: (id: number) => void;
 }
 
 export function FolderCard({
@@ -52,6 +53,7 @@ export function FolderCard({
   onDuplicate,
   onMove,
   onDelete,
+  onShare,
 }: FolderCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -81,7 +83,7 @@ export function FolderCard({
     return true;
   });
 
-  const hasMenu = onRename || onDuplicate || onMove || onDelete;
+  const hasMenu = onRename || onDuplicate || onMove || onDelete || onShare;
 
   return (
     <div
@@ -199,6 +201,12 @@ export function FolderCard({
                       <DropdownMenuItem onClick={() => onDuplicate(folder.id)}>
                         <Copy className="w-3.5 h-3.5 mr-2" />
                         Duplicate
+                      </DropdownMenuItem>
+                    )}
+                    {onShare && (
+                      <DropdownMenuItem onClick={() => onShare(folder.id)}>
+                        <Share2 className="w-3.5 h-3.5 mr-2" />
+                        Share
                       </DropdownMenuItem>
                     )}
                     {onMove && moveTargets.length > 0 && (
