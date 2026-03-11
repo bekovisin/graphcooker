@@ -107,10 +107,11 @@ export function useSpreadsheetClipboard({
 
       const maxPasteCols = Math.max(...parsed.map((r) => r.length));
 
-      // Full grid paste: when replacing the entire grid (selectAll + paste at origin),
-      // reset the column order to match the paste data exactly. This avoids
-      // leftover columns and prevents duplicate column name conflicts.
-      const isFullGridPaste = shouldTreatFirstAsHeader &&
+      // Full grid paste: ONLY when user explicitly selected all (Ctrl+A / corner click).
+      // This replaces the entire grid to match the paste data exactly.
+      // When pasting at (0,0) without explicit select-all, treat as a partial
+      // paste so unselected columns are preserved.
+      const isFullGridPaste = headerSelected &&
         activeCell.row === 0 && activeCell.col === 0;
 
       if (isFullGridPaste) {
