@@ -62,7 +62,9 @@ export default function FeatureTable() {
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="p-3 sm:p-6 text-[10px] sm:text-[14px] font-bold text-slate-500 uppercase tracking-wider w-1/2">Feature</th>
                   <th className="p-3 sm:p-6 text-[10px] sm:text-[14px] font-bold text-slate-500 uppercase tracking-wider text-center border-l border-slate-200">Other Tools</th>
-                  <th className="p-3 sm:p-6 text-[10px] sm:text-[14px] font-bold text-orange-600 uppercase tracking-wider text-center border-l border-orange-200 bg-orange-50/50">GraphCooker</th>
+                  <th className="p-3 sm:p-6 text-[14px] sm:text-[16px] tracking-wider text-center border-l border-orange-200 bg-orange-50/50">
+                    <span className="font-shantell font-normal text-slate-900">graph</span><span className="font-shantell font-normal text-orange-500">cooker</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

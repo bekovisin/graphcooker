@@ -35,7 +35,7 @@ const shantellSans = Shantell_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://graphcooker.com"),
   title: {
-    default: "GraphCooker — Cook Your Data Into Stunning Visualizations",
+    default: "Graphcooker - Cook Your Data Into Stunning Visualizations",
     template: "%s | GraphCooker",
   },
   description:
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://graphcooker.com",
     siteName: "GraphCooker",
-    title: "GraphCooker — Cook Your Data Into Stunning Visualizations",
+    title: "Graphcooker - Cook Your Data Into Stunning Visualizations",
     description:
       "Turn raw spreadsheets into beautiful, interactive charts. Free during beta with unlimited access.",
     images: [
@@ -84,19 +84,19 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "GraphCooker — Data Visualization Made Easy",
+        alt: "Graphcooker - Data Visualization Made Easy",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GraphCooker — Cook Your Data Into Stunning Visualizations",
+    title: "Graphcooker - Cook Your Data Into Stunning Visualizations",
     description:
       "Turn raw spreadsheets into beautiful, interactive charts. Free during beta.",
     images: ["/og-image.png"],
   },
   icons: {
-    icon: "/favicon.svg",
+    icon: "/icon.png",
     apple: "/graphcooker-icon.svg",
   },
   alternates: {
