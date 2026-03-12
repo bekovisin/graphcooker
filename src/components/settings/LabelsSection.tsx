@@ -37,6 +37,7 @@ import type {
   DataPointShowMode,
   DataPointLabelContent,
   LineDataPointPosition,
+  LineLabelSeriesOverride,
 } from '@/types/chart';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -239,7 +240,8 @@ export function LabelsSection() {
   const [showLineLabelColorModal, setShowLineLabelColorModal] = useState(false);
   const [showLineRowColorModal, setShowLineRowColorModal] = useState(false);
   const [showDpLetterSpacingModal, setShowDpLetterSpacingModal] = useState(false);
-  const [showSeriesLabelPaddingModal, setShowSeriesLabelPaddingModal] = useState(false);
+  const [showLineLabelSeriesModal, setShowLineLabelSeriesModal] = useState(false);
+  const [expandedLabelSeries, setExpandedLabelSeries] = useState<Record<string, boolean>>({});
   const [showRowSeriesPaddingModal, setShowRowSeriesPaddingModal] = useState(false);
   const [expandedPaddingRows, setExpandedPaddingRows] = useState<Record<string, boolean>>({});
   const [dataPointStylingOpen, setDataPointStylingOpen] = useState(true);
@@ -368,75 +370,118 @@ export function LabelsSection() {
               />
             </SettingRow>
 
-            {/* Per-series label padding */}
+            {/* Unified per-series line label settings */}
             <button
-              onClick={() => setShowSeriesLabelPaddingModal(true)}
+              onClick={() => setShowLineLabelSeriesModal(true)}
               className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
             >
               <Settings2 className="w-3.5 h-3.5" />
-              Per-series label padding...
+              Configure per-series line labels...
             </button>
 
-            <Dialog open={showSeriesLabelPaddingModal} onOpenChange={setShowSeriesLabelPaddingModal}>
+            <Dialog open={showLineLabelSeriesModal} onOpenChange={setShowLineLabelSeriesModal}>
               <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-sm">Per-series label padding</DialogTitle>
+                  <DialogTitle className="text-sm">Per-series line label settings</DialogTitle>
                   <DialogDescription className="text-xs text-gray-500">
-                    Adjust horizontal and vertical padding for each series&apos; line label independently.
+                    Customize font size, weight, style, letter spacing, color and padding for each series&apos; line label.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 mt-2">
+                <div className="space-y-1 mt-2">
                   {seriesNames.map((seriesName) => {
-                    const isEnabled = settings.lineLabelPerSeriesPaddingEnabled?.[seriesName] ?? false;
-                    const pad = settings.lineLabelPerSeriesPadding?.[seriesName] || { h: 0, v: 0 };
+                    const expanded = expandedLabelSeries[seriesName] ?? false;
+                    const overrides = settings.lineLabelPerSeriesOverrides?.[seriesName] || {} as LineLabelSeriesOverride;
+                    const updateOverride = (patch: Partial<LineLabelSeriesOverride>) => {
+                      update({
+                        lineLabelPerSeriesOverrides: {
+                          ...settings.lineLabelPerSeriesOverrides,
+                          [seriesName]: { ...overrides, ...patch },
+                        },
+                      });
+                    };
                     return (
-                      <div key={seriesName} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-gray-800">{seriesName}</span>
-                          <Switch
-                            checked={isEnabled}
-                            onCheckedChange={(checked) => {
-                              update({
-                                lineLabelPerSeriesPaddingEnabled: {
-                                  ...settings.lineLabelPerSeriesPaddingEnabled,
-                                  [seriesName]: checked,
-                                },
-                              });
-                            }}
-                          />
-                        </div>
-                        {isEnabled && (
-                          <div className="grid grid-cols-2 gap-2 pl-3 border-l-2 border-gray-200">
+                      <div key={seriesName} className="border border-gray-200 rounded-md">
+                        <button
+                          onClick={() => setExpandedLabelSeries((prev) => ({ ...prev, [seriesName]: !expanded }))}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-gray-50"
+                        >
+                          {expanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+                          <span className="text-sm font-medium text-gray-800 truncate">{seriesName}</span>
+                        </button>
+                        {expanded && (
+                          <div className="px-3 pb-3 space-y-3 border-t border-gray-100">
                             <NumberInput
-                              label="H"
-                              value={pad.h}
-                              onChange={(v) => {
-                                update({
-                                  lineLabelPerSeriesPadding: {
-                                    ...settings.lineLabelPerSeriesPadding,
-                                    [seriesName]: { ...pad, h: v },
-                                  },
-                                });
-                              }}
-                              min={-999}
-                              max={999}
+                              label="Font size (px)"
+                              value={overrides.fontSize ?? (settings.lineLabelSize ?? 12)}
+                              onChange={(v) => updateOverride({ fontSize: v })}
+                              min={1}
+                              max={72}
                               step={1}
                             />
+                            <SettingRow label="Font weight">
+                              <Select
+                                value={overrides.fontWeight ?? (settings.lineLabelWeight ?? 'bold')}
+                                onValueChange={(v) => updateOverride({ fontWeight: v as FontWeight })}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                                  <SelectItem value="300" className="text-xs">Light</SelectItem>
+                                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                                  <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                                  <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                                  <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                                  <SelectItem value="900" className="text-xs">Black</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </SettingRow>
+                            <SettingRow label="Font style">
+                              <Select
+                                value={overrides.fontStyle ?? (settings.lineLabelFontStyle || 'normal')}
+                                onValueChange={(v) => updateOverride({ fontStyle: v as FontStyle })}
+                              >
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                                  <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </SettingRow>
                             <NumberInput
-                              label="V"
-                              value={pad.v}
-                              onChange={(v) => {
-                                update({
-                                  lineLabelPerSeriesPadding: {
-                                    ...settings.lineLabelPerSeriesPadding,
-                                    [seriesName]: { ...pad, v: v },
-                                  },
-                                });
-                              }}
-                              min={-999}
-                              max={999}
-                              step={1}
+                              label="Letter spacing"
+                              value={overrides.letterSpacing ?? 0}
+                              onChange={(v) => updateOverride({ letterSpacing: v })}
+                              min={-10}
+                              max={10}
+                              step={0.01}
                             />
+                            <ColorPicker
+                              label="Color"
+                              value={overrides.color ?? (settings.lineLabelColor ?? '#333333')}
+                              onChange={(color) => updateOverride({ color })}
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <NumberInput
+                                label="Padding H"
+                                value={overrides.padding?.h ?? 0}
+                                onChange={(v) => updateOverride({ padding: { h: v, v: overrides.padding?.v ?? 0 } })}
+                                min={-999}
+                                max={999}
+                                step={1}
+                              />
+                              <NumberInput
+                                label="Padding V"
+                                value={overrides.padding?.v ?? 0}
+                                onChange={(v) => updateOverride({ padding: { h: overrides.padding?.h ?? 0, v } })}
+                                min={-999}
+                                max={999}
+                                step={1}
+                              />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -508,16 +553,17 @@ export function LabelsSection() {
                   <div className="flex items-center gap-1">
                     <Input
                       type="number"
-                      value={settings.lineLabelSize ?? 0.7}
+                      value={settings.lineLabelSize ?? 12}
                       onChange={(e) => {
                         const num = parseFloat(e.target.value);
-                        if (!isNaN(num)) update({ lineLabelSize: Math.max(0.1, Math.min(5, num)) });
+                        if (!isNaN(num)) update({ lineLabelSize: Math.max(1, Math.min(72, num)) });
                       }}
-                      min={0.1}
-                      max={5}
-                      step={0.1}
+                      min={1}
+                      max={72}
+                      step={1}
                       className="h-8 text-xs w-full"
                     />
+                    <span className="text-[10px] text-gray-400">px</span>
                   </div>
                 </div>
               </div>

@@ -108,7 +108,7 @@ export const defaultChartSettings: ChartSettings = {
     lineLabelDistanceV: 0,
     lineLabelShowOnly: '',
     lineLabelColor: '#333333',
-    lineLabelSize: 0.7,
+    lineLabelSize: 12,
     lineLabelOutline: '#ffffff',
     lineLabelOutlineWidth: 25,
     lineLabelLineHeight: 1,

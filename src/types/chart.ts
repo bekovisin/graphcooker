@@ -215,9 +215,22 @@ export interface LabelsSettings {
   dataPointRowSeriesPaddingEnabled?: Record<string, boolean>;
   dataPointRowSeriesPadding?: Record<string, Record<string, { h: number; v: number }>>;
 
+  // Line chart — Unified per-series line label overrides
+  lineLabelPerSeriesOverrides?: Record<string, LineLabelSeriesOverride>;
+
   // Line chart — Line Label space mode
   lineLabelSpaceMode?: 'auto' | 'fixed';
   lineLabelSpaceValue?: number;
+}
+
+// Per-series line label override
+export interface LineLabelSeriesOverride {
+  fontSize?: number;       // px
+  fontWeight?: FontWeight;
+  fontStyle?: FontStyle;   // 'normal' | 'italic'
+  letterSpacing?: number;
+  color?: string;
+  padding?: { h: number; v: number };
 }
 
 // Axis shared types

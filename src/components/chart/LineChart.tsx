@@ -1359,11 +1359,19 @@ export function LineChart({
           const cx = marginLeft + xScale(lastIdx);
           const cy = marginTop + yScale(lastVal * animProgress);
           const labelX = cx + (labelSettings.lineLabelDistance ?? 0.9) * 10;
-          const llFontSize = (labelSettings.lineLabelSize ?? 0.7) * 14;
-          const llFontWeight = labelSettings.lineLabelWeight ?? 'bold';
+          const baseFontSize = labelSettings.lineLabelSize ?? 12;
+          const baseFontWeight = labelSettings.lineLabelWeight ?? 'bold';
           const llFontFamily = labelSettings.lineLabelFontFamily || 'Inter, sans-serif';
-          const llFontStyle = labelSettings.lineLabelFontStyle || 'normal';
+          const baseFontStyle = labelSettings.lineLabelFontStyle || 'normal';
           const llMaxLines = labelSettings.lineLabelMaxLines ?? 3;
+
+          // Per-series overrides
+          const seriesOverride = labelSettings.lineLabelPerSeriesOverrides?.[valueColumns[si]];
+          const llFontSize = seriesOverride?.fontSize ?? baseFontSize;
+          const llFontWeight = seriesOverride?.fontWeight ?? baseFontWeight;
+          const llFontStyle = seriesOverride?.fontStyle ?? baseFontStyle;
+          const llLetterSpacing = seriesOverride?.letterSpacing ?? 0;
+
           const llLineHeight = (labelSettings.lineLabelLineHeight ?? 1) * llFontSize;
           const llMaxWidth = lineLabelSpaceMode === 'fixed'
             ? (labelSettings.lineLabelSpaceValue ?? 80)
@@ -1374,20 +1382,26 @@ export function LineChart({
           const labelVOffset = (labelSettings.lineLabelDistanceV ?? 0) * 10;
           const startY = cy - totalHeight / 2 + llFontSize / 2 + labelVOffset;
 
-          // Resolve line label color (fixed vs per-series)
+          // Resolve line label color (fixed vs per-series override vs per-series color mode)
           const llColorMode = labelSettings.lineLabelColorMode ?? 'fixed';
           let llColor = labelSettings.lineLabelColor ?? '#333333';
           if (llColorMode === 'custom') {
             const colName = valueColumns[si];
             llColor = labelSettings.lineLabelSeriesColors?.[colName] || llColor;
           }
+          // Per-series override color takes priority
+          if (seriesOverride?.color) {
+            llColor = seriesOverride.color;
+          }
 
-          // Per-series label padding
+          // Per-series padding: new override takes priority, then old per-series padding fallback
           const llSeriesName = valueColumns[si];
-          const llSeriesPadEnabled = labelSettings.lineLabelPerSeriesPaddingEnabled?.[llSeriesName];
-          const llSeriesPad = llSeriesPadEnabled ? labelSettings.lineLabelPerSeriesPadding?.[llSeriesName] : undefined;
-          const finalLabelX = labelX + (llSeriesPad?.h ?? 0);
-          const finalStartY = startY + (llSeriesPad?.v ?? 0);
+          const oldPadEnabled = labelSettings.lineLabelPerSeriesPaddingEnabled?.[llSeriesName];
+          const oldPad = oldPadEnabled ? labelSettings.lineLabelPerSeriesPadding?.[llSeriesName] : undefined;
+          const padH = seriesOverride?.padding?.h ?? oldPad?.h ?? 0;
+          const padV = seriesOverride?.padding?.v ?? oldPad?.v ?? 0;
+          const finalLabelX = labelX + padH;
+          const finalStartY = startY + padV;
 
           return (
             <text
@@ -1399,6 +1413,7 @@ export function LineChart({
               fontWeight={llFontWeight}
               fontFamily={llFontFamily}
               fontStyle={llFontStyle}
+              letterSpacing={llLetterSpacing !== 0 ? llLetterSpacing : undefined}
               opacity={animProgress}
               style={{
                 paintOrder: 'stroke',

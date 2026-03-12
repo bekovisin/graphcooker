@@ -101,6 +101,7 @@ export const settingsMap: SettingsSection[] = [
       { key: 'stackLabelMode', label: 'Stack label mode' },
       { key: 'lineLabelDistanceV', label: 'Line label vertical distance' },
       { key: 'lineLabelPerSeriesPadding', label: 'Per-series line label padding' },
+      { key: 'lineLabelPerSeriesOverrides', label: 'Per-series line label overrides' },
       { key: 'dataPointRowSeriesPadding', label: 'Per-row per-series data point padding' },
     ],
   },
