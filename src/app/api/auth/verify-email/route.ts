@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     const jwtToken = await createToken({
       userId: user.id,
       email: user.email,
+      name: user.name,
       role: user.role as 'admin' | 'customer',
     });
 
