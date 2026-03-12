@@ -92,7 +92,7 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
           <span key={bc.id} className="flex items-center gap-1.5 shrink-0">
             <ChevronRight className="w-3 h-3 text-gray-300" />
             <Link
-              href={`/dashboard?folder=${bc.id}`}
+              href={`/dashboard/folder/${bc.id}`}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors truncate max-w-[100px]"
               title={bc.name}
             >

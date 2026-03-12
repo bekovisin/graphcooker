@@ -1,12 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Plus,
   BarChart3,
   Loader2,
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { VisualizationCard } from '@/components/dashboard/VisualizationCard';
 import { FolderCard } from '@/components/dashboard/FolderCard';
@@ -67,12 +70,47 @@ export default function FolderPage() {
     return folders.filter((f) => f.parentId === folderId);
   }, [folders, folderId]);
 
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
+
+  const toggleFolderExpand = useCallback((id: number) => {
+    setExpandedFolderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const subFoldersWithViz = useMemo(() => {
+    return activeSubFolders.map((folder) => ({
+      folder,
+      vizItems: sortViz(visualizations.filter((v) => v.folderId === folder.id)),
+    }));
+  }, [activeSubFolders, visualizations, sortViz]);
+
   const createNew = async () => {
     const id = await createVisualization(folderId);
     if (id) router.push(`/editor/${id}`);
   };
 
   // Render helpers
+  const renderSubFolderGroupHeader = (folder: typeof folders[0], vizCount: number) => {
+    const isExpanded = expandedFolderIds.has(folder.id);
+    return (
+      <div
+        key={`folder-header-${folder.id}`}
+        className="flex items-center gap-2 px-1 py-2 cursor-pointer group"
+        onClick={() => toggleFolderExpand(folder.id)}
+      >
+        <span className="w-5 h-5 flex items-center justify-center text-gray-400">
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </span>
+        <FolderOpen className="w-4 h-4 text-gray-400" />
+        <span className="text-sm font-medium text-gray-700">{folder.name}</span>
+        <span className="text-[10px] text-gray-400 tabular-nums">{vizCount}</span>
+      </div>
+    );
+  };
+
   const renderVizCard = (viz: typeof visualizations[0]) => (
     <VisualizationCard
       key={viz.id}
@@ -172,7 +210,19 @@ export default function FolderPage() {
           {filteredViz.map(renderVizCard)}
         </div>
       ) : (
-        <div className="space-y-1">{filteredViz.map(renderListRow)}</div>
+        <div className="space-y-1">
+          {subFoldersWithViz.map(({ folder, vizItems }) => (
+            <div key={folder.id}>
+              {renderSubFolderGroupHeader(folder, vizItems.length)}
+              {expandedFolderIds.has(folder.id) && (
+                <div className="ml-6 mt-1">
+                  <div className="space-y-1">{vizItems.map(renderListRow)}</div>
+                </div>
+              )}
+            </div>
+          ))}
+          {filteredViz.map(renderListRow)}
+        </div>
       )}
     </div>
   );

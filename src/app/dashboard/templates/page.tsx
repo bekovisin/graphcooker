@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus,
@@ -11,6 +11,8 @@ import {
   MoreVertical,
   Share2,
   Trash2,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -60,7 +62,8 @@ export default function TemplatesPage() {
   const templateCountByFolder = useTemplateCountByFolder();
   const gridClass = useGridClass();
 
-  // Local state (dialogs only)
+  // Local state
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const [showEditTemplate, setShowEditTemplate] = useState(false);
   const [editTemplateId, setEditTemplateId] = useState<number | null>(null);
   const [showShareTemplate, setShowShareTemplate] = useState(false);
@@ -82,6 +85,21 @@ export default function TemplatesPage() {
     }
     return result;
   }, [templates, searchQuery]);
+
+  const toggleFolderExpand = useCallback((folderId: number) => {
+    setExpandedFolderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) next.delete(folderId); else next.add(folderId);
+      return next;
+    });
+  }, []);
+
+  const templateFoldersWithItems = useMemo(() => {
+    return rootTemplateFolders.map((folder) => ({
+      folder,
+      items: templates.filter((t) => t.folderId === folder.id),
+    }));
+  }, [rootTemplateFolders, templates]);
 
   const handleShareTemplate = (templateId: number) => {
     setShareTemplateIds([templateId]);
@@ -112,6 +130,24 @@ export default function TemplatesPage() {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
+  };
+
+  const renderTemplateFolderGroupHeader = (folder: typeof templateFolders[0], itemCount: number) => {
+    const isExpanded = expandedFolderIds.has(folder.id);
+    return (
+      <div
+        key={`folder-header-${folder.id}`}
+        className="flex items-center gap-2 px-1 py-2 cursor-pointer group"
+        onClick={() => toggleFolderExpand(folder.id)}
+      >
+        <span className="w-5 h-5 flex items-center justify-center text-gray-400">
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </span>
+        <FolderOpen className="w-4 h-4 text-gray-400" />
+        <span className="text-sm font-medium text-gray-700">{folder.name}</span>
+        <span className="text-[10px] text-gray-400 tabular-nums">{itemCount}</span>
+      </div>
+    );
   };
 
   const renderTemplateListRow = (tpl: TemplateItem) => {
@@ -356,10 +392,33 @@ export default function TemplatesPage() {
       <div className="space-y-4">
         {/* Template cards (grid or list) */}
         {viewMode === 'list' ? (
-          /* List view */
-          <div className="space-y-0.5">
-            {rootTemplates.map((tpl) => renderTemplateListRow(tpl))}
-          </div>
+          /* List view — folder groups + uncategorized */
+          <>
+            {templateFoldersWithItems.map(({ folder, items }) => (
+              <div key={folder.id}>
+                {renderTemplateFolderGroupHeader(folder, items.length)}
+                {expandedFolderIds.has(folder.id) && (
+                  <div className="ml-6 mt-1">
+                    <div className="space-y-1">{items.map((tpl) => renderTemplateListRow(tpl))}</div>
+                  </div>
+                )}
+              </div>
+            ))}
+            {rootTemplates.length > 0 && (
+              <div>
+                {templateFoldersWithItems.length > 0 && (
+                  <div className="border-t border-gray-200 pt-4 mt-2">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider px-1">
+                      Uncategorized
+                    </span>
+                  </div>
+                )}
+                <div className="mt-3">
+                  <div className="space-y-1">{rootTemplates.map((tpl) => renderTemplateListRow(tpl))}</div>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           /* Grid view — folders first, then templates */
           <div className={gridClass}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import {
   Plus,
@@ -11,6 +11,7 @@ import {
   Pencil,
   MoreVertical,
   ChevronRight,
+  ChevronDown,
   Share2,
 } from 'lucide-react';
 import {
@@ -62,7 +63,8 @@ export default function TemplateFolderPage() {
   const gridClass = useGridClass();
   const templateCountByFolder = useTemplateCountByFolder();
 
-  // Local state (dialogs only)
+  // Local state
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
   const [showEditTemplate, setShowEditTemplate] = useState(false);
   const [editTemplateId, setEditTemplateId] = useState<number | null>(null);
   const [showShareTemplate, setShowShareTemplate] = useState(false);
@@ -97,6 +99,21 @@ export default function TemplateFolderPage() {
     }
     return result;
   }, [templates, folderId, searchQuery]);
+
+  const toggleFolderExpand = useCallback((id: number) => {
+    setExpandedFolderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const childFoldersWithItems = useMemo(() => {
+    return childFolders.map((folder) => ({
+      folder,
+      items: templates.filter((t) => t.folderId === folder.id),
+    }));
+  }, [childFolders, templates]);
 
   const handleShareTemplate = (templateId: number) => {
     setShareTemplateIds([templateId]);
@@ -153,6 +170,24 @@ export default function TemplateFolderPage() {
       </DropdownMenuItem>
     </DropdownMenuContent>
   );
+
+  const renderChildFolderGroupHeader = (folder: typeof templateFolders[0], itemCount: number) => {
+    const isExpanded = expandedFolderIds.has(folder.id);
+    return (
+      <div
+        key={`folder-header-${folder.id}`}
+        className="flex items-center gap-2 px-1 py-2 cursor-pointer group"
+        onClick={() => toggleFolderExpand(folder.id)}
+      >
+        <span className="w-5 h-5 flex items-center justify-center text-gray-400">
+          {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </span>
+        <FolderOpen className="w-4 h-4 text-gray-400" />
+        <span className="text-sm font-medium text-gray-700">{folder.name}</span>
+        <span className="text-[10px] text-gray-400 tabular-nums">{itemCount}</span>
+      </div>
+    );
+  };
 
   const renderTemplateListRow = (tpl: TemplateItem) => {
     const isTplSelected = selectedTemplateIds.has(tpl.id);
@@ -357,6 +392,16 @@ export default function TemplateFolderPage() {
         </div>
       ) : viewMode === 'list' ? (
         <div className="space-y-0.5">
+          {childFoldersWithItems.map(({ folder, items }) => (
+            <div key={folder.id}>
+              {renderChildFolderGroupHeader(folder, items.length)}
+              {expandedFolderIds.has(folder.id) && (
+                <div className="ml-6 mt-1">
+                  <div className="space-y-1">{items.map((tpl) => renderTemplateListRow(tpl))}</div>
+                </div>
+              )}
+            </div>
+          ))}
           {folderTemplates.map((tpl) => renderTemplateListRow(tpl))}
         </div>
       ) : (
