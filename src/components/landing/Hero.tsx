@@ -58,6 +58,7 @@ export default function Hero() {
               {!isLoading && isAuthenticated ? (
                 <Link
                   href="/dashboard"
+                  prefetch={false}
                   className="inline-flex items-center justify-center gap-2 bg-orange-500 text-white px-8 py-4 rounded-lg font-semibold text-base hover:bg-orange-600 transition-all hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-95"
                 >
                   Go to Dashboard
@@ -74,6 +75,7 @@ export default function Hero() {
                   </Link>
                   <Link
                     href="/login"
+                    prefetch={false}
                     className="inline-flex items-center justify-center gap-2 bg-white text-slate-700 border-2 border-slate-200 px-8 py-4 rounded-lg font-semibold text-base hover:border-slate-300 hover:bg-slate-50 transition-all active:scale-95"
                   >
                     Sign in

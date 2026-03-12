@@ -48,6 +48,7 @@ export default function Navbar() {
           {!isLoading && isAuthenticated ? (
             <Link
               href="/dashboard"
+              prefetch={false}
               className="text-[14px] font-medium bg-orange-500 text-white px-5 py-2 rounded-lg hover:bg-orange-600 transition-all hover:shadow-lg hover:shadow-orange-500/20 active:scale-95"
             >
               Dashboard
@@ -55,6 +56,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
+              prefetch={false}
               className="text-[14px] font-medium bg-orange-500 text-white px-5 py-2 rounded-lg hover:bg-orange-600 transition-all hover:shadow-lg hover:shadow-orange-500/20 active:scale-95"
             >
               Login

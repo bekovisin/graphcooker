@@ -27,6 +27,7 @@ export default function Footer() {
           {!isLoading && isAuthenticated ? (
             <Link
               href="/dashboard"
+              prefetch={false}
               className="hover:text-orange-500 transition-colors"
             >
               Dashboard
@@ -34,6 +35,7 @@ export default function Footer() {
           ) : (
             <Link
               href="/login"
+              prefetch={false}
               className="hover:text-orange-500 transition-colors"
             >
               Login
