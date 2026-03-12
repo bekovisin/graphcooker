@@ -275,8 +275,8 @@ export function ColumnMapper({ onUploadClick }: ColumnMapperProps) {
             </Select>
           </div>
 
-          {/* Info column (bar_chart_custom_2 only) */}
-          {chartType === 'bar_chart_custom_2' && (
+          {/* Info column (bar_chart_custom_2 and line_chart) */}
+          {(chartType === 'bar_chart_custom_2' || chartType === 'line_chart') && (
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-xs font-medium text-gray-500 shrink-0">Info</span>

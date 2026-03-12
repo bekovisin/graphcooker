@@ -658,6 +658,95 @@ export interface InfoColumnSettings {
   borderRight: InfoBorderSettings;
 }
 
+// ===== LINE INFO ANNOTATION SETTINGS =====
+
+export type AnnotationEndpointType =
+  | 'none'
+  | 'round'
+  | 'square'
+  | 'line_arrow'
+  | 'triangle_arrow'
+  | 'reversed_triangle'
+  | 'circle_arrow'
+  | 'diamond_arrow';
+
+export type AnnotationLineStyle = 'solid' | 'dotted';
+export type AnnotationDirection = 'right' | 'left';
+export type AnnotationTextAlign = 'left' | 'center' | 'right';
+
+export interface AnnotationEndpointSettings {
+  type: AnnotationEndpointType;
+  size: number;
+  color: string;
+}
+
+export interface AnnotationLineSettings {
+  show: boolean;
+  style: AnnotationLineStyle;
+  dotCount: number;
+  thickness: number;
+  color: string;
+}
+
+export interface LineInfoVerticalLineSettings extends AnnotationLineSettings {
+  paddingTop: number;
+  paddingBottom: number;
+  topEndpoint: AnnotationEndpointSettings;
+  bottomEndpoint: AnnotationEndpointSettings;
+}
+
+export interface LineInfoHorizontalLineSettings extends AnnotationLineSettings {
+  endpoint: AnnotationEndpointSettings;
+}
+
+export interface LineInfoTextSettings {
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: FontWeight;
+  fontStyle: FontStyle;
+  color: string;
+  letterSpacing: number;
+  textAlign: AnnotationTextAlign;
+  paddingVertical: number;
+  paddingHorizontal: number;
+  dataType: InfoDataType;
+}
+
+export interface LineInfoPerRowOverrides {
+  show?: boolean;
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: FontWeight;
+  fontStyle?: FontStyle;
+  color?: string;
+  letterSpacing?: number;
+  verticalLineColor?: string;
+  verticalLineThickness?: number;
+  verticalLineStyle?: AnnotationLineStyle;
+  verticalLineDotCount?: number;
+  verticalLinePaddingTop?: number;
+  verticalLinePaddingBottom?: number;
+  verticalLineTopEndpoint?: Partial<AnnotationEndpointSettings>;
+  verticalLineBottomEndpoint?: Partial<AnnotationEndpointSettings>;
+  horizontalLineShow?: boolean;
+  horizontalLineColor?: string;
+  horizontalLineThickness?: number;
+  horizontalLineStyle?: AnnotationLineStyle;
+  horizontalLineDotCount?: number;
+  horizontalLineEndpoint?: Partial<AnnotationEndpointSettings>;
+}
+
+export interface LineInfoAnnotationSettings {
+  show: boolean;
+  seriesA: string;
+  seriesB: string;
+  direction: AnnotationDirection;
+  verticalLine: LineInfoVerticalLineSettings;
+  horizontalLine: LineInfoHorizontalLineSettings;
+  text: LineInfoTextSettings;
+  perRowOverrides: Record<string, LineInfoPerRowOverrides>;
+}
+
 export interface BarBackgroundSettings {
   show: boolean;
   color: string;
@@ -805,6 +894,7 @@ export interface ChartSettings {
   barBackground: BarBackgroundSettings;
   rowImages: RowImagesSettings;
   electionBar: ElectionBarSettings;
+  lineInfoAnnotation: LineInfoAnnotationSettings;
 }
 
 // ===== PREVIEW STATE (persisted in columnMapping) =====

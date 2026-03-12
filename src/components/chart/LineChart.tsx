@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { ChartSettings, ColumnMapping } from '@/types/chart';
+import { ChartSettings, ColumnMapping, AnnotationEndpointType } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { resolveColors } from '@/lib/chart/utils';
 import {
@@ -61,6 +61,103 @@ function formatNumber(value: number, nf: ChartSettings['numberFormatting'], deci
   }
   str = decPart ? `${formattedInt}${nf.decimalSeparator}${decPart}` : formattedInt;
   return `${nf.prefix}${str}${nf.suffix}`;
+}
+
+// ─── Info Annotation Helpers ──────────────────────────────────────────
+function renderAnnotationEndpoint(
+  type: AnnotationEndpointType,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+  rotation: number, // degrees: 0=up, 90=right, 180=down, 270=left
+  key: string,
+): React.ReactNode {
+  if (type === 'none') return null;
+  const half = size / 2;
+  switch (type) {
+    case 'round':
+      return <circle key={key} cx={cx} cy={cy} r={half} fill={color} />;
+    case 'square':
+      return <rect key={key} x={cx - half} y={cy - half} width={size} height={size} fill={color} />;
+    case 'line_arrow': {
+      const pts = rotation === 0 || rotation === 360
+        ? `${cx - half},${cy + half} ${cx},${cy} ${cx + half},${cy + half}`
+        : rotation === 180
+          ? `${cx - half},${cy - half} ${cx},${cy} ${cx + half},${cy - half}`
+          : rotation === 90
+            ? `${cx - half},${cy - half} ${cx},${cy} ${cx - half},${cy + half}`
+            : `${cx + half},${cy - half} ${cx},${cy} ${cx + half},${cy + half}`;
+      return <polyline key={key} points={pts} fill="none" stroke={color} strokeWidth={1.5} />;
+    }
+    case 'triangle_arrow': {
+      const pts = rotation === 0
+        ? `${cx},${cy - half} ${cx - half},${cy + half} ${cx + half},${cy + half}`
+        : rotation === 180
+          ? `${cx},${cy + half} ${cx - half},${cy - half} ${cx + half},${cy - half}`
+          : rotation === 90
+            ? `${cx + half},${cy} ${cx - half},${cy - half} ${cx - half},${cy + half}`
+            : `${cx - half},${cy} ${cx + half},${cy - half} ${cx + half},${cy + half}`;
+      return <polygon key={key} points={pts} fill={color} />;
+    }
+    case 'reversed_triangle': {
+      const pts = rotation === 0
+        ? `${cx - half},${cy - half} ${cx + half},${cy - half} ${cx},${cy + half}`
+        : rotation === 180
+          ? `${cx - half},${cy + half} ${cx + half},${cy + half} ${cx},${cy - half}`
+          : rotation === 90
+            ? `${cx - half},${cy} ${cx + half},${cy + half} ${cx + half},${cy - half}`
+            : `${cx + half},${cy} ${cx - half},${cy + half} ${cx - half},${cy - half}`;
+      return <polygon key={key} points={pts} fill={color} />;
+    }
+    case 'circle_arrow':
+      return <circle key={key} cx={cx} cy={cy} r={half} fill="none" stroke={color} strokeWidth={1.5} />;
+    case 'diamond_arrow': {
+      const pts = `${cx},${cy - half} ${cx + half},${cy} ${cx},${cy + half} ${cx - half},${cy}`;
+      return <polygon key={key} points={pts} fill={color} />;
+    }
+    default:
+      return null;
+  }
+}
+
+function renderDottedLine(
+  x1: number, y1: number, x2: number, y2: number,
+  dotCount: number, thickness: number, color: string,
+  keyPrefix: string,
+): React.ReactNode[] {
+  const count = Math.max(2, dotCount);
+  const dots: React.ReactNode[] = [];
+  for (let i = 0; i < count; i++) {
+    const t = count === 1 ? 0.5 : i / (count - 1);
+    const cx = x1 + (x2 - x1) * t;
+    const cy = y1 + (y2 - y1) * t;
+    dots.push(
+      <circle key={`${keyPrefix}-dot-${i}`} cx={cx} cy={cy} r={thickness} fill={color} />
+    );
+  }
+  return dots;
+}
+
+function formatInfoText(
+  raw: string,
+  dataType: 'number' | 'text',
+  nf: ChartSettings['numberFormatting'],
+): string {
+  if (dataType === 'text') return raw;
+  const num = parseFloat(String(raw).replace(',', '.'));
+  if (isNaN(num)) return raw;
+  if (nf.infoCustomDecimals) {
+    return formatNumber(num, {
+      ...nf,
+      decimalPlaces: nf.infoDecimalPlaces ?? nf.decimalPlaces,
+      prefix: nf.infoPrefix ?? nf.prefix,
+      suffix: nf.infoSuffix ?? nf.suffix,
+      thousandsSeparator: nf.infoThousandsSeparator ?? nf.thousandsSeparator,
+      decimalSeparator: nf.infoDecimalSeparator ?? nf.decimalSeparator,
+    });
+  }
+  return formatNumber(num, nf);
 }
 
 function measureTextWidth(text: string, fontSize: number, fontFamily: string, fontWeight: string): number {
@@ -207,6 +304,23 @@ export function LineChart({
       color: colors[i],
     }));
   }, [valueColumns, data, colors, seriesNameMap]);
+
+  // Info annotation data
+  const infoAnnotation = settings.lineInfoAnnotation;
+  const infoData = useMemo(() => {
+    if (!infoAnnotation?.show || !columnMapping.info) return [];
+    return data.map((row) => {
+      const raw = row[columnMapping.info!];
+      return raw !== null && raw !== undefined ? String(raw) : '';
+    });
+  }, [data, columnMapping.info, infoAnnotation?.show]);
+
+  const annotationIndices = useMemo(() => {
+    if (!infoAnnotation?.show) return { aIdx: -1, bIdx: -1 };
+    const aIdx = valueColumns.indexOf(infoAnnotation.seriesA);
+    const bIdx = valueColumns.indexOf(infoAnnotation.seriesB);
+    return { aIdx, bIdx };
+  }, [infoAnnotation?.show, infoAnnotation?.seriesA, infoAnnotation?.seriesB, valueColumns]);
 
   // Settings aliases
   const lineSettings = settings.lineDotsAreas;
@@ -907,6 +1021,157 @@ export function LineChart({
                 );
               })
             )}
+          </g>
+        )}
+
+        {/* ── Info annotations ── */}
+        {infoAnnotation?.show && annotationIndices.aIdx >= 0 && annotationIndices.bIdx >= 0 && (
+          <g data-role="info-annotations" transform={`translate(${marginLeft}, ${marginTop})`}>
+            {categories.map((cat, pi) => {
+              const rowOverrides = infoAnnotation.perRowOverrides[cat] || {};
+              if (rowOverrides.show === false) return null;
+
+              const serA = series[annotationIndices.aIdx];
+              const serB = series[annotationIndices.bIdx];
+              if (!serA || !serB) return null;
+              const valA = serA.points[pi];
+              const valB = serB.points[pi];
+              if (valA === null || valB === null) return null;
+
+              const cx = xScale(pi);
+              const yA = yScale(valA * animProgress);
+              const yB = yScale(valB * animProgress);
+              const yTop = Math.min(yA, yB);
+              const yBottom = Math.max(yA, yB);
+
+              // Resolve per-row overrides
+              const vStyle = infoAnnotation.verticalLine.style;
+              const vColor = rowOverrides.verticalLineColor || infoAnnotation.verticalLine.color;
+              const vThick = rowOverrides.verticalLineThickness ?? infoAnnotation.verticalLine.thickness;
+              const vDotCount = rowOverrides.verticalLineDotCount ?? infoAnnotation.verticalLine.dotCount;
+              const padTop = rowOverrides.verticalLinePaddingTop ?? infoAnnotation.verticalLine.paddingTop;
+              const padBottom = rowOverrides.verticalLinePaddingBottom ?? infoAnnotation.verticalLine.paddingBottom;
+              const lineStyle = rowOverrides.verticalLineStyle || vStyle;
+
+              const vLineY1 = yTop + padTop;
+              const vLineY2 = yBottom - padBottom;
+              if (vLineY2 <= vLineY1) return null; // no space for line
+
+              const midY = (vLineY1 + vLineY2) / 2;
+              const dir = infoAnnotation.direction;
+              const dirMul = dir === 'right' ? 1 : -1;
+
+              // Horizontal line settings
+              const hShow = rowOverrides.horizontalLineShow !== false && infoAnnotation.horizontalLine.show;
+              const hColor = rowOverrides.horizontalLineColor || infoAnnotation.horizontalLine.color;
+              const hThick = rowOverrides.horizontalLineThickness ?? infoAnnotation.horizontalLine.thickness;
+              const hStyle = rowOverrides.horizontalLineStyle || infoAnnotation.horizontalLine.style;
+              const hDotCount = rowOverrides.horizontalLineDotCount ?? infoAnnotation.horizontalLine.dotCount;
+              const hLength = 24;
+
+              // Text settings
+              const txtColor = rowOverrides.color || infoAnnotation.text.color;
+              const txtSize = rowOverrides.fontSize ?? infoAnnotation.text.fontSize;
+              const txtWeight = rowOverrides.fontWeight || infoAnnotation.text.fontWeight;
+              const txtFamily = rowOverrides.fontFamily || infoAnnotation.text.fontFamily;
+              const txtLetterSpacing = rowOverrides.letterSpacing ?? infoAnnotation.text.letterSpacing;
+              const txtStyle = rowOverrides.fontStyle || infoAnnotation.text.fontStyle;
+              const txtAlign = infoAnnotation.text.textAlign;
+              const txtPadV = infoAnnotation.text.paddingVertical;
+              const txtPadH = infoAnnotation.text.paddingHorizontal;
+
+              // Info text value
+              const rawText = infoData[pi] || '';
+              const infoText = formatInfoText(rawText, infoAnnotation.text.dataType, nf);
+
+              // Compute horizontal endpoint X
+              const hx2 = cx + dirMul * hLength;
+
+              // Text X position
+              const textX = hShow
+                ? hx2 + dirMul * txtPadH
+                : cx + dirMul * txtPadH;
+
+              // Text anchor based on alignment and direction
+              let textAnchor: 'start' | 'middle' | 'end';
+              if (txtAlign === 'center') {
+                textAnchor = 'middle';
+              } else if (txtAlign === 'right') {
+                textAnchor = dir === 'right' ? 'end' : 'start';
+              } else {
+                textAnchor = dir === 'right' ? 'start' : 'end';
+              }
+
+              // Vertical line endpoints
+              const topEp = {
+                ...infoAnnotation.verticalLine.topEndpoint,
+                ...(rowOverrides.verticalLineTopEndpoint || {}),
+              };
+              const bottomEp = {
+                ...infoAnnotation.verticalLine.bottomEndpoint,
+                ...(rowOverrides.verticalLineBottomEndpoint || {}),
+              };
+              // Horizontal endpoint
+              const hEp = {
+                ...infoAnnotation.horizontalLine.endpoint,
+                ...(rowOverrides.horizontalLineEndpoint || {}),
+              };
+
+              return (
+                <g key={`info-annot-${pi}`}>
+                  {/* Vertical line */}
+                  {lineStyle === 'dotted' ? (
+                    renderDottedLine(cx, vLineY1, cx, vLineY2, vDotCount, vThick, vColor, `vannot-${pi}`)
+                  ) : (
+                    <line
+                      x1={cx} y1={vLineY1} x2={cx} y2={vLineY2}
+                      stroke={vColor} strokeWidth={vThick}
+                    />
+                  )}
+
+                  {/* Vertical line endpoints */}
+                  {renderAnnotationEndpoint(topEp.type, cx, vLineY1, topEp.size, topEp.color, 0, `vtop-${pi}`)}
+                  {renderAnnotationEndpoint(bottomEp.type, cx, vLineY2, bottomEp.size, bottomEp.color, 180, `vbot-${pi}`)}
+
+                  {/* Horizontal line */}
+                  {hShow && (
+                    <>
+                      {hStyle === 'dotted' ? (
+                        renderDottedLine(cx, midY, hx2, midY, hDotCount, hThick, hColor, `hannot-${pi}`)
+                      ) : (
+                        <line
+                          x1={cx} y1={midY} x2={hx2} y2={midY}
+                          stroke={hColor} strokeWidth={hThick}
+                        />
+                      )}
+                      {renderAnnotationEndpoint(
+                        hEp.type, hx2, midY, hEp.size, hEp.color,
+                        dir === 'right' ? 90 : 270,
+                        `hep-${pi}`,
+                      )}
+                    </>
+                  )}
+
+                  {/* Info text */}
+                  {infoText && (
+                    <text
+                      x={textX}
+                      y={midY + txtPadV}
+                      textAnchor={textAnchor}
+                      dominantBaseline="central"
+                      fontSize={txtSize}
+                      fontFamily={txtFamily}
+                      fontWeight={txtWeight}
+                      fontStyle={txtStyle}
+                      fill={txtColor}
+                      letterSpacing={txtLetterSpacing}
+                    >
+                      {infoText}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
           </g>
         )}
 

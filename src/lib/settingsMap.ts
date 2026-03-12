@@ -373,6 +373,19 @@ export const settingsMap: SettingsSection[] = [
       { key: 'paddingLeft', label: 'Padding left' },
     ],
   },
+  {
+    id: 'line-info-annotation',
+    title: 'Info annotation',
+    settings: [
+      { key: 'show', label: 'Show info annotation' },
+      { key: 'seriesPair', label: 'Series pair' },
+      { key: 'direction', label: 'Direction' },
+      { key: 'verticalLine', label: 'Vertical line' },
+      { key: 'horizontalLine', label: 'Horizontal line' },
+      { key: 'text', label: 'Info text' },
+      { key: 'perRowOverrides', label: 'Per-row overrides' },
+    ],
+  },
 ];
 
 /** Get all setting keys as "sectionId.settingKey" format */

@@ -33,6 +33,7 @@ import { ConnectorBorderSection } from '@/components/settings/ConnectorBorderSec
 import { InfoColumnSection } from '@/components/settings/InfoColumnSection';
 import { RowImagesSection } from '@/components/settings/RowImagesSection';
 import { ElectionBarSection } from '@/components/settings/ElectionBarSection';
+import { LineInfoAnnotationSection } from '@/components/settings/LineInfoAnnotationSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
@@ -99,6 +100,7 @@ const lineSections = [
   { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
   { id: 'colors', title: 'Colors', Component: ColorsSection },
   { id: 'line-dots-areas', title: 'Lines, dots and areas', Component: LineDotsAreasSection },
+  { id: 'line-info-annotation', title: 'Info annotation', Component: LineInfoAnnotationSection },
   { id: 'labels', title: 'Labels', Component: LabelsSection },
   { id: 'x-axis', title: 'X axis', Component: XAxisSection },
   { id: 'y-axis', title: 'Y axis', Component: YAxisSection },
