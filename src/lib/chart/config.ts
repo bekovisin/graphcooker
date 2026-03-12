@@ -222,6 +222,8 @@ export const defaultChartSettings: ChartSettings = {
     labelTextAlign: 'end',
     labelLetterSpacing: 0,
     labelMargin: 0,
+    labelPaddingH: 0,
+    labelPaddingV: 0,
   },
   plotBackground: {
     backgroundColor: '#ffffff',

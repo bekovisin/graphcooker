@@ -780,6 +780,10 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const yLsDefault = settings.yAxis.labelLetterSpacing ?? 0;
                 const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
                 const yLsStyle = yLs !== 0 ? `${yLs}px` : undefined;
+                // Per-row label padding override
+                const yRowPad = settings.yAxis.perRowLabelPadding?.[cat];
+                const yPadH = yRowPad?.h ?? (settings.yAxis.labelPaddingH ?? 0);
+                const yPadV = yRowPad?.v ?? (settings.yAxis.labelPaddingV ?? 0);
                 // When imagePosition is 'right', push labels away from bars to make room for images
                 const imgOffset = (ri.show && ri.imagePosition === 'right') ? rowImagesSpace : 0;
                 let labelX: number;
@@ -816,8 +820,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                     return displayLines.map((line, li) => (
                       <text
                         key={`ylabel-${ci}-${li}`}
-                        x={labelX}
-                        y={startY + li * lineH}
+                        x={labelX + yPadH}
+                        y={startY + li * lineH + yPadV}
                         textAnchor={anchor}
                         style={{
                           fontSize: yTickStyle.fontSize,
@@ -834,8 +838,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                   const display = settings.yAxis.fixedEllipsis ? truncateText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight) : cat;
                   return (
                     <text
-                      x={labelX}
-                      y={renderBarY + barHeight / 2}
+                      x={labelX + yPadH}
+                      y={renderBarY + barHeight / 2 + yPadV}
                       dy="0.35em"
                       textAnchor={anchor}
                       style={{
@@ -853,8 +857,8 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
                 return (
                   <text
-                    x={labelX}
-                    y={renderBarY + barHeight / 2}
+                    x={labelX + yPadH}
+                    y={renderBarY + barHeight / 2 + yPadV}
                     dy="0.35em"
                     textAnchor={anchor}
                     style={{

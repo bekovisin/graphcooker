@@ -174,6 +174,7 @@ export function YAxisSection() {
   const labelsColumn = useEditorStore((s) => s.columnMapping.labels);
   const isLineChart = chartType === 'line_chart';
   const [showYLsModal, setShowYLsModal] = useState(false);
+  const [showYPadModal, setShowYPadModal] = useState(false);
 
   const categoryNames = useMemo(() => {
     if (!labelsColumn || !data.length) return [];
@@ -820,6 +821,94 @@ export function YAxisSection() {
             step={0.1}
             suffix="px"
           />
+          <div className="space-y-1.5">
+            <span className="text-xs text-gray-600 font-medium">Label padding</span>
+            <div className="grid grid-cols-2 gap-2">
+              <NumberInput
+                label="H"
+                value={settings.labelPaddingH ?? 0}
+                onChange={(v) => update({ labelPaddingH: v })}
+                min={-50}
+                max={50}
+                step={1}
+              />
+              <NumberInput
+                label="V"
+                value={settings.labelPaddingV ?? 0}
+                onChange={(v) => update({ labelPaddingV: v })}
+                min={-50}
+                max={50}
+                step={1}
+              />
+            </div>
+          </div>
+          {categoryNames.length > 0 && (
+            <button
+              onClick={() => setShowYPadModal(true)}
+              className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-gray-600 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              Per-row label padding
+            </button>
+          )}
+          <Dialog open={showYPadModal} onOpenChange={setShowYPadModal}>
+            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-sm">Per-row Y-axis label padding</DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
+                  Override horizontal and vertical padding for specific rows. Leave empty to use the default.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 mt-2">
+                {categoryNames.map((label) => {
+                  const pad = settings.perRowLabelPadding?.[label];
+                  return (
+                    <div key={label} className="flex items-center gap-2 p-2 rounded-md border border-gray-100">
+                      <span className="text-xs font-medium min-w-[60px] truncate">{label}</span>
+                      <Input
+                        type="number"
+                        value={pad?.h ?? ''}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          if (!isNaN(v)) {
+                            update({
+                              perRowLabelPadding: {
+                                ...settings.perRowLabelPadding,
+                                [label]: { h: v, v: pad?.v ?? (settings.labelPaddingV ?? 0) },
+                              },
+                            });
+                          }
+                        }}
+                        className="h-7 text-xs flex-1"
+                        step="1"
+                        placeholder={String(settings.labelPaddingH ?? 0)}
+                      />
+                      <span className="text-[10px] text-gray-400 shrink-0">H</span>
+                      <Input
+                        type="number"
+                        value={pad?.v ?? ''}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          if (!isNaN(v)) {
+                            update({
+                              perRowLabelPadding: {
+                                ...settings.perRowLabelPadding,
+                                [label]: { h: pad?.h ?? (settings.labelPaddingH ?? 0), v },
+                              },
+                            });
+                          }
+                        }}
+                        className="h-7 text-xs flex-1"
+                        step="1"
+                        placeholder={String(settings.labelPaddingV ?? 0)}
+                      />
+                      <span className="text-[10px] text-gray-400 shrink-0">V</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </DialogContent>
+          </Dialog>
         </>
       )}
 

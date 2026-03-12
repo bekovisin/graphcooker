@@ -349,7 +349,10 @@ export interface YAxisSettings {
   labelTextAlign?: 'start' | 'center' | 'end';
   labelLetterSpacing?: number;
   labelMargin?: number;
+  labelPaddingH?: number;
+  labelPaddingV?: number;
   perRowLabelLetterSpacings?: Record<string, number>;
+  perRowLabelPadding?: Record<string, { h: number; v: number }>;
 }
 
 // Plot Background

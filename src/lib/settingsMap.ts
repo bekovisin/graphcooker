@@ -147,6 +147,9 @@ export const settingsMap: SettingsSection[] = [
       { key: 'labelLetterSpacing', label: 'Label letter spacing' },
       { key: 'perRowLabelLetterSpacings', label: 'Per-row label letter spacing' },
       { key: 'labelMargin', label: 'Label margin' },
+      { key: 'labelPaddingH', label: 'Label horizontal padding' },
+      { key: 'labelPaddingV', label: 'Label vertical padding' },
+      { key: 'perRowLabelPadding', label: 'Per-row label padding' },
     ],
   },
   {
