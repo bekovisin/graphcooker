@@ -295,6 +295,7 @@ export interface XAxisSettings {
   lastLabelPadding: number;
   lastTickPadding: number;
   labelAxisPadding: number;
+  labelAxisPaddingH?: number;
   startPadding: number;
   endPadding: number;
   tickMarks: TickMarksSettings;
@@ -345,6 +346,9 @@ export interface YAxisSettings {
   customTickEnd?: number;
   edgePadding?: number;
   gridlineStyle?: 'solid' | 'dashed' | 'dotted';
+  gridlineLengthExtend?: number;
+  gridlinePaddingH?: number;
+  gridlinePaddingV?: number;
   gridlineBetweenCategories?: boolean;
   labelTextAlign?: 'start' | 'center' | 'end';
   labelLetterSpacing?: number;

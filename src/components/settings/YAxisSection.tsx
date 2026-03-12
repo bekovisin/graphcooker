@@ -560,6 +560,38 @@ export function YAxisSection() {
                 onCheckedChange={(checked) => update({ gridlineBetweenCategories: checked })}
               />
             </SettingRow>
+
+            <NumberInput
+              label="Length extend"
+              value={settings.gridlineLengthExtend ?? 0}
+              onChange={(v) => update({ gridlineLengthExtend: v })}
+              min={-200}
+              max={200}
+              step={1}
+              suffix="px"
+            />
+
+            <div className="space-y-1.5">
+              <span className="text-xs text-gray-600 font-medium">Gridline padding</span>
+              <div className="grid grid-cols-2 gap-2">
+                <NumberInput
+                  label="H"
+                  value={settings.gridlinePaddingH ?? 0}
+                  onChange={(v) => update({ gridlinePaddingH: v })}
+                  min={-50}
+                  max={50}
+                  step={1}
+                />
+                <NumberInput
+                  label="V"
+                  value={settings.gridlinePaddingV ?? 0}
+                  onChange={(v) => update({ gridlinePaddingV: v })}
+                  min={-50}
+                  max={50}
+                  step={1}
+                />
+              </div>
+            </div>
           </div>
         )}
       </AccordionSection>

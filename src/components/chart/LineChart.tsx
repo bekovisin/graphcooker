@@ -478,6 +478,7 @@ export function LineChart({
   const tickAngle = xAxisSettings.tickAngle || 0;
   const hasAngle = tickAngle !== 0;
   const labelAxisPad = xAxisSettings.labelAxisPadding || 0;
+  const labelAxisPadH = xAxisSettings.labelAxisPaddingH || 0;
 
   const xAxisHeight = useMemo(() => {
     if (xAxisHidden) return 0;
@@ -693,15 +694,18 @@ export function LineChart({
           const tickPos = yAxisSettings.tickPosition || 'default';
           const extendsLeft = (tickPos === 'left' || tickPos === 'right') && yAxisSettings.position === 'left';
           const extendsRight = (tickPos === 'left' || tickPos === 'right') && yAxisSettings.position === 'right';
-          const gridX1 = extendsLeft ? marginLeft - yAxisWidth : marginLeft;
-          const gridX2 = extendsRight ? marginLeft + chartWidth + yAxisWidth : marginLeft + chartWidth;
+          const glExtend = yAxisSettings.gridlineLengthExtend ?? 0;
+          const glPadH = yAxisSettings.gridlinePaddingH ?? 0;
+          const glPadV = yAxisSettings.gridlinePaddingV ?? 0;
+          const gridX1 = (extendsLeft ? marginLeft - yAxisWidth : marginLeft) - glExtend + glPadH;
+          const gridX2 = (extendsRight ? marginLeft + chartWidth + yAxisWidth : marginLeft + chartWidth) + glExtend + glPadH;
           return (
             <line
               key={`grid-${i}`}
               x1={gridX1}
-              y1={y}
+              y1={y + glPadV}
               x2={gridX2}
-              y2={y}
+              y2={y + glPadV}
               stroke={yAxisSettings.gridlineStyling.color}
               strokeWidth={yAxisSettings.gridlineStyling.width}
               strokeDasharray={
@@ -866,7 +870,7 @@ export function LineChart({
                   )}
                   {/* Label — last category right-aligned so it doesn't extend past the last data point */}
                   <text
-                    x={x + labelPad}
+                    x={x + labelPad + labelAxisPadH}
                     y={hasAngle
                       ? baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad
                       : labelY
@@ -874,7 +878,7 @@ export function LineChart({
                     textAnchor={hasAngle ? (tickAngle > 0 ? 'start' : 'end') : (isLast ? 'end' : (isFirst ? 'start' : 'middle'))}
                     dominantBaseline={hasAngle ? 'hanging' : undefined}
                     transform={hasAngle
-                      ? `rotate(${tickAngle}, ${x + labelPad}, ${baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad})`
+                      ? `rotate(${tickAngle}, ${x + labelPad + labelAxisPadH}, ${baseY + (tickMarksShow ? tickLen : 0) + 4 + labelAxisPad})`
                       : undefined
                     }
                     fill={xTickStyle.color}

@@ -811,15 +811,27 @@ export function XAxisSection() {
         suffix="px"
       />
 
-      <NumberInput
-        label="Label-axis padding"
-        value={settings.labelAxisPadding || 0}
-        onChange={(v) => update({ labelAxisPadding: v })}
-        min={-50}
-        max={50}
-        step={1}
-        suffix="px"
-      />
+      <div className="space-y-1.5">
+        <span className="text-xs text-gray-600 font-medium">Label-axis padding</span>
+        <div className="grid grid-cols-2 gap-2">
+          <NumberInput
+            label="H"
+            value={settings.labelAxisPaddingH ?? 0}
+            onChange={(v) => update({ labelAxisPaddingH: v })}
+            min={-50}
+            max={50}
+            step={1}
+          />
+          <NumberInput
+            label="V"
+            value={settings.labelAxisPadding || 0}
+            onChange={(v) => update({ labelAxisPadding: v })}
+            min={-50}
+            max={50}
+            step={1}
+          />
+        </div>
+      </div>
 
       <NumberInput
         label="Last tick padding"

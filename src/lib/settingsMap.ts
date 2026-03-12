@@ -125,6 +125,7 @@ export const settingsMap: SettingsSection[] = [
       { key: 'zeroLine', label: 'Zero line' },
       { key: 'gridlines', label: 'Gridlines' },
       { key: 'gridlineStyling', label: 'Gridline styling' },
+      { key: 'labelAxisPaddingH', label: 'Label axis horizontal padding' },
     ],
   },
   {
@@ -143,6 +144,9 @@ export const settingsMap: SettingsSection[] = [
       { key: 'axisLine', label: 'Axis line' },
       { key: 'gridlines', label: 'Gridlines' },
       { key: 'gridlineStyling', label: 'Gridline styling' },
+      { key: 'gridlineLengthExtend', label: 'Gridline length extend' },
+      { key: 'gridlinePaddingH', label: 'Gridline horizontal padding' },
+      { key: 'gridlinePaddingV', label: 'Gridline vertical padding' },
       { key: 'labelTextAlign', label: 'Label text alignment' },
       { key: 'labelLetterSpacing', label: 'Label letter spacing' },
       { key: 'perRowLabelLetterSpacings', label: 'Per-row label letter spacing' },
