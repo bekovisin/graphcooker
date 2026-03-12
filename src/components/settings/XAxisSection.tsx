@@ -783,7 +783,7 @@ export function XAxisSection() {
         label="Inward padding"
         value={settings.firstLabelPadding || 0}
         onChange={(v) => update({ firstLabelPadding: v })}
-        min={0}
+        min={-100}
         max={100}
         step={1}
         suffix="px"
@@ -793,7 +793,7 @@ export function XAxisSection() {
         label="First tick padding"
         value={settings.firstTickPadding || 0}
         onChange={(v) => update({ firstTickPadding: v })}
-        min={0}
+        min={-100}
         max={100}
         step={1}
         suffix="px"
@@ -805,7 +805,17 @@ export function XAxisSection() {
         label="Inward padding"
         value={settings.lastLabelPadding || 0}
         onChange={(v) => update({ lastLabelPadding: v })}
-        min={0}
+        min={-100}
+        max={100}
+        step={1}
+        suffix="px"
+      />
+
+      <NumberInput
+        label="Last tick padding"
+        value={settings.lastTickPadding || 0}
+        onChange={(v) => update({ lastTickPadding: v })}
+        min={-100}
         max={100}
         step={1}
         suffix="px"
@@ -832,16 +842,6 @@ export function XAxisSection() {
           />
         </div>
       </div>
-
-      <NumberInput
-        label="Last tick padding"
-        value={settings.lastTickPadding || 0}
-        onChange={(v) => update({ lastTickPadding: v })}
-        min={0}
-        max={100}
-        step={1}
-        suffix="px"
-      />
     </AccordionSection>
   );
 }
