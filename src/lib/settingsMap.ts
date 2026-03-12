@@ -99,6 +99,9 @@ export const settingsMap: SettingsSection[] = [
       { key: 'dataPointLetterSpacing', label: 'Data point letter spacing' },
       { key: 'perRowDataPointLetterSpacings', label: 'Per-row data point letter spacing' },
       { key: 'stackLabelMode', label: 'Stack label mode' },
+      { key: 'lineLabelDistanceV', label: 'Line label vertical distance' },
+      { key: 'lineLabelPerSeriesPadding', label: 'Per-series line label padding' },
+      { key: 'dataPointRowSeriesPadding', label: 'Per-row per-series data point padding' },
     ],
   },
   {
@@ -380,6 +383,7 @@ export const settingsMap: SettingsSection[] = [
       { key: 'show', label: 'Show info annotation' },
       { key: 'seriesPair', label: 'Series pair' },
       { key: 'direction', label: 'Direction' },
+      { key: 'perRowDirection', label: 'Per-row direction' },
       { key: 'verticalLine', label: 'Vertical line' },
       { key: 'horizontalLine', label: 'Horizontal line' },
       { key: 'text', label: 'Info text' },

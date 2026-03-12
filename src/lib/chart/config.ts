@@ -105,6 +105,7 @@ export const defaultChartSettings: ChartSettings = {
     lineLabelOverlap: 'spread',
     lineLabelSpacing: 1.2,
     lineLabelDistance: 0.9,
+    lineLabelDistanceV: 0,
     lineLabelShowOnly: '',
     lineLabelColor: '#333333',
     lineLabelSize: 0.7,

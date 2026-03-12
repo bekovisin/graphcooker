@@ -1058,7 +1058,7 @@ export function LineChart({
               if (vLineY2 <= vLineY1) return null; // no space for line
 
               const midY = (vLineY1 + vLineY2) / 2;
-              const dir = infoAnnotation.direction;
+              const dir = rowOverrides.direction || infoAnnotation.direction;
               const dirMul = dir === 'right' ? 1 : -1;
 
               // Horizontal line settings
@@ -1271,14 +1271,30 @@ export function LineChart({
                     : (actualDotR + labelGap));
 
                 const customPadding = labelSettings.dataPointCustomPadding;
-                // Per-row padding overrides global padding when enabled for this row
                 const rowName = categories[pi];
-                const rowPadEnabled = labelSettings.dataPointRowPaddingEnabled?.[rowName];
-                const rowPad = rowPadEnabled ? labelSettings.dataPointRowPadding?.[rowName] : undefined;
-                const padTop = rowPad ? (rowPad.top || 0) : (customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0);
-                const padRight = rowPad ? (rowPad.right || 0) : (customPadding ? (labelSettings.dataPointPaddingRight || 0) : 0);
-                const padBottom = rowPad ? (rowPad.bottom || 0) : (customPadding ? (labelSettings.dataPointPaddingBottom || 0) : 0);
-                const padLeft = rowPad ? (rowPad.left || 0) : (customPadding ? (labelSettings.dataPointPaddingLeft || 0) : 0);
+                const dpSeriesName = valueColumns[si];
+
+                // New per-row per-series H/V padding (takes priority)
+                const rowSeriesEnabled = labelSettings.dataPointRowSeriesPaddingEnabled?.[rowName];
+                const rowSeriesPad = rowSeriesEnabled
+                  ? labelSettings.dataPointRowSeriesPadding?.[rowName]?.[dpSeriesName]
+                  : undefined;
+
+                let padTop: number, padRight: number, padBottom: number, padLeft: number;
+                if (rowSeriesPad) {
+                  padLeft = rowSeriesPad.h || 0;
+                  padRight = 0;
+                  padTop = rowSeriesPad.v || 0;
+                  padBottom = 0;
+                } else {
+                  // Fallback: old per-row T/R/B/L → global custom padding
+                  const rowPadEnabled = labelSettings.dataPointRowPaddingEnabled?.[rowName];
+                  const rowPad = rowPadEnabled ? labelSettings.dataPointRowPadding?.[rowName] : undefined;
+                  padTop = rowPad ? (rowPad.top || 0) : (customPadding ? (labelSettings.dataPointPaddingTop || 0) : 0);
+                  padRight = rowPad ? (rowPad.right || 0) : (customPadding ? (labelSettings.dataPointPaddingRight || 0) : 0);
+                  padBottom = rowPad ? (rowPad.bottom || 0) : (customPadding ? (labelSettings.dataPointPaddingBottom || 0) : 0);
+                  padLeft = rowPad ? (rowPad.left || 0) : (customPadding ? (labelSettings.dataPointPaddingLeft || 0) : 0);
+                }
 
                 // Resolve color based on lineDataPointColorMode
                 const colorMode = labelSettings.lineDataPointColorMode ?? 'auto';
@@ -1355,7 +1371,8 @@ export function LineChart({
 
           const lines = wrapText(s.name, llMaxWidth, llFontSize, llFontFamily, llFontWeight, llMaxLines);
           const totalHeight = lines.length * llLineHeight;
-          const startY = cy - totalHeight / 2 + llFontSize / 2;
+          const labelVOffset = (labelSettings.lineLabelDistanceV ?? 0) * 10;
+          const startY = cy - totalHeight / 2 + llFontSize / 2 + labelVOffset;
 
           // Resolve line label color (fixed vs per-series)
           const llColorMode = labelSettings.lineLabelColorMode ?? 'fixed';
@@ -1365,10 +1382,17 @@ export function LineChart({
             llColor = labelSettings.lineLabelSeriesColors?.[colName] || llColor;
           }
 
+          // Per-series label padding
+          const llSeriesName = valueColumns[si];
+          const llSeriesPadEnabled = labelSettings.lineLabelPerSeriesPaddingEnabled?.[llSeriesName];
+          const llSeriesPad = llSeriesPadEnabled ? labelSettings.lineLabelPerSeriesPadding?.[llSeriesName] : undefined;
+          const finalLabelX = labelX + (llSeriesPad?.h ?? 0);
+          const finalStartY = startY + (llSeriesPad?.v ?? 0);
+
           return (
             <text
               key={`ll-${si}`}
-              x={labelX}
+              x={finalLabelX}
               textAnchor="start"
               fill={llColor}
               fontSize={llFontSize}
@@ -1386,8 +1410,8 @@ export function LineChart({
               {lines.map((line, li) => (
                 <tspan
                   key={li}
-                  x={labelX}
-                  y={startY + li * llLineHeight}
+                  x={finalLabelX}
+                  y={finalStartY + li * llLineHeight}
                 >
                   {line}
                 </tspan>

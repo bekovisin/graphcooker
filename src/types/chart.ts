@@ -153,6 +153,7 @@ export interface LabelsSettings {
   lineLabelOverlap?: LineOverlapMode;
   lineLabelSpacing?: number;
   lineLabelDistance?: number;
+  lineLabelDistanceV?: number;
   lineLabelShowOnly?: string;
 
   // Line chart — Line Label Text
@@ -205,6 +206,14 @@ export interface LabelsSettings {
   // Line chart — Per-row custom padding
   dataPointRowPaddingEnabled?: Record<string, boolean>;
   dataPointRowPadding?: Record<string, { top: number; right: number; bottom: number; left: number }>;
+
+  // Line chart — Per-series line label padding
+  lineLabelPerSeriesPaddingEnabled?: Record<string, boolean>;
+  lineLabelPerSeriesPadding?: Record<string, { h: number; v: number }>;
+
+  // Line chart — Per-row per-series data point padding (H/V)
+  dataPointRowSeriesPaddingEnabled?: Record<string, boolean>;
+  dataPointRowSeriesPadding?: Record<string, Record<string, { h: number; v: number }>>;
 
   // Line chart — Line Label space mode
   lineLabelSpaceMode?: 'auto' | 'fixed';
@@ -714,6 +723,7 @@ export interface LineInfoTextSettings {
 
 export interface LineInfoPerRowOverrides {
   show?: boolean;
+  direction?: AnnotationDirection;
   fontFamily?: string;
   fontSize?: number;
   fontWeight?: FontWeight;

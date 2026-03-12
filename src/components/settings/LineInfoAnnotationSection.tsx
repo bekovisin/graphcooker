@@ -646,6 +646,27 @@ export function LineInfoAnnotationSection() {
                       {/* Row content */}
                       {isExpanded && rowOverrides.show !== false && (
                         <div className="px-3 pb-3 space-y-2">
+                          {/* Direction override */}
+                          <SubHeader
+                            collapsible
+                            open={sections.direction}
+                            onToggle={() => toggleRowSection(label, 'direction')}
+                          >
+                            Direction
+                          </SubHeader>
+                          {sections.direction && (
+                            <div className="pl-2 border-l-2 border-gray-100">
+                              <TabMenu<AnnotationDirection>
+                                value={rowOverrides.direction || settings.direction}
+                                onChange={(v) => updatePerRow(label, { direction: v })}
+                                options={[
+                                  { value: 'right', label: 'Right' },
+                                  { value: 'left', label: 'Left' },
+                                ]}
+                              />
+                            </div>
+                          )}
+
                           {/* Text overrides */}
                           <SubHeader
                             collapsible
