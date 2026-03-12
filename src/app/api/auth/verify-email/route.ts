@@ -5,6 +5,8 @@ import { eq } from 'drizzle-orm';
 import { verifyTokenFromDB } from '@/lib/auth/verification';
 import { createToken } from '@/lib/auth/jwt';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const token = request.nextUrl.searchParams.get('token');
