@@ -2,10 +2,15 @@
  * Capture chart as Blob data — used for ZIP-based bulk export.
  * These functions mirror the export functions but return Blobs
  * instead of triggering browser downloads.
+ *
+ * SVG post-processing (transparent bg, inline styles, paint-order splitting)
+ * is delegated to `prepareSvgForExport` — the same pipeline used by the
+ * editor's single-file `exportSvg`, so dashboard/bulk exports are pixel-perfect.
  */
 
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
+import { prepareSvgForExport } from './exportSvg';
 
 /** Helper: data-URL → Blob */
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -39,25 +44,11 @@ async function svgToCanvasDataUrl(
   options?: { transparent?: boolean; pixelRatio?: number }
 ): Promise<string | null> {
   try {
-    const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
-    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-
-    if (options?.transparent) {
-      const bgRects = clonedSvg.querySelectorAll(':scope > rect');
-      bgRects.forEach((rect) => {
-        rect.setAttribute('fill', 'none');
-        rect.setAttribute('fill-opacity', '0');
-        rect.removeAttribute('opacity');
-      });
-    }
+    // Use the shared post-processing pipeline for consistent output
+    const clonedSvg = prepareSvgForExport(svgElement, { transparent: options?.transparent });
 
     const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
     const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
-
-    if (!clonedSvg.getAttribute('viewBox')) {
-      clonedSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-    }
 
     const svgString = new XMLSerializer().serializeToString(clonedSvg);
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -103,18 +94,7 @@ export async function captureAsSvgBlob(
     throw new Error('No SVG element found for SVG capture');
   }
 
-  const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
-  clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-
-  if (options?.transparent) {
-    const bgRects = clonedSvg.querySelectorAll(':scope > rect');
-    bgRects.forEach((rect) => {
-      rect.setAttribute('fill', 'none');
-      rect.setAttribute('fill-opacity', '0');
-      rect.removeAttribute('opacity');
-    });
-  }
+  const clonedSvg = prepareSvgForExport(svgElement, options);
 
   let svgString = new XMLSerializer().serializeToString(clonedSvg);
   if (!svgString.startsWith('<?xml')) {
@@ -137,25 +117,10 @@ export async function captureAsPdfBlob(
     throw new Error('No SVG element found for PDF capture');
   }
 
-  const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
-  clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  const clonedSvg = prepareSvgForExport(svgElement, options);
 
   const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
   const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
-
-  if (!clonedSvg.getAttribute('viewBox')) {
-    clonedSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
-  }
-
-  if (options?.transparent) {
-    const bgRect = clonedSvg.querySelector('rect:first-child');
-    if (bgRect) {
-      bgRect.setAttribute('fill', 'none');
-      bgRect.setAttribute('fill-opacity', '0');
-      bgRect.removeAttribute('opacity');
-    }
-  }
 
   const isLandscape = svgWidth > svgHeight;
   const pdf = new jsPDF({
@@ -179,12 +144,7 @@ export async function captureAsHtmlBlob(
   let svgMarkup = '';
 
   if (svgElement) {
-    const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
-    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    if (options?.transparent) {
-      const bgRect = clonedSvg.querySelector('rect:first-child');
-      if (bgRect) { bgRect.setAttribute('fill', 'none'); bgRect.setAttribute('fill-opacity', '0'); }
-    }
+    const clonedSvg = prepareSvgForExport(svgElement as SVGSVGElement, options);
     clonedSvg.setAttribute('width', '100%');
     clonedSvg.style.maxWidth = options?.width ? `${options.width}px` : '100%';
     clonedSvg.style.height = 'auto';

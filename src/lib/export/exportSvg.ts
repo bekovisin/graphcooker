@@ -1,3 +1,119 @@
+/**
+ * Prepare a cloned SVG element for standalone export.
+ *
+ * This is the single source-of-truth for all SVG post-processing:
+ *   1. Set xmlns, overflow, viewBox
+ *   2. Handle transparent background (bg rects, cover circles, masks, white strokes)
+ *   3. Apply custom dimensions
+ *   4. Inline styles for cross-viewer compatibility (Illustrator, Inkscape, etc.)
+ *
+ * Used by both editor single-export (`exportSvg`) and dashboard/bulk export
+ * (`captureAsSvgBlob`, `captureAsPdfBlob`).
+ */
+export function prepareSvgForExport(
+  svgElement: SVGSVGElement,
+  options?: { width?: number; height?: number; transparent?: boolean }
+): SVGSVGElement {
+  const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+
+  // Ensure xmlns is set
+  clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+  // Ensure overflow is hidden so content beyond the viewBox is clipped
+  clonedSvg.setAttribute('overflow', 'hidden');
+
+  // Ensure viewBox is set for proper standalone rendering
+  if (!clonedSvg.getAttribute('viewBox')) {
+    const w = clonedSvg.getAttribute('width') || '800';
+    const h = clonedSvg.getAttribute('height') || '600';
+    clonedSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  }
+
+  // If transparent requested, remove all background rects (layout bg + plot bg)
+  if (options?.transparent) {
+    const clearBgRect = (rect: Element) => {
+      rect.setAttribute('fill', 'none');
+      rect.setAttribute('fill-opacity', '0');
+      rect.removeAttribute('opacity');
+    };
+
+    // Clear only background-like rects that are direct children of <svg>
+    // (at position 0,0 and spanning ≥90% of SVG width — NOT data rects like bar segments)
+    const svgW = parseFloat(clonedSvg.getAttribute('width') || '800');
+    clonedSvg.querySelectorAll(':scope > rect').forEach((rect) => {
+      const rx = parseFloat(rect.getAttribute('x') || '0');
+      const ry = parseFloat(rect.getAttribute('y') || '0');
+      const rw = parseFloat(rect.getAttribute('width') || '0');
+      if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
+        clearBgRect(rect);
+      }
+    });
+
+    // First rect(s) inside the chart wrapper <g>
+    const gWrap = clonedSvg.querySelector('g[transform]');
+    if (gWrap) {
+      for (const child of Array.from(gWrap.children)) {
+        if (child.tagName !== 'rect') break;
+        const rx = parseFloat(child.getAttribute('x') || '0');
+        const ry = parseFloat(child.getAttribute('y') || '0');
+        const rw = parseFloat(child.getAttribute('width') || '0');
+        if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
+          clearBgRect(child);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // For transparent exports, swap cover circles for the SVG mask
+    // Cover circles rely on a visible background color — they don't work when transparent.
+    // The mask punches holes in lines under dots, which works correctly in static SVG.
+    const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
+    if (coverCircles) coverCircles.remove();
+
+    const linesGroup = clonedSvg.querySelector('[data-role="chart-lines"]');
+    if (linesGroup) {
+      const maskId = linesGroup.getAttribute('data-mask-id');
+      if (maskId) {
+        linesGroup.setAttribute('mask', `url(#${maskId})`);
+      }
+    }
+
+    // Remove white outline strokes from text labels when transparent.
+    // paint-order stroke is designed for contrast against opaque backgrounds;
+    // on transparent export the white stroke layer becomes visible.
+    clonedSvg.querySelectorAll('text').forEach((textEl) => {
+      const style = textEl.getAttribute('style') || '';
+      if (/stroke\s*:\s*(#fff(?:fff)?|white|rgba?\(\s*255)/i.test(style)) {
+        const cleaned = style
+          .replace(/paint-order\s*:\s*[^;]+;?\s*/gi, '')
+          .replace(/stroke\s*:\s*[^;]+;?\s*/gi, '')
+          .replace(/stroke-width\s*:\s*[^;]+;?\s*/gi, '')
+          .replace(/stroke-linejoin\s*:\s*[^;]+;?\s*/gi, '');
+        if (cleaned.trim()) {
+          textEl.setAttribute('style', cleaned);
+        } else {
+          textEl.removeAttribute('style');
+        }
+      }
+    });
+  }
+
+  // Apply custom dimensions if provided
+  if (options?.width) {
+    clonedSvg.setAttribute('width', String(options.width));
+  }
+  if (options?.height) {
+    clonedSvg.setAttribute('height', String(options.height));
+  }
+
+  // Inline all computed styles on SVG text/rect elements for cross-platform compatibility
+  inlineStyles(clonedSvg);
+
+  return clonedSvg;
+}
+
 export async function exportSvg(
   element: HTMLElement,
   filename: string,
@@ -10,104 +126,7 @@ export async function exportSvg(
       throw new Error('No SVG element found for SVG export');
     }
 
-    // Direct SVG serialization — produces a clean, 1:1 faithful export
-    const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
-
-    // Ensure xmlns is set
-    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
-
-    // Ensure overflow is hidden so content beyond the viewBox is clipped
-    clonedSvg.setAttribute('overflow', 'hidden');
-
-    // Ensure viewBox is set for proper standalone rendering
-    if (!clonedSvg.getAttribute('viewBox')) {
-      const w = clonedSvg.getAttribute('width') || '800';
-      const h = clonedSvg.getAttribute('height') || '600';
-      clonedSvg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    }
-
-    // If transparent requested, remove all background rects (layout bg + plot bg)
-    if (options?.transparent) {
-      const clearBgRect = (rect: Element) => {
-        rect.setAttribute('fill', 'none');
-        rect.setAttribute('fill-opacity', '0');
-        rect.removeAttribute('opacity');
-      };
-
-      // Clear only background-like rects that are direct children of <svg>
-      // (at position 0,0 and spanning ≥90% of SVG width — NOT data rects like bar segments)
-      const svgW = parseFloat(clonedSvg.getAttribute('width') || '800');
-      clonedSvg.querySelectorAll(':scope > rect').forEach((rect) => {
-        const rx = parseFloat(rect.getAttribute('x') || '0');
-        const ry = parseFloat(rect.getAttribute('y') || '0');
-        const rw = parseFloat(rect.getAttribute('width') || '0');
-        if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
-          clearBgRect(rect);
-        }
-      });
-
-      // First rect(s) inside the chart wrapper <g>
-      const gWrap = clonedSvg.querySelector('g[transform]');
-      if (gWrap) {
-        for (const child of Array.from(gWrap.children)) {
-          if (child.tagName !== 'rect') break;
-          const rx = parseFloat(child.getAttribute('x') || '0');
-          const ry = parseFloat(child.getAttribute('y') || '0');
-          const rw = parseFloat(child.getAttribute('width') || '0');
-          const svgW = parseFloat(clonedSvg.getAttribute('width') || '800');
-          if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
-            clearBgRect(child);
-          } else {
-            break;
-          }
-        }
-      }
-
-      // For transparent exports, swap cover circles for the SVG mask
-      // Cover circles rely on a visible background color — they don't work when transparent.
-      // The mask punches holes in lines under dots, which works correctly in static SVG.
-      const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
-      if (coverCircles) coverCircles.remove();
-
-      const linesGroup = clonedSvg.querySelector('[data-role="chart-lines"]');
-      if (linesGroup) {
-        const maskId = linesGroup.getAttribute('data-mask-id');
-        if (maskId) {
-          linesGroup.setAttribute('mask', `url(#${maskId})`);
-        }
-      }
-
-      // Remove white outline strokes from text labels when transparent.
-      // paint-order stroke is designed for contrast against opaque backgrounds;
-      // on transparent export the white stroke layer becomes visible.
-      clonedSvg.querySelectorAll('text').forEach((textEl) => {
-        const style = textEl.getAttribute('style') || '';
-        if (/stroke\s*:\s*(#fff(?:fff)?|white|rgba?\(\s*255)/i.test(style)) {
-          const cleaned = style
-            .replace(/paint-order\s*:\s*[^;]+;?\s*/gi, '')
-            .replace(/stroke\s*:\s*[^;]+;?\s*/gi, '')
-            .replace(/stroke-width\s*:\s*[^;]+;?\s*/gi, '')
-            .replace(/stroke-linejoin\s*:\s*[^;]+;?\s*/gi, '');
-          if (cleaned.trim()) {
-            textEl.setAttribute('style', cleaned);
-          } else {
-            textEl.removeAttribute('style');
-          }
-        }
-      });
-    }
-
-    // Apply custom dimensions if provided
-    if (options?.width) {
-      clonedSvg.setAttribute('width', String(options.width));
-    }
-    if (options?.height) {
-      clonedSvg.setAttribute('height', String(options.height));
-    }
-
-    // Inline all computed styles on SVG text/rect elements for cross-platform compatibility
-    inlineStyles(clonedSvg);
+    const clonedSvg = prepareSvgForExport(svgElement, options);
 
     let svgString = new XMLSerializer().serializeToString(clonedSvg);
 
