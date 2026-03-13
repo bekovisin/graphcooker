@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
-  ArrowRightLeft,
   BookmarkPlus,
   Check,
   ChevronDown,
@@ -22,10 +21,10 @@ import {
   FileCode,
   FileText,
   FileType,
+  FolderOpen,
   Loader2,
-  Pencil,
-  RefreshCw,
   Save,
+  SaveAll,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -57,7 +56,6 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
   const [editValue, setEditValue] = useState(visualizationName);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [showReplacePicker, setShowReplacePicker] = useState(false);
   const [showUpdatePicker, setShowUpdatePicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -190,19 +188,14 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
               <BookmarkPlus className="w-4 h-4" />
               Save as new template
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowUpdatePicker(true)} className="gap-2">
+              <SaveAll className="w-4 h-4" />
+              Save to existing template...
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowTemplatePicker(true)} className="gap-2">
-              <Pencil className="w-4 h-4" />
-              Edit existing template...
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowReplacePicker(true)} className="gap-2">
-              <ArrowRightLeft className="w-4 h-4" />
-              Replace with template...
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setShowUpdatePicker(true)} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Update existing template...
+              <FolderOpen className="w-4 h-4" />
+              Load from template...
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -243,7 +236,6 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
 
       <SaveTemplateDialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate} />
       <TemplatePickerDialog open={showTemplatePicker} onOpenChange={setShowTemplatePicker} />
-      <TemplatePickerDialog open={showReplacePicker} onOpenChange={setShowReplacePicker} replaceMode />
       <TemplatePickerDialog open={showUpdatePicker} onOpenChange={setShowUpdatePicker} updateMode />
     </div>
   );

@@ -77,6 +77,25 @@ export async function exportSvg(
           linesGroup.setAttribute('mask', `url(#${maskId})`);
         }
       }
+
+      // Remove white outline strokes from text labels when transparent.
+      // paint-order stroke is designed for contrast against opaque backgrounds;
+      // on transparent export the white stroke layer becomes visible.
+      clonedSvg.querySelectorAll('text').forEach((textEl) => {
+        const style = textEl.getAttribute('style') || '';
+        if (/stroke\s*:\s*(#fff(?:fff)?|white|rgba?\(\s*255)/i.test(style)) {
+          const cleaned = style
+            .replace(/paint-order\s*:\s*[^;]+;?\s*/gi, '')
+            .replace(/stroke\s*:\s*[^;]+;?\s*/gi, '')
+            .replace(/stroke-width\s*:\s*[^;]+;?\s*/gi, '')
+            .replace(/stroke-linejoin\s*:\s*[^;]+;?\s*/gi, '');
+          if (cleaned.trim()) {
+            textEl.setAttribute('style', cleaned);
+          } else {
+            textEl.removeAttribute('style');
+          }
+        }
+      });
     }
 
     // Apply custom dimensions if provided

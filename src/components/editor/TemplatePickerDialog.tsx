@@ -41,13 +41,11 @@ interface Template {
 interface TemplatePickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** When true, shows a "replace current chart" warning instead of "unsaved changes" */
-  replaceMode?: boolean;
   /** When true, selecting a template updates it with the current editor state */
   updateMode?: boolean;
 }
 
-export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMode }: TemplatePickerDialogProps) {
+export function TemplatePickerDialog({ open, onOpenChange, updateMode }: TemplatePickerDialogProps) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingId, setLoadingId] = useState<number | null>(null);
@@ -71,12 +69,7 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
   }, [open]);
 
   const handleSelectTemplate = (templateId: number) => {
-    if (updateMode) {
-      setPendingTemplateId(templateId);
-      setShowWarning(true);
-      return;
-    }
-    if (replaceMode || isDirty) {
+    if (updateMode || isDirty) {
       setPendingTemplateId(templateId);
       setShowWarning(true);
       return;
@@ -157,13 +150,11 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{updateMode ? 'Update a template' : replaceMode ? 'Replace with template' : 'Edit existing template'}</DialogTitle>
+            <DialogTitle>{updateMode ? 'Save to existing template' : 'Load from template'}</DialogTitle>
             <p className="text-sm text-gray-500 mt-1">
               {updateMode
                 ? 'Select a template to overwrite with the current chart settings and data.'
-                : replaceMode
-                ? 'Choose a template to replace the current chart. All current settings and data will be overwritten.'
-                : 'Select a template to load into the editor for editing.'}
+                : 'Select a template to load into the editor.'}
             </p>
           </DialogHeader>
 
@@ -244,14 +235,12 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {updateMode ? 'Update this template?' : replaceMode ? 'Replace current chart?' : 'Unsaved changes'}
+              {updateMode ? 'Overwrite this template?' : 'Unsaved changes'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {updateMode
                 ? 'This will overwrite the selected template with the current chart type, settings, data, and column mappings.'
-                : replaceMode
-                ? 'This will replace all current settings, data, and column mappings with the selected template. This action cannot be undone.'
-                : 'You have unsaved changes. Loading a template will replace the current content. Continue?'}
+                : 'You have unsaved changes. Loading a template will replace all current settings, data, and column mappings. This action cannot be undone.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -268,9 +257,9 @@ export function TemplatePickerDialog({ open, onOpenChange, replaceMode, updateMo
                 setShowWarning(false);
                 setPendingTemplateId(null);
               }}
-              className={updateMode ? 'bg-orange-500 hover:bg-orange-600' : replaceMode ? 'bg-orange-500 hover:bg-orange-600' : undefined}
+              className={updateMode ? 'bg-orange-500 hover:bg-orange-600' : undefined}
             >
-              {updateMode ? 'Update' : replaceMode ? 'Replace' : 'Continue'}
+              {updateMode ? 'Overwrite' : 'Continue'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
