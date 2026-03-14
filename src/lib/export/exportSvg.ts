@@ -66,14 +66,11 @@ export function prepareSvgForExport(
       }
     }
 
-    // Cover circles hide lines under dots using a solid background color.
-    // For transparent exports they must be removed (white circles would be visible),
-    // so we rely on the SVG mask instead. For opaque exports, keep both cover circles
-    // AND the mask for maximum compatibility (InDesign doesn't support SVG masks well).
-    if (options?.transparent) {
-      const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
-      if (coverCircles) coverCircles.remove();
-    }
+    // For transparent exports, swap cover circles for the SVG mask
+    // Cover circles rely on a visible background color — they don't work when transparent.
+    // The mask punches holes in lines under dots, which works correctly in static SVG.
+    const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
+    if (coverCircles) coverCircles.remove();
 
     const linesGroup = clonedSvg.querySelector('[data-role="chart-lines"]');
     if (linesGroup) {
