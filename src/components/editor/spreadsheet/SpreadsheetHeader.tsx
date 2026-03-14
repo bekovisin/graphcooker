@@ -2,9 +2,9 @@
 
 import { memo, useCallback, useRef, useState, useEffect } from 'react';
 import { ColumnMapping } from '@/types/chart';
-import { ColumnRole, ColumnTypeConfig } from './types';
+import { CellAddress, ColumnRole, ColumnTypeConfig, SelectionRange } from './types';
 import { COLUMN_ROLE_COLORS, ROW_NUMBER_WIDTH } from './constants';
-import { colIndexToLetter, getColumnRole } from './utils';
+import { colIndexToLetter, getColumnRole, normalizeRange } from './utils';
 import { useEditorStore } from '@/store/editorStore';
 
 /** Height of the column-letter row (A, B, C, D) */
@@ -30,6 +30,9 @@ interface SpreadsheetHeaderProps {
   onDropTargetUpdate: (index: number | null) => void;
   onColumnTypeClick?: (colIndex: number) => void;
   headerSelected?: boolean;
+  activeCell?: CellAddress | null;
+  selectionRange?: SelectionRange | null;
+  onSeriesNameClick?: (colIndex: number, e: React.MouseEvent) => void;
 }
 
 /* ─── Inline series-name editor ─── */
@@ -145,6 +148,9 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
   onDropTargetUpdate,
   onColumnTypeClick,
   headerSelected,
+  activeCell,
+  selectionRange,
+  onSeriesNameClick,
 }: SpreadsheetHeaderProps) {
   const headerRef = useRef<HTMLDivElement>(null);
   const columnTypes = useEditorStore((s) => s.columnTypes);
@@ -298,6 +304,14 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
           const isDropTarget = isDraggingColumn && dropTargetIndex === colIndex;
           const isDragSource = isDraggingColumn && dragSourceIndex === colIndex;
 
+          // Per-cell header selection state
+          const isActiveHeader = activeCell?.row === -1 && activeCell?.col === colIndex;
+          const isSelectedHeader = (() => {
+            if (!selectionRange) return false;
+            const norm = normalizeRange(selectionRange);
+            return norm.minRow <= -1 && colIndex >= norm.minCol && colIndex <= norm.maxCol;
+          })();
+
           return (
             <div
               key={`series-${col}`}
@@ -316,12 +330,23 @@ export const SpreadsheetHeader = memo(function SpreadsheetHeader({
                 onMouseDown={(e) => {
                   if (e.button !== 0) return;
                   e.stopPropagation();
-                  onColumnClick(colIndex, e);
+                  if (onSeriesNameClick) {
+                    onSeriesNameClick(colIndex, e);
+                  } else {
+                    onColumnClick(colIndex, e);
+                  }
                 }}
               />
 
-              {/* Header selection overlay */}
-              {headerSelected && (
+              {/* Active header cell outline */}
+              {isActiveHeader && (
+                <div
+                  className="absolute inset-0 pointer-events-none z-[5]"
+                  style={{ outline: '2px solid #3b82f6', outlineOffset: '-2px' }}
+                />
+              )}
+              {/* Selected header cell overlay (not active) */}
+              {isSelectedHeader && !isActiveHeader && (
                 <div className="absolute inset-0 bg-blue-500/10 pointer-events-none z-[5]" />
               )}
 

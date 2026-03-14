@@ -121,7 +121,7 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     let min = Infinity;
     let max = -Infinity;
 
-    for (let r = normalizedSelection.minRow; r <= normalizedSelection.maxRow; r++) {
+    for (let r = Math.max(0, normalizedSelection.minRow); r <= normalizedSelection.maxRow; r++) {
       for (let c = normalizedSelection.minCol; c <= normalizedSelection.maxCol; c++) {
         count++;
         const val = data[r]?.[columnOrder[c]];
@@ -491,17 +491,22 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
         col = c;
       }
 
-      // Find row
-      let cumY = 0;
-      let row = 0;
-      for (let r = 0; r < rowCount; r++) {
-        const h = resize.getRowHeight(r);
-        if (y < cumY + h) {
+      // Find row — if y < 0 we're in the header area (series name row)
+      let row: number;
+      if (y < 0) {
+        row = -1;
+      } else {
+        let cumY = 0;
+        row = 0;
+        for (let r = 0; r < rowCount; r++) {
+          const h = resize.getRowHeight(r);
+          if (y < cumY + h) {
+            row = r;
+            break;
+          }
+          cumY += h;
           row = r;
-          break;
         }
-        cumY += h;
-        row = r;
       }
 
       selection.extendSelection({ row, col });
@@ -551,6 +556,16 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
         onDropTargetUpdate={dragReorder.updateDropTarget}
         onColumnTypeClick={onColumnTypeClick}
         headerSelected={selection.headerSelected}
+        activeCell={selection.activeCell}
+        selectionRange={selection.selectionRange}
+        onSeriesNameClick={(colIndex, e) => {
+          containerRef.current?.focus();
+          if (e.shiftKey && selection.activeCell) {
+            selection.extendSelection({ row: -1, col: colIndex });
+          } else {
+            selection.setActiveCell({ row: -1, col: colIndex });
+          }
+        }}
       />
 
       {/* Rows */}

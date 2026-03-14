@@ -72,7 +72,7 @@ export function useSpreadsheetClipboard({
     pushHistory();
     const range = normalizeRange(selectionRange);
     const newData = data.map((row) => ({ ...row }));
-    for (let r = range.minRow; r <= range.maxRow; r++) {
+    for (let r = Math.max(0, range.minRow); r <= range.maxRow; r++) {
       for (let c = range.minCol; c <= range.maxCol; c++) {
         if (newData[r] && columnOrder[c]) {
           newData[r][columnOrder[c]] = '';
@@ -155,7 +155,7 @@ export function useSpreadsheetClipboard({
       }
 
       // Expand rows if needed
-      const startRow = shouldTreatFirstAsHeader ? 0 : activeCell.row;
+      const startRow = shouldTreatFirstAsHeader ? 0 : Math.max(0, activeCell.row);
       while (newData.length < startRow + dataRows.length) {
         const emptyRow: DataRow = {};
         newColumnOrder.forEach((col) => (emptyRow[col] = ''));
@@ -194,7 +194,7 @@ export function useSpreadsheetClipboard({
     pushHistory();
     const range = normalizeRange(selectionRange);
     const newData = data.map((row) => ({ ...row }));
-    for (let r = range.minRow; r <= range.maxRow; r++) {
+    for (let r = Math.max(0, range.minRow); r <= range.maxRow; r++) {
       for (let c = range.minCol; c <= range.maxCol; c++) {
         if (newData[r] && columnOrder[c]) {
           newData[r][columnOrder[c]] = '';

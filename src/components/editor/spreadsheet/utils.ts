@@ -51,7 +51,7 @@ export function serializeSelectionToClipboard(
   range: NormalizedRange
 ): string {
   const rows: string[] = [];
-  for (let r = range.minRow; r <= range.maxRow; r++) {
+  for (let r = Math.max(0, range.minRow); r <= range.maxRow; r++) {
     const cells: string[] = [];
     for (let c = range.minCol; c <= range.maxCol; c++) {
       const val = data[r]?.[columns[c]];

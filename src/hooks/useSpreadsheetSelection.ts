@@ -17,7 +17,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
 
   const clampCell = useCallback(
     (cell: CellAddress): CellAddress => ({
-      row: Math.max(0, Math.min(cell.row, rowCount - 1)),
+      row: Math.max(-1, Math.min(cell.row, rowCount - 1)),
       col: Math.max(0, Math.min(cell.col, colCount - 1)),
     }),
     [rowCount, colCount]
@@ -29,7 +29,7 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
       setActiveCellState(clamped);
       setSelectionRange({ start: clamped, end: clamped });
       setIsEditing(false);
-      setHeaderSelected(false);
+      setHeaderSelected(clamped.row === -1);
     },
     [clampCell]
   );
@@ -45,9 +45,9 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
 
   const selectAll = useCallback(() => {
     if (rowCount === 0 || colCount === 0) return;
-    setActiveCellState({ row: 0, col: 0 });
+    setActiveCellState({ row: -1, col: 0 });
     setSelectionRange({
-      start: { row: 0, col: 0 },
+      start: { row: -1, col: 0 },
       end: { row: rowCount - 1, col: colCount - 1 },
     });
     setIsEditing(false);
@@ -57,9 +57,9 @@ export function useSpreadsheetSelection({ rowCount, colCount }: UseSpreadsheetSe
   const selectColumn = useCallback(
     (colIndex: number) => {
       if (rowCount === 0) return;
-      setActiveCellState({ row: 0, col: colIndex });
+      setActiveCellState({ row: -1, col: colIndex });
       setSelectionRange({
-        start: { row: 0, col: colIndex },
+        start: { row: -1, col: colIndex },
         end: { row: rowCount - 1, col: colIndex },
       });
       setIsEditing(false);
