@@ -11,6 +11,7 @@
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { prepareSvgForExport } from './exportSvg';
+import { embedFontsInSvg } from './embedFonts';
 
 /** Helper: data-URL → Blob */
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -46,6 +47,9 @@ async function svgToCanvasDataUrl(
   try {
     // Use the shared post-processing pipeline for consistent output
     const clonedSvg = prepareSvgForExport(svgElement, { transparent: options?.transparent });
+
+    // Embed fonts as base64 so they render in the isolated <img> context
+    await embedFontsInSvg(clonedSvg);
 
     const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
     const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
@@ -96,6 +100,9 @@ export async function captureAsSvgBlob(
 
   const clonedSvg = prepareSvgForExport(svgElement, options);
 
+  // Embed fonts for standalone SVG quality
+  await embedFontsInSvg(clonedSvg);
+
   let svgString = new XMLSerializer().serializeToString(clonedSvg);
   if (!svgString.startsWith('<?xml')) {
     svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgString;
@@ -118,6 +125,9 @@ export async function captureAsPdfBlob(
   }
 
   const clonedSvg = prepareSvgForExport(svgElement, options);
+
+  // Embed fonts for consistent PDF rendering
+  await embedFontsInSvg(clonedSvg);
 
   const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
   const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
