@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, Share2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ export interface ListViewRowProps {
   onDuplicate: (id: number) => void;
   onRename: (id: number, name: string) => void;
   onMoveToFolder: (id: number, folderId: number | null) => void;
+  onShare?: (id: number) => void;
   folders: FolderItem[];
 }
 
@@ -32,6 +33,7 @@ export function ListViewRow({
   onDuplicate,
   onRename,
   onMoveToFolder,
+  onShare,
   folders,
 }: ListViewRowProps) {
   const router = useRouter();
@@ -173,6 +175,18 @@ export function ListViewRow({
             >
               Duplicate
             </DropdownMenuItem>
+            {onShare && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare(viz.id);
+                }}
+                className="text-xs gap-2"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Share
+              </DropdownMenuItem>
+            )}
             {folders.length > 0 && (
               <DropdownMenuItem
                 onClick={(e) => {

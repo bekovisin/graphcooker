@@ -14,6 +14,8 @@ import {
 import { VisualizationCard } from '@/components/dashboard/VisualizationCard';
 import { FolderCard } from '@/components/dashboard/FolderCard';
 import { ListViewRow } from '@/components/dashboard/ListViewRow';
+import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizationDialog';
+import { useAuthStore } from '@/store/authStore';
 import {
   useDashboardStore,
   useVizCountByFolder,
@@ -53,6 +55,24 @@ export default function AllVisualizationsPage() {
   const sortViz = useSortViz();
   const gridClass = useGridClass();
   const vizCountByFolder = useVizCountByFolder();
+
+  // Share state
+  const [showShareViz, setShowShareViz] = useState(false);
+  const [shareVizIds, setShareVizIds] = useState<number[]>([]);
+  const [shareVizFolderIds, setShareVizFolderIds] = useState<number[]>([]);
+  const { user } = useAuthStore();
+
+  const handleShareViz = useCallback((vizId: number) => {
+    setShareVizIds([vizId]);
+    setShareVizFolderIds([]);
+    setShowShareViz(true);
+  }, []);
+
+  const handleShareFolder = useCallback((folderId: number) => {
+    setShareVizIds([]);
+    setShareVizFolderIds([folderId]);
+    setShowShareViz(true);
+  }, []);
 
   // Local state (non-selection)
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
@@ -109,6 +129,7 @@ export default function AllVisualizationsPage() {
       onDuplicate={duplicateViz}
       onRename={renameViz}
       onMoveToFolder={moveVizToFolder}
+      onShare={handleShareViz}
       folders={folders}
     />
   );
@@ -124,6 +145,7 @@ export default function AllVisualizationsPage() {
       onDuplicate={duplicateViz}
       onRename={renameViz}
       onMoveToFolder={moveVizToFolder}
+      onShare={handleShareViz}
       folders={folders}
     />
   );
@@ -239,6 +261,7 @@ export default function AllVisualizationsPage() {
                 onDuplicate={duplicateFolder}
                 onMove={moveFolderTo}
                 onDelete={deleteFolder}
+                onShare={handleShareFolder}
               />
             ))}
             {rootViz.map(renderVizCard)}
@@ -273,6 +296,17 @@ export default function AllVisualizationsPage() {
           </>
         )}
       </div>
+
+      <ShareVisualizationDialog
+        open={showShareViz}
+        onOpenChange={setShowShareViz}
+        vizIds={shareVizIds}
+        folderIds={shareVizFolderIds}
+        userRole={user?.role || 'customer'}
+        onShared={() => {
+          useDashboardStore.getState().fetchAll();
+        }}
+      />
     </div>
   );
 }

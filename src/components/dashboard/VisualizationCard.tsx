@@ -11,6 +11,7 @@ import {
   Clock,
   BarChart3,
   Check,
+  Share2,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -47,6 +48,7 @@ interface VisualizationCardProps {
   onDuplicate: (id: number) => void;
   onRename: (id: number, name: string) => void;
   onMoveToFolder: (id: number, folderId: number | null) => void;
+  onShare?: (id: number) => void;
   folders: FolderItem[];
 }
 
@@ -60,6 +62,7 @@ export function VisualizationCard({
   onDuplicate,
   onRename,
   onMoveToFolder,
+  onShare,
   folders,
 }: VisualizationCardProps) {
   const router = useRouter();
@@ -247,6 +250,18 @@ export function VisualizationCard({
                   <Copy className="w-3.5 h-3.5" />
                   Duplicate
                 </DropdownMenuItem>
+                {onShare && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onShare(viz.id);
+                    }}
+                    className="gap-2 text-xs"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    Share
+                  </DropdownMenuItem>
+                )}
 
                 {/* Move to folder */}
                 {folders.length > 0 && (

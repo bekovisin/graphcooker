@@ -1,5 +1,5 @@
 import { getResend, EMAIL_FROM } from './resend';
-import { welcomeEmailHtml, verificationCodeHtml } from './templates';
+import { welcomeEmailHtml, verificationCodeHtml, shareNotificationHtml } from './templates';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://graphcooker.com';
 
@@ -33,5 +33,20 @@ export async function sendVerificationCode(
     to: email,
     subject,
     html: verificationCodeHtml(name, code, purpose),
+  });
+}
+
+export async function sendShareNotification(
+  recipientEmail: string,
+  recipientName: string,
+  senderName: string,
+  itemType: string,
+  itemCount: number
+) {
+  await getResend().emails.send({
+    from: EMAIL_FROM,
+    to: recipientEmail,
+    subject: `GraphCooker — ${senderName} shared content with you`,
+    html: shareNotificationHtml(recipientName, senderName, itemType, itemCount),
   });
 }

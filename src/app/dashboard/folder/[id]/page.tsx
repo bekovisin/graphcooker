@@ -14,6 +14,8 @@ import {
 import { VisualizationCard } from '@/components/dashboard/VisualizationCard';
 import { FolderCard } from '@/components/dashboard/FolderCard';
 import { ListViewRow } from '@/components/dashboard/ListViewRow';
+import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizationDialog';
+import { useAuthStore } from '@/store/authStore';
 import {
   useDashboardStore,
   useVizCountByFolder,
@@ -55,6 +57,24 @@ export default function FolderPage() {
   const sortViz = useSortViz();
   const gridClass = useGridClass();
   const vizCountByFolder = useVizCountByFolder();
+
+  // Share state
+  const [showShareViz, setShowShareViz] = useState(false);
+  const [shareVizIds, setShareVizIds] = useState<number[]>([]);
+  const [shareVizFolderIds, setShareVizFolderIds] = useState<number[]>([]);
+  const { user } = useAuthStore();
+
+  const handleShareViz = useCallback((vizId: number) => {
+    setShareVizIds([vizId]);
+    setShareVizFolderIds([]);
+    setShowShareViz(true);
+  }, []);
+
+  const handleShareFolder = useCallback((sfId: number) => {
+    setShareVizIds([]);
+    setShareVizFolderIds([sfId]);
+    setShowShareViz(true);
+  }, []);
 
   // Computed
   const filteredViz = useMemo(() => {
@@ -123,6 +143,7 @@ export default function FolderPage() {
       onDuplicate={duplicateViz}
       onRename={renameViz}
       onMoveToFolder={moveVizToFolder}
+      onShare={handleShareViz}
       folders={folders}
     />
   );
@@ -138,6 +159,7 @@ export default function FolderPage() {
       onDuplicate={duplicateViz}
       onRename={renameViz}
       onMoveToFolder={moveVizToFolder}
+      onShare={handleShareViz}
       folders={folders}
     />
   );
@@ -205,6 +227,7 @@ export default function FolderPage() {
               onDuplicate={duplicateFolder}
               onMove={moveFolderTo}
               onDelete={deleteFolder}
+              onShare={handleShareFolder}
             />
           ))}
           {filteredViz.map(renderVizCard)}
@@ -224,6 +247,16 @@ export default function FolderPage() {
           {filteredViz.map(renderListRow)}
         </div>
       )}
+      <ShareVisualizationDialog
+        open={showShareViz}
+        onOpenChange={setShowShareViz}
+        vizIds={shareVizIds}
+        folderIds={shareVizFolderIds}
+        userRole={user?.role || 'customer'}
+        onShared={() => {
+          useDashboardStore.getState().fetchAll();
+        }}
+      />
     </div>
   );
 }

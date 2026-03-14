@@ -58,6 +58,37 @@ export function welcomeEmailHtml(
 </html>`;
 }
 
+export function shareNotificationHtml(
+  recipientName: string,
+  senderName: string,
+  itemType: string,
+  itemCount: number
+): string {
+  const itemLabel = itemCount > 1 ? `${itemCount} ${itemType}` : `1 ${itemType.replace(/s$/, '')}`;
+  return `<!DOCTYPE html>
+<html>
+<head><style>${baseStyles}</style></head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Content Shared With You</h1>
+    </div>
+    <div class="body">
+      <h2>Hi ${recipientName},</h2>
+      <p><strong>${senderName}</strong> shared ${itemLabel} with you on GraphCooker.</p>
+      <p>The shared content has been added to your dashboard. You can view and edit it anytime.</p>
+      <div style="text-align: center;">
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://graphcooker.com'}/dashboard" class="btn">Go to Dashboard</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>&copy; GraphCooker. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
 export function verificationCodeHtml(
   name: string,
   code: string,

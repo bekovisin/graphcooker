@@ -34,7 +34,9 @@ import { BulkExportDialog } from '@/components/dashboard/BulkExportDialog';
 import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationDialog';
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
+import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizationDialog';
 import { InputDialog } from '@/components/dashboard/InputDialog';
+import { useAuthStore } from '@/store/authStore';
 import {
   useDashboardStore,
   useEffectiveSelectedVizIds,
@@ -107,6 +109,12 @@ export default function DashboardLayout({
   const [showShareTemplate, setShowShareTemplate] = useState(false);
   const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
   const [shareFolderIds, setShareFolderIds] = useState<number[]>([]);
+
+  // Share visualization dialog (local)
+  const [showShareViz, setShowShareViz] = useState(false);
+  const [shareVizIds, setShareVizIds] = useState<number[]>([]);
+  const [shareVizFolderIds, setShareVizFolderIds] = useState<number[]>([]);
+  const { user } = useAuthStore();
 
   // Fetch data on mount
   useEffect(() => {
@@ -416,6 +424,19 @@ export default function DashboardLayout({
                         {totalSelectedCount > 0 && (
                           <>
                             <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 text-xs h-7"
+                              onClick={() => {
+                                setShareVizIds(Array.from(effectiveVizIds));
+                                setShareVizFolderIds(Array.from(selectedFolderIds));
+                                setShowShareViz(true);
+                              }}
+                            >
+                              <Share2 className="w-3 h-3" />
+                              Share
+                            </Button>
+                            <Button
                               variant="default"
                               size="sm"
                               className="gap-1 text-xs h-7"
@@ -566,6 +587,18 @@ export default function DashboardLayout({
         onShared={() => {
           fetchTemplatesAction();
           exitTemplateSelectionMode();
+        }}
+      />
+
+      <ShareVisualizationDialog
+        open={showShareViz}
+        onOpenChange={setShowShareViz}
+        vizIds={shareVizIds}
+        folderIds={shareVizFolderIds}
+        userRole={user?.role || 'customer'}
+        onShared={() => {
+          fetchAll();
+          exitSelectionMode();
         }}
       />
 

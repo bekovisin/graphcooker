@@ -25,11 +25,14 @@ import {
   Loader2,
   Save,
   SaveAll,
+  Share2,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { SaveTemplateDialog } from './SaveTemplateDialog';
 import { TemplatePickerDialog } from './TemplatePickerDialog';
+import { ShareVisualizationDialog } from './ShareVisualizationDialog';
+import { useAuthStore } from '@/store/authStore';
 
 interface BreadcrumbItem {
   id: number;
@@ -39,9 +42,10 @@ interface BreadcrumbItem {
 interface EditorTopBarProps {
   onExport: (format: 'png' | 'svg' | 'html' | 'pdf') => void;
   breadcrumbs?: BreadcrumbItem[];
+  visualizationId?: number | null;
 }
 
-export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) {
+export function EditorTopBar({ onExport, breadcrumbs = [], visualizationId }: EditorTopBarProps) {
   const {
     visualizationName,
     setVisualizationName,
@@ -57,7 +61,9 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [showUpdatePicker, setShowUpdatePicker] = useState(false);
+  const [showShareViz, setShowShareViz] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -230,6 +236,11 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
               <Save className="w-4 h-4" />
               Save for report
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setShowShareViz(true)} className="gap-2">
+              <Share2 className="w-4 h-4" />
+              Share
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -237,6 +248,14 @@ export function EditorTopBar({ onExport, breadcrumbs = [] }: EditorTopBarProps) 
       <SaveTemplateDialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate} />
       <TemplatePickerDialog open={showTemplatePicker} onOpenChange={setShowTemplatePicker} />
       <TemplatePickerDialog open={showUpdatePicker} onOpenChange={setShowUpdatePicker} updateMode />
+      <ShareVisualizationDialog
+        open={showShareViz}
+        onOpenChange={setShowShareViz}
+        visualizationId={visualizationId ?? null}
+        visualizationName={visualizationName}
+        currentUserId={user?.id}
+        userRole={user?.role || 'customer'}
+      />
     </div>
   );
 }

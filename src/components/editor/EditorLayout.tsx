@@ -305,7 +305,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   if (isLoading) {
     return (
       <div className="h-screen flex flex-col bg-gray-100">
-        <EditorTopBar onExport={handleExportRequest} breadcrumbs={breadcrumbs} />
+        <EditorTopBar onExport={handleExportRequest} breadcrumbs={breadcrumbs} visualizationId={visualizationId} />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3 text-gray-400">
             <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
@@ -317,7 +317,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
-      <EditorTopBar onExport={handleExportRequest} breadcrumbs={breadcrumbs} />
+      <EditorTopBar onExport={handleExportRequest} breadcrumbs={breadcrumbs} visualizationId={visualizationId} />
       <MobileWarning />
       <div className="flex-1 flex overflow-hidden">
         {/* Main content area */}
