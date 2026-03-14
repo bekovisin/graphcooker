@@ -147,7 +147,7 @@ export default function DashboardLayout({
       const folder = folders.find((f) => f.id === folderId);
       return folder?.name || 'Unknown folder';
     }
-    return 'All visualizations';
+    return 'Visualizations';
   }, [pathname, folders]);
 
   const isTrashView = pathname === '/dashboard/trash';

@@ -11,7 +11,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-  Home,
+  BarChart3,
   Settings,
   Users,
   LogOut,
@@ -500,8 +500,8 @@ export function DashboardSidebar() {
           onDragLeave={handleDragLeave}
           onDrop={(e) => handleDrop(e, null)}
         >
-          <Home className={`w-4 h-4 ${isRootActive ? 'text-blue-500' : 'text-gray-400'}`} />
-          <span className="flex-1 text-left">All visualizations</span>
+          <BarChart3 className={`w-4 h-4 ${isRootActive ? 'text-blue-500' : 'text-gray-400'}`} />
+          <span className="flex-1 text-left">Visualizations</span>
           <span className="text-[10px] text-gray-400 tabular-nums">{totalVizCount}</span>
         </div>
 

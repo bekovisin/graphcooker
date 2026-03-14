@@ -216,11 +216,11 @@ export default function TemplatesPage() {
         {/* Name */}
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-gray-800 truncate block">{tpl.templateName}</span>
-          <span className={`text-[10px] truncate block ${
-            tpl.sharedByUserId ? 'text-blue-500' : 'text-gray-400'
-          }`}>
-            {tpl.sharedByUserId ? `Shared by ${tpl.sharedByName || 'someone'}` : 'By you'}
-          </span>
+          {tpl.sharedByUserId && (
+            <span className="text-[10px] truncate block text-blue-500">
+              Shared by {tpl.sharedByName || 'someone'}
+            </span>
+          )}
         </div>
 
         {/* Chart type */}
@@ -379,11 +379,9 @@ export default function TemplatesPage() {
               </DropdownMenu>
             )}
           </div>
-          {cardSize !== 'small' && (
-            <p className={`truncate ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'} ${
-              tpl.sharedByUserId ? 'text-blue-500' : 'text-gray-400'
-            }`}>
-              {tpl.sharedByUserId ? `Shared by ${tpl.sharedByName || 'someone'}` : 'By you'}
+          {cardSize !== 'small' && tpl.sharedByUserId && (
+            <p className={`truncate text-blue-500 ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
+              Shared by {tpl.sharedByName || 'someone'}
             </p>
           )}
         </div>
