@@ -14,7 +14,6 @@ export async function GET() {
         email: users.email,
         name: users.name,
         role: users.role,
-        plainPassword: users.plainPassword,
         emailVerified: users.emailVerified,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
@@ -56,7 +55,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password);
     const [newUser] = await db
       .insert(users)
-      .values({ email: emailNormalized, name, passwordHash, plainPassword: password, role: userRole })
+      .values({ email: emailNormalized, name, passwordHash, role: userRole })
       .returning({
         id: users.id,
         email: users.email,

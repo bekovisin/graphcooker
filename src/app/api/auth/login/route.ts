@@ -4,6 +4,7 @@ import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyPassword } from '@/lib/auth/password';
 import { createToken } from '@/lib/auth/jwt';
+import { createSession } from '@/lib/auth/session';
 import { checkRateLimit } from '@/lib/auth/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -38,11 +39,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    const sessionId = await createSession(user.id);
     const token = await createToken({
       userId: user.id,
       email: user.email,
       name: user.name,
       role: user.role as 'admin' | 'customer',
+      sessionId,
     });
 
     const response = NextResponse.json({
@@ -51,6 +54,15 @@ export async function POST(request: NextRequest) {
 
     response.cookies.set('gc_session', token, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 24 * 60 * 60,
+    });
+
+    // Non-httpOnly flag for client-side auth detection (no sensitive data)
+    response.cookies.set('gc_logged_in', '1', {
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',

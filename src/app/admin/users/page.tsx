@@ -26,7 +26,6 @@ interface User {
   email: string;
   name: string;
   role: string;
-  plainPassword: string | null;
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
@@ -311,7 +310,6 @@ export default function AdminUsersPage() {
                 <tr className="border-b border-gray-200 bg-gray-50/50">
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Name</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Email</th>
-                  <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Password</th>
                   <th className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Verified</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Role</th>
                   <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Created</th>
@@ -323,9 +321,6 @@ export default function AdminUsersPage() {
                   <tr key={user.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
                     <td className="px-4 py-3 text-sm text-gray-900">{user.name}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 font-mono">
-                      {user.plainPassword || <span className="text-gray-300 italic text-xs">—</span>}
-                    </td>
                     <td className="px-4 py-3 text-center">
                       {user.emailVerified ? (
                         <CheckCircle2 className="w-4 h-4 text-green-500 mx-auto" />
@@ -464,11 +459,6 @@ export default function AdminUsersPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                {modalMode === 'edit' && editingUser?.plainPassword && (
-                  <p className="mt-1.5 text-xs text-gray-400">
-                    Current password: <span className="font-mono text-gray-600">{editingUser.plainPassword}</span>
-                  </p>
-                )}
               </div>
 
               <div>

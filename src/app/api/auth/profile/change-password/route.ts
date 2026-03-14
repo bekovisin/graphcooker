@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth/helpers';
 import { verifyCodeForUser } from '@/lib/auth/verification';
 import { hashPassword } from '@/lib/auth/password';
+import { deleteAllUserSessions } from '@/lib/auth/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,8 +40,11 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(newPassword);
     await db
       .update(users)
-      .set({ passwordHash, plainPassword: newPassword, updatedAt: new Date() })
+      .set({ passwordHash, updatedAt: new Date() })
       .where(eq(users.id, userId));
+
+    // Invalidate all sessions — forces re-login on all devices
+    await deleteAllUserSessions(userId);
 
     return NextResponse.json({ message: 'Password changed successfully' });
   } catch {

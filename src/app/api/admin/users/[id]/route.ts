@@ -36,7 +36,6 @@ export async function PUT(
         return NextResponse.json({ error: 'Password is too long' }, { status: 400 });
       }
       updates.passwordHash = await hashPassword(body.password);
-      updates.plainPassword = body.password;
     }
 
     const [updated] = await db

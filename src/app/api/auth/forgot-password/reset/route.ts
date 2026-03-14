@@ -4,6 +4,7 @@ import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyCodeForUser } from '@/lib/auth/verification';
 import { hashPassword } from '@/lib/auth/password';
+import { deleteAllUserSessions } from '@/lib/auth/session';
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,8 +48,11 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(newPassword);
     await db
       .update(users)
-      .set({ passwordHash, plainPassword: newPassword, updatedAt: new Date() })
+      .set({ passwordHash, updatedAt: new Date() })
       .where(eq(users.id, user.id));
+
+    // Invalidate all sessions — forces re-login on all devices
+    await deleteAllUserSessions(user.id);
 
     return NextResponse.json({ message: 'Password reset successfully' });
   } catch (error) {

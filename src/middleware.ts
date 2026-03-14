@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifyToken } from '@/lib/auth/jwt';
+import { validateSession } from '@/lib/auth/session';
 
 const PUBLIC_PATHS = [
   '/',
@@ -50,7 +51,21 @@ export async function middleware(request: NextRequest) {
       ? NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       : NextResponse.redirect(new URL('/login', request.url));
     response.cookies.delete('gc_session');
+    response.cookies.delete('gc_logged_in');
     return response;
+  }
+
+  // Validate session exists in DB (prevents replaying invalidated tokens)
+  if (payload.sessionId) {
+    const sessionValid = await validateSession(payload.sessionId);
+    if (!sessionValid) {
+      const response = pathname.startsWith('/api/')
+        ? NextResponse.json({ error: 'Session expired' }, { status: 401 })
+        : NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('gc_session');
+      response.cookies.delete('gc_logged_in');
+      return response;
+    }
   }
 
   // Admin route protection

@@ -8,6 +8,7 @@ export interface JWTPayload {
   email: string;
   name: string;
   role: 'admin' | 'customer';
+  sessionId?: string;
 }
 
 export async function createToken(payload: JWTPayload): Promise<string> {

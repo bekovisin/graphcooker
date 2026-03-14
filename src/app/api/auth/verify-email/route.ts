@@ -4,6 +4,7 @@ import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyTokenFromDB } from '@/lib/auth/verification';
 import { createToken } from '@/lib/auth/jwt';
+import { createSession } from '@/lib/auth/session';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,18 +38,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/login?error=user_not_found', request.url));
     }
 
-    // Auto-login: create JWT token and set cookie
+    // Auto-login: create session + JWT token and set cookies
+    const sessionId = await createSession(user.id);
     const jwtToken = await createToken({
       userId: user.id,
       email: user.email,
       name: user.name,
       role: user.role as 'admin' | 'customer',
+      sessionId,
     });
 
     const response = NextResponse.redirect(new URL('/verify?success=true', request.url));
 
     response.cookies.set('gc_session', jwtToken, {
       httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 24 * 60 * 60,
+    });
+
+    response.cookies.set('gc_logged_in', '1', {
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
