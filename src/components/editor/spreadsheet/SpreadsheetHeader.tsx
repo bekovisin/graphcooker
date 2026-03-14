@@ -110,7 +110,7 @@ function SeriesNameCell({
 
   return (
     <div
-      className="w-full h-full px-2 flex items-center text-[11px] font-semibold truncate cursor-text select-none"
+      className="w-full h-full px-2 flex items-center text-[11px] font-semibold truncate cursor-default select-none"
       style={{
         width,
         height: SERIES_NAME_ROW_HEIGHT,
