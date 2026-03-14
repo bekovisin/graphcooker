@@ -95,6 +95,7 @@ export async function POST(
             userId: targetUserId,
             name: srcFolder.name,
             parentId: newParentId,
+            sharedByUserId: userId,
           })
           .returning({ id: templateFolders.id });
 
@@ -117,6 +118,7 @@ export async function POST(
           thumbnail: tpl.thumbnail,
           userId: targetUserId,
           folderId: newFolderId,
+          sharedByUserId: userId,
         });
       }
 

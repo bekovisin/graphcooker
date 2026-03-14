@@ -42,6 +42,7 @@ import {
   useEffectiveSelectedVizIds,
   sortLabels,
   type SortMode,
+  type OwnershipFilter,
 } from '@/store/dashboardStore';
 
 export default function DashboardLayout({
@@ -101,6 +102,12 @@ export default function DashboardLayout({
   const createVisualization = useDashboardStore((s) => s.createVisualization);
   const createTemplateFolder = useDashboardStore((s) => s.createTemplateFolder);
   const fetchTemplatesAction = useDashboardStore((s) => s.fetchTemplates);
+
+  // Ownership filter
+  const vizOwnershipFilter = useDashboardStore((s) => s.vizOwnershipFilter);
+  const templateOwnershipFilter = useDashboardStore((s) => s.templateOwnershipFilter);
+  const setVizOwnershipFilter = useDashboardStore((s) => s.setVizOwnershipFilter);
+  const setTemplateOwnershipFilter = useDashboardStore((s) => s.setTemplateOwnershipFilter);
 
   // Template folder dialog (local)
   const [showNewTemplateFolderDialog, setShowNewTemplateFolderDialog] = useState(false);
@@ -294,6 +301,50 @@ export default function DashboardLayout({
               {isTemplatesView && <LayoutTemplate className="w-4 h-4 inline-block mr-1.5 text-orange-500 -mt-0.5" />}
               {pageTitle}
             </h2>
+
+            {/* Ownership filter tabs */}
+            {!isTrashView && !isTemplatesView && (
+              <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+                {([
+                  { value: 'all' as OwnershipFilter, label: 'All Visualizations' },
+                  { value: 'mine' as OwnershipFilter, label: 'My Visualizations' },
+                  { value: 'shared' as OwnershipFilter, label: 'Shared with me' },
+                ]).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setVizOwnershipFilter(value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors whitespace-nowrap ${
+                      vizOwnershipFilter === value
+                        ? 'bg-white text-gray-800 font-medium shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {isTemplatesView && (
+              <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+                {([
+                  { value: 'all' as OwnershipFilter, label: 'All Templates' },
+                  { value: 'mine' as OwnershipFilter, label: 'My Templates' },
+                  { value: 'shared' as OwnershipFilter, label: 'Shared with me' },
+                ]).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setTemplateOwnershipFilter(value)}
+                    className={`px-2.5 py-1 text-xs rounded-md transition-colors whitespace-nowrap ${
+                      templateOwnershipFilter === value
+                        ? 'bg-white text-gray-800 font-medium shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Search (hidden on trash view) */}
             {!isTrashView && (

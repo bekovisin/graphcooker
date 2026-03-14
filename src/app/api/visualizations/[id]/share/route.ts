@@ -90,6 +90,7 @@ export async function POST(
         columnMapping: original.columnMapping,
         thumbnail: original.thumbnail,
         userId: targetUser.id,
+        sharedByUserId: userId,
       });
 
       // Send notification email (fire and forget)

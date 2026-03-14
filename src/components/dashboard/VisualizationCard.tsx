@@ -31,6 +31,8 @@ export interface VizItem {
   name: string;
   chartType: string;
   thumbnail: string | null;
+  sharedByUserId: number | null;
+  sharedByName: string | null;
   createdAt: string;
   updatedAt: string;
   folderId: number | null;
@@ -205,6 +207,13 @@ export function VisualizationCard({
           <h3 className={`font-medium text-gray-800 truncate ${
             cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
           }`}>{viz.name}</h3>
+        )}
+        {cardSize !== 'small' && (
+          <p className={`truncate ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'} ${
+            viz.sharedByUserId ? 'text-blue-500' : 'text-gray-400'
+          }`}>
+            {viz.sharedByUserId ? `Shared by ${viz.sharedByName || 'someone'}` : 'By you'}
+          </p>
         )}
 
         <div className={`flex items-center justify-between ${cardSize === 'small' ? 'mt-0.5' : 'mt-1.5'}`}>

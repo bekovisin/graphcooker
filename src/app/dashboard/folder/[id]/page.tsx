@@ -54,6 +54,7 @@ export default function FolderPage() {
   const toggleSelectViz = useDashboardStore((s) => s.toggleSelectViz);
   const toggleSelectFolder = useDashboardStore((s) => s.toggleSelectFolder);
 
+  const vizOwnershipFilter = useDashboardStore((s) => s.vizOwnershipFilter);
   const sortViz = useSortViz();
   const gridClass = useGridClass();
   const vizCountByFolder = useVizCountByFolder();
@@ -76,19 +77,32 @@ export default function FolderPage() {
     setShowShareViz(true);
   }, []);
 
+  // Pre-filter by ownership
+  const ownershipViz = useMemo(() => {
+    if (vizOwnershipFilter === 'mine') return visualizations.filter((v) => !v.sharedByUserId);
+    if (vizOwnershipFilter === 'shared') return visualizations.filter((v) => !!v.sharedByUserId);
+    return visualizations;
+  }, [visualizations, vizOwnershipFilter]);
+
+  const ownershipFolders = useMemo(() => {
+    if (vizOwnershipFilter === 'mine') return folders.filter((f) => !f.sharedByUserId);
+    if (vizOwnershipFilter === 'shared') return folders.filter((f) => !!f.sharedByUserId);
+    return folders;
+  }, [folders, vizOwnershipFilter]);
+
   // Computed
   const filteredViz = useMemo(() => {
-    let result = visualizations.filter((v) => v.folderId === folderId);
+    let result = ownershipViz.filter((v) => v.folderId === folderId);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((v) => v.name.toLowerCase().includes(q));
     }
     return sortViz(result);
-  }, [visualizations, folderId, searchQuery, sortViz]);
+  }, [ownershipViz, folderId, searchQuery, sortViz]);
 
   const activeSubFolders = useMemo(() => {
-    return folders.filter((f) => f.parentId === folderId);
-  }, [folders, folderId]);
+    return ownershipFolders.filter((f) => f.parentId === folderId);
+  }, [ownershipFolders, folderId]);
 
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
 

@@ -5,6 +5,7 @@ import { getDescendantIds } from '@/lib/folder-utils';
 
 // Types
 export type SortMode = 'updated_desc' | 'updated_asc' | 'name_asc' | 'name_desc' | 'created_desc' | 'created_asc';
+export type OwnershipFilter = 'all' | 'mine' | 'shared';
 
 export const sortLabels: Record<SortMode, string> = {
   updated_desc: 'Last modified (newest)',
@@ -19,6 +20,8 @@ export interface FolderItem {
   id: number;
   name: string;
   parentId: number | null;
+  sharedByUserId: number | null;
+  sharedByName: string | null;
   createdAt: string;
 }
 
@@ -29,6 +32,8 @@ export interface VizItem {
   folderId: number | null;
   chartType: string;
   thumbnail: string | null;
+  sharedByUserId: number | null;
+  sharedByName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +44,8 @@ export interface TemplateItem {
   chartType: string;
   thumbnail: string | null;
   folderId: number | null;
+  sharedByUserId: number | null;
+  sharedByName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +54,8 @@ export interface TemplateFolderItem {
   id: number;
   name: string;
   parentId: number | null;
+  sharedByUserId: number | null;
+  sharedByName: string | null;
   createdAt: string;
 }
 
@@ -76,6 +85,8 @@ interface DashboardState {
   viewMode: 'grid' | 'list';
   cardSize: 'small' | 'medium' | 'large';
   searchQuery: string;
+  vizOwnershipFilter: OwnershipFilter;
+  templateOwnershipFilter: OwnershipFilter;
 
   // UI state
   confirmDialog: ConfirmDialogState;
@@ -108,6 +119,8 @@ interface DashboardState {
   setViewMode: (mode: 'grid' | 'list') => void;
   setCardSize: (size: 'small' | 'medium' | 'large') => void;
   setSearchQuery: (query: string) => void;
+  setVizOwnershipFilter: (filter: OwnershipFilter) => void;
+  setTemplateOwnershipFilter: (filter: OwnershipFilter) => void;
 
   // Actions - UI
   showConfirm: (opts: Omit<ConfirmDialogState, 'open'>) => void;
@@ -197,6 +210,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   viewMode: 'grid',
   cardSize: 'large',
   searchQuery: '',
+  vizOwnershipFilter: 'all',
+  templateOwnershipFilter: 'all',
 
   // Initial UI
   confirmDialog: {
@@ -332,6 +347,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     persistPref('dashboard_card_size', size);
   },
   setSearchQuery: (query) => set({ searchQuery: query }),
+  setVizOwnershipFilter: (filter) => set({ vizOwnershipFilter: filter }),
+  setTemplateOwnershipFilter: (filter) => set({ templateOwnershipFilter: filter }),
 
   // UI actions
   showConfirm: (opts) => set({ confirmDialog: { ...opts, open: true } }),

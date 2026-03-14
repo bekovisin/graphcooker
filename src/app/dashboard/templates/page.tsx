@@ -59,6 +59,7 @@ export default function TemplatesPage() {
   const exitTemplateSelectionMode = useDashboardStore((s) => s.exitTemplateSelectionMode);
 
   const viewMode = useDashboardStore((s) => s.viewMode);
+  const templateOwnershipFilter = useDashboardStore((s) => s.templateOwnershipFilter);
   const templateCountByFolder = useTemplateCountByFolder();
   const gridClass = useGridClass();
 
@@ -72,19 +73,32 @@ export default function TemplatesPage() {
   const [renameFolderId, setRenameFolderId] = useState<number | null>(null);
   const [renameFolderName, setRenameFolderName] = useState('');
 
+  // Pre-filter by ownership
+  const ownershipTemplates = useMemo(() => {
+    if (templateOwnershipFilter === 'mine') return templates.filter((t) => !t.sharedByUserId);
+    if (templateOwnershipFilter === 'shared') return templates.filter((t) => !!t.sharedByUserId);
+    return templates;
+  }, [templates, templateOwnershipFilter]);
+
+  const ownershipTemplateFolders = useMemo(() => {
+    if (templateOwnershipFilter === 'mine') return templateFolders.filter((f) => !f.sharedByUserId);
+    if (templateOwnershipFilter === 'shared') return templateFolders.filter((f) => !!f.sharedByUserId);
+    return templateFolders;
+  }, [templateFolders, templateOwnershipFilter]);
+
   // Computed
   const rootTemplateFolders = useMemo(() => {
-    return templateFolders.filter((f) => f.parentId === null);
-  }, [templateFolders]);
+    return ownershipTemplateFolders.filter((f) => f.parentId === null);
+  }, [ownershipTemplateFolders]);
 
   const rootTemplates = useMemo(() => {
-    let result = templates.filter((t) => t.folderId === null);
+    let result = ownershipTemplates.filter((t) => t.folderId === null);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((t) => t.templateName.toLowerCase().includes(q));
     }
     return result;
-  }, [templates, searchQuery]);
+  }, [ownershipTemplates, searchQuery]);
 
   const toggleFolderExpand = useCallback((folderId: number) => {
     setExpandedFolderIds((prev) => {
@@ -97,9 +111,9 @@ export default function TemplatesPage() {
   const templateFoldersWithItems = useMemo(() => {
     return rootTemplateFolders.map((folder) => ({
       folder,
-      items: templates.filter((t) => t.folderId === folder.id),
+      items: ownershipTemplates.filter((t) => t.folderId === folder.id),
     }));
-  }, [rootTemplateFolders, templates]);
+  }, [rootTemplateFolders, ownershipTemplates]);
 
   const handleShareTemplate = (templateId: number) => {
     setShareTemplateIds([templateId]);
@@ -202,6 +216,11 @@ export default function TemplatesPage() {
         {/* Name */}
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-gray-800 truncate block">{tpl.templateName}</span>
+          <span className={`text-[10px] truncate block ${
+            tpl.sharedByUserId ? 'text-blue-500' : 'text-gray-400'
+          }`}>
+            {tpl.sharedByUserId ? `Shared by ${tpl.sharedByName || 'someone'}` : 'By you'}
+          </span>
         </div>
 
         {/* Chart type */}
@@ -360,6 +379,13 @@ export default function TemplatesPage() {
               </DropdownMenu>
             )}
           </div>
+          {cardSize !== 'small' && (
+            <p className={`truncate ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'} ${
+              tpl.sharedByUserId ? 'text-blue-500' : 'text-gray-400'
+            }`}>
+              {tpl.sharedByUserId ? `Shared by ${tpl.sharedByName || 'someone'}` : 'By you'}
+            </p>
+          )}
         </div>
       </div>
     );

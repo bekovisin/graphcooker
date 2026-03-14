@@ -18,6 +18,8 @@ interface FolderItem {
   id: number;
   name: string;
   parentId: number | null;
+  sharedByUserId?: number | null;
+  sharedByName?: string | null;
 }
 
 interface FolderCardProps {
@@ -177,9 +179,16 @@ export function FolderCard({
           />
         ) : (
           <div className="flex items-center justify-between gap-1">
-            <p className={`font-medium text-gray-900 truncate ${
-              cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
-            }`}>{folder.name}</p>
+            <div className="flex-1 min-w-0">
+              <p className={`font-medium text-gray-900 truncate ${
+                cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
+              }`}>{folder.name}</p>
+              {cardSize !== 'small' && folder.sharedByUserId && (
+                <p className={`truncate text-blue-500 ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
+                  Shared by {folder.sharedByName || 'someone'}
+                </p>
+              )}
+            </div>
             {hasMenu && (
               <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
                 <DropdownMenu>

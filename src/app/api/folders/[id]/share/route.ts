@@ -116,6 +116,7 @@ export async function POST(
             userId: targetUser.id,
             name: srcFolder.name,
             parentId: newParentId,
+            sharedByUserId: userId,
           })
           .returning({ id: folders.id });
 
@@ -165,6 +166,7 @@ export async function POST(
           columnMapping: srcViz.columnMapping,
           thumbnail: srcViz.thumbnail,
           userId: targetUser.id,
+          sharedByUserId: userId,
         });
       }
 

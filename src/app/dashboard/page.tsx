@@ -52,6 +52,7 @@ export default function AllVisualizationsPage() {
   const toggleSelectFolder = useDashboardStore((s) => s.toggleSelectFolder);
   const selectFolder = useDashboardStore((s) => s.selectFolder);
 
+  const vizOwnershipFilter = useDashboardStore((s) => s.vizOwnershipFilter);
   const sortViz = useSortViz();
   const gridClass = useGridClass();
   const vizCountByFolder = useVizCountByFolder();
@@ -86,29 +87,42 @@ export default function AllVisualizationsPage() {
     });
   }, []);
 
+  // Pre-filter by ownership
+  const ownershipViz = useMemo(() => {
+    if (vizOwnershipFilter === 'mine') return visualizations.filter((v) => !v.sharedByUserId);
+    if (vizOwnershipFilter === 'shared') return visualizations.filter((v) => !!v.sharedByUserId);
+    return visualizations;
+  }, [visualizations, vizOwnershipFilter]);
+
+  const ownershipFolders = useMemo(() => {
+    if (vizOwnershipFilter === 'mine') return folders.filter((f) => !f.sharedByUserId);
+    if (vizOwnershipFilter === 'shared') return folders.filter((f) => !!f.sharedByUserId);
+    return folders;
+  }, [folders, vizOwnershipFilter]);
+
   // Computed: root-level viz filtered by search, sorted
   const filteredViz = useMemo(() => {
-    let result = visualizations.filter((v) => v.folderId === null);
+    let result = ownershipViz.filter((v) => v.folderId === null);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((v) => v.name.toLowerCase().includes(q));
     }
     return sortViz(result);
-  }, [visualizations, searchQuery, sortViz]);
+  }, [ownershipViz, searchQuery, sortViz]);
 
   // Computed: folder groups (when not searching)
   const folderGroups = useMemo(() => {
     if (searchQuery.trim()) return null;
 
-    const rootViz = sortViz(visualizations.filter((v) => v.folderId === null));
-    const rootFolders = folders.filter((f) => f.parentId === null);
+    const rootViz = sortViz(ownershipViz.filter((v) => v.folderId === null));
+    const rootFolders = ownershipFolders.filter((f) => f.parentId === null);
     const foldersWithViz = rootFolders.map((folder) => ({
       folder,
-      vizItems: sortViz(visualizations.filter((v) => v.folderId === folder.id)),
+      vizItems: sortViz(ownershipViz.filter((v) => v.folderId === folder.id)),
     }));
 
     return { rootViz, foldersWithViz, rootFolders };
-  }, [visualizations, folders, searchQuery, sortViz]);
+  }, [ownershipViz, ownershipFolders, searchQuery, sortViz]);
 
   // Create new
   const createNew = async () => {

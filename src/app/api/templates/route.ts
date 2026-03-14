@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { templates } from '@/lib/db/schema';
+import { templates, users } from '@/lib/db/schema';
 import { desc, eq, or } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth/helpers';
 
@@ -8,8 +8,24 @@ export async function GET(request: NextRequest) {
   try {
     const userId = getUserId(request);
     const result = await db
-      .select()
+      .select({
+        id: templates.id,
+        userId: templates.userId,
+        templateName: templates.templateName,
+        chartType: templates.chartType,
+        settings: templates.settings,
+        data: templates.data,
+        columnMapping: templates.columnMapping,
+        thumbnail: templates.thumbnail,
+        isShared: templates.isShared,
+        sharedByUserId: templates.sharedByUserId,
+        sharedByName: users.name,
+        folderId: templates.folderId,
+        createdAt: templates.createdAt,
+        updatedAt: templates.updatedAt,
+      })
       .from(templates)
+      .leftJoin(users, eq(templates.sharedByUserId, users.id))
       .where(or(eq(templates.userId, userId), eq(templates.isShared, true)))
       .orderBy(desc(templates.updatedAt));
     return NextResponse.json(result);

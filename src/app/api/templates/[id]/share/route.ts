@@ -56,6 +56,7 @@ export async function POST(
         columnMapping: original.columnMapping,
         thumbnail: original.thumbnail,
         userId: targetUserId,
+        sharedByUserId: userId,
       });
       copied++;
     }

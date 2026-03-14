@@ -46,6 +46,7 @@ export const folders = pgTable('folders', {
   userId: integer('user_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   parentId: integer('parent_id'),
+  sharedByUserId: integer('shared_by_user_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 });
@@ -70,6 +71,7 @@ export const visualizations = pgTable('visualizations', {
   settings: jsonb('settings').notNull().default({}),
   columnMapping: jsonb('column_mapping').default({}),
   thumbnail: text('thumbnail'),
+  sharedByUserId: integer('shared_by_user_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -107,6 +109,7 @@ export const templates = pgTable('templates', {
   columnMapping: jsonb('column_mapping').default({}),
   thumbnail: text('thumbnail'),
   isShared: boolean('is_shared').default(false).notNull(),
+  sharedByUserId: integer('shared_by_user_id'),
   folderId: integer('folder_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -117,6 +120,7 @@ export const templateFolders = pgTable('template_folders', {
   userId: integer('user_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   parentId: integer('parent_id'),
+  sharedByUserId: integer('shared_by_user_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { visualizations, projects } from '@/lib/db/schema';
+import { visualizations, projects, users } from '@/lib/db/schema';
 import { desc, eq, like, isNull, and } from 'drizzle-orm';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 import { getUserId } from '@/lib/auth/helpers';
@@ -18,9 +18,12 @@ export async function GET(request: NextRequest) {
         createdAt: visualizations.createdAt,
         updatedAt: visualizations.updatedAt,
         folderId: projects.folderId,
+        sharedByUserId: visualizations.sharedByUserId,
+        sharedByName: users.name,
       })
       .from(visualizations)
       .leftJoin(projects, eq(visualizations.projectId, projects.id))
+      .leftJoin(users, eq(visualizations.sharedByUserId, users.id))
       .where(and(isNull(visualizations.deletedAt), eq(visualizations.userId, userId)))
       .orderBy(desc(visualizations.updatedAt));
     return NextResponse.json(result);

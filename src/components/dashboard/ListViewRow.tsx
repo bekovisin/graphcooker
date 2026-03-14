@@ -135,6 +135,11 @@ export function ListViewRow({
         ) : (
           <span className="text-sm font-medium text-gray-800 truncate block">{viz.name}</span>
         )}
+        <span className={`text-[10px] truncate ${
+          viz.sharedByUserId ? 'text-blue-500' : 'text-gray-400'
+        }`}>
+          {viz.sharedByUserId ? `Shared by ${viz.sharedByName || 'someone'}` : 'By you'}
+        </span>
       </div>
 
       {/* Date */}
