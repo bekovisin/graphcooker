@@ -1,6 +1,3 @@
-import { prepareSvgForExport } from './exportSvg';
-import { embedFontsInSvg } from './embedFonts';
-
 export async function exportPng(
   element: HTMLElement,
   filename: string,
@@ -29,28 +26,75 @@ export async function exportPng(
 
 /**
  * Convert an inline SVG to a high-quality PNG via Canvas.
- *
- * Uses the shared prepareSvgForExport() pipeline for consistent SVG
- * post-processing across all export formats, then embeds fonts as base64
- * so they render correctly in the isolated <img> context.
  */
 async function svgToCanvas(
   svgElement: SVGSVGElement,
   options?: { width?: number; height?: number; transparent?: boolean; pixelRatio?: number }
 ): Promise<string | null> {
   try {
-    // Use the shared SVG post-processing pipeline (single source of truth)
-    const clonedSvg = prepareSvgForExport(svgElement, {
-      width: options?.width,
-      height: options?.height,
-      transparent: options?.transparent,
-    });
+    const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+    clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 
-    // Embed fonts as base64 so they render in the isolated <img> context
-    await embedFontsInSvg(clonedSvg);
+    // Ensure overflow is hidden so content beyond the viewBox is clipped
+    // (e.g. x-axis ticks that extend past the chart boundary)
+    clonedSvg.setAttribute('overflow', 'hidden');
+
+    if (options?.transparent) {
+      // Clear ALL background rects — both direct SVG children and inside
+      // the chart wrapper group (layout bg + plot bg).
+      const clearBgRect = (rect: Element) => {
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('fill-opacity', '0');
+        rect.removeAttribute('opacity');
+      };
+
+      // Direct children of <svg>
+      clonedSvg.querySelectorAll(':scope > rect').forEach(clearBgRect);
+
+      // First rect(s) inside the chart wrapper <g> — these are background rects
+      // (layout bg at x=0,y=0 covering full SVG, plot bg covering plot area)
+      const gWrap = clonedSvg.querySelector('g[transform]');
+      if (gWrap) {
+        for (const child of Array.from(gWrap.children)) {
+          if (child.tagName !== 'rect') break;
+          const rx = parseFloat(child.getAttribute('x') || '0');
+          const ry = parseFloat(child.getAttribute('y') || '0');
+          const rw = parseFloat(child.getAttribute('width') || '0');
+          const svgW = parseFloat(clonedSvg.getAttribute('width') || '800');
+          if (rx === 0 && ry === 0 && rw >= svgW * 0.9) {
+            clearBgRect(child);
+          } else {
+            break;
+          }
+        }
+      }
+
+      // For transparent exports, swap cover circles for the SVG mask
+      const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
+      if (coverCircles) coverCircles.remove();
+
+      const linesGroup = clonedSvg.querySelector('[data-role="chart-lines"]');
+      if (linesGroup) {
+        const maskId = linesGroup.getAttribute('data-mask-id');
+        if (maskId) {
+          linesGroup.setAttribute('mask', `url(#${maskId})`);
+        }
+      }
+    }
 
     const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
     const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
+
+    const targetW = options?.width || svgWidth;
+    const targetH = options?.height || svgHeight;
+
+    // Set viewBox if not present
+    if (!clonedSvg.getAttribute('viewBox')) {
+      clonedSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+    }
+    clonedSvg.setAttribute('width', String(targetW));
+    clonedSvg.setAttribute('height', String(targetH));
 
     const svgString = new XMLSerializer().serializeToString(clonedSvg);
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -61,8 +105,8 @@ async function svgToCanvas(
       img.onload = () => {
         const pixelRatio = options?.pixelRatio || 2;
         const canvas = document.createElement('canvas');
-        canvas.width = svgWidth * pixelRatio;
-        canvas.height = svgHeight * pixelRatio;
+        canvas.width = targetW * pixelRatio;
+        canvas.height = targetH * pixelRatio;
         const ctx = canvas.getContext('2d');
         if (!ctx) { reject(new Error('Canvas 2d context unavailable')); return; }
 
@@ -70,10 +114,10 @@ async function svgToCanvas(
 
         if (!options?.transparent) {
           ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, svgWidth, svgHeight);
+          ctx.fillRect(0, 0, targetW, targetH);
         }
 
-        ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
         URL.revokeObjectURL(url);
         resolve(canvas.toDataURL('image/png', 1));
       };

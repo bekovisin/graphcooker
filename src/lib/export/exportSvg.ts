@@ -8,8 +8,7 @@
  *   4. Inline styles for cross-viewer compatibility (Illustrator, Inkscape, etc.)
  *
  * Used by both editor single-export (`exportSvg`) and dashboard/bulk export
- * (`captureAsSvgBlob`, `captureAsPdfBlob`), as well as PNG and PDF exports
- * (`exportPng`, `exportPdf`).
+ * (`captureAsSvgBlob`, `captureAsPdfBlob`).
  */
 export function prepareSvgForExport(
   svgElement: SVGSVGElement,
@@ -121,7 +120,6 @@ export async function exportSvg(
   options?: { width?: number; height?: number; transparent?: boolean }
 ) {
   try {
-    const { embedFontsInSvg } = await import('./embedFonts');
     const svgElement = element.querySelector('svg');
 
     if (!svgElement) {
@@ -129,9 +127,6 @@ export async function exportSvg(
     }
 
     const clonedSvg = prepareSvgForExport(svgElement, options);
-
-    // Embed fonts for standalone SVG quality (renders correctly without external fonts)
-    await embedFontsInSvg(clonedSvg);
 
     let svgString = new XMLSerializer().serializeToString(clonedSvg);
 

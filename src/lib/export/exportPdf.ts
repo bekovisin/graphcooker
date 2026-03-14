@@ -1,7 +1,5 @@
 import { jsPDF } from 'jspdf';
 import 'svg2pdf.js';
-import { prepareSvgForExport } from './exportSvg';
-import { embedFontsInSvg } from './embedFonts';
 
 export async function exportPdf(
   element: HTMLElement,
@@ -24,24 +22,72 @@ export async function exportPdf(
 
 /**
  * Vectorial PDF export using svg2pdf.js
- *
- * Uses the shared prepareSvgForExport() pipeline for consistent SVG
- * post-processing across all export formats, then renders as vector
- * graphics in the PDF — crisp at any zoom level.
+ * Renders the SVG directly as vector graphics in the PDF — crisp at any zoom level.
  */
 async function svgToVectorPdf(
   svgElement: SVGSVGElement,
   filename: string,
   options?: { width?: number; height?: number; transparent?: boolean }
 ) {
-  // Use the shared SVG post-processing pipeline (single source of truth)
-  const clonedSvg = prepareSvgForExport(svgElement, options);
+  // Clone the SVG so we don't modify the original
+  const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+  clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
 
-  // Embed fonts for consistent rendering
-  await embedFontsInSvg(clonedSvg);
+  // Ensure overflow is hidden so content beyond the viewBox is clipped
+  clonedSvg.setAttribute('overflow', 'hidden');
 
-  const targetW = parseFloat(clonedSvg.getAttribute('width') || '800');
-  const targetH = parseFloat(clonedSvg.getAttribute('height') || '600');
+  const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
+  const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
+  const targetW = options?.width || svgWidth;
+  const targetH = options?.height || svgHeight;
+
+  // Ensure viewBox exists
+  if (!clonedSvg.getAttribute('viewBox')) {
+    clonedSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+  }
+  clonedSvg.setAttribute('width', String(targetW));
+  clonedSvg.setAttribute('height', String(targetH));
+
+  // Handle transparent background
+  if (options?.transparent) {
+    const clearBgRect = (rect: Element) => {
+      rect.setAttribute('fill', 'none');
+      rect.setAttribute('fill-opacity', '0');
+      rect.removeAttribute('opacity');
+    };
+
+    // Direct children of <svg>
+    clonedSvg.querySelectorAll(':scope > rect').forEach(clearBgRect);
+
+    // First rect(s) inside the chart wrapper <g>
+    const gWrap = clonedSvg.querySelector('g[transform]');
+    if (gWrap) {
+      for (const child of Array.from(gWrap.children)) {
+        if (child.tagName !== 'rect') break;
+        const rx = parseFloat(child.getAttribute('x') || '0');
+        const ry = parseFloat(child.getAttribute('y') || '0');
+        const rw = parseFloat(child.getAttribute('width') || '0');
+        if (rx === 0 && ry === 0 && rw >= svgWidth * 0.9) {
+          clearBgRect(child);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // For transparent exports, swap cover circles for the SVG mask
+    const coverCircles = clonedSvg.querySelector('[data-role="cover-circles"]');
+    if (coverCircles) coverCircles.remove();
+
+    const linesGroup = clonedSvg.querySelector('[data-role="chart-lines"]');
+    if (linesGroup) {
+      const maskId = linesGroup.getAttribute('data-mask-id');
+      if (maskId) {
+        linesGroup.setAttribute('mask', `url(#${maskId})`);
+      }
+    }
+  }
 
   // Create PDF with exact dimensions
   const isLandscape = targetW > targetH;
