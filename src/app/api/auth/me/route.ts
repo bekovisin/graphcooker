@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
   }
 
   // User info is already verified by middleware JWT — no DB call needed
-  const name = request.headers.get('x-user-name');
+  const rawName = request.headers.get('x-user-name');
+  const name = rawName ? decodeURIComponent(rawName) : null;
   return NextResponse.json({
     user: {
       id: parseInt(userId),
