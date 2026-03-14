@@ -208,8 +208,8 @@ export function VisualizationCard({
             cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
           }`}>{viz.name}</h3>
         )}
-        {cardSize !== 'small' && viz.sharedByUserId && (
-          <p className={`truncate text-blue-500 ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
+        {viz.sharedByUserId && (
+          <p className={`truncate text-blue-500 ${cardSize === 'small' ? 'text-[8px]' : cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
             Shared by {viz.sharedByName || 'someone'}
           </p>
         )}

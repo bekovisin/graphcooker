@@ -183,8 +183,8 @@ export function FolderCard({
               <p className={`font-medium text-gray-900 truncate ${
                 cardSize === 'small' ? 'text-[10px]' : cardSize === 'medium' ? 'text-xs' : 'text-sm'
               }`}>{folder.name}</p>
-              {cardSize !== 'small' && folder.sharedByUserId && (
-                <p className={`truncate text-blue-500 ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
+              {folder.sharedByUserId && (
+                <p className={`truncate text-blue-500 ${cardSize === 'small' ? 'text-[8px]' : cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
                   Shared by {folder.sharedByName || 'someone'}
                 </p>
               )}

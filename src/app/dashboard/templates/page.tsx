@@ -379,8 +379,8 @@ export default function TemplatesPage() {
               </DropdownMenu>
             )}
           </div>
-          {cardSize !== 'small' && tpl.sharedByUserId && (
-            <p className={`truncate text-blue-500 ${cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
+          {tpl.sharedByUserId && (
+            <p className={`truncate text-blue-500 ${cardSize === 'small' ? 'text-[8px]' : cardSize === 'medium' ? 'text-[9px]' : 'text-[10px]'}`}>
               Shared by {tpl.sharedByName || 'someone'}
             </p>
           )}
