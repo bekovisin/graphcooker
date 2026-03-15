@@ -184,7 +184,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
     saveTimeoutRef.current = setTimeout(() => {
       saveVisualization();
-    }, 1000);
+    }, 3000);
 
     return () => {
       if (saveTimeoutRef.current) {

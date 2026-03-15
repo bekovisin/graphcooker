@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MoreVertical,
@@ -54,7 +54,7 @@ interface VisualizationCardProps {
   folders: FolderItem[];
 }
 
-export function VisualizationCard({
+export const VisualizationCard = React.memo(function VisualizationCard({
   viz,
   cardSize = 'large',
   isSelected,
@@ -326,4 +326,4 @@ export function VisualizationCard({
       </div>
     </div>
   );
-}
+});

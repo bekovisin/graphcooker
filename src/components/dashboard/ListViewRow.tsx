@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart3, Share2 } from 'lucide-react';
 import {
@@ -24,7 +24,7 @@ export interface ListViewRowProps {
   folders: FolderItem[];
 }
 
-export function ListViewRow({
+export const ListViewRow = React.memo(function ListViewRow({
   viz,
   isSelected,
   isSelectionMode,
@@ -217,4 +217,4 @@ export function ListViewRow({
       )}
     </div>
   );
-}
+});
