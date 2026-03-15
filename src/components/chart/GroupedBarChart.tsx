@@ -29,6 +29,7 @@ function roundedRectPath(
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface SeriesData {
+  key: string;
   name: string;
   data: number[];
   color: string;
@@ -225,6 +226,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
     let catColors = resolveColors(settings.colors, cats);
 
     let rawSeries: SeriesData[] = seriesNames.map((key, i) => ({
+      key,
       name: (seriesNamesProp && seriesNamesProp[key]) || key,
       data: data.map((row) => {
         const val = row[key];
@@ -960,7 +962,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
               const labelPos = settings.labels.dataPointPosition === 'custom'
                 ? (settings.labels.dataPointCustomMode === 'row'
                   ? (settings.labels.dataPointRowPositions?.[cat] || 'center')
-                  : (settings.labels.dataPointSeriesPositions?.[s.name] || 'center'))
+                  : (settings.labels.dataPointSeriesPositions?.[s.key] || 'center'))
                 : settings.labels.dataPointPosition;
               let labelX: number;
               let anchor: 'start' | 'middle' | 'end';
@@ -982,7 +984,7 @@ export function GroupedBarChart({ data, columnMapping, settings, width, height: 
               const barColorForLabel = colorByRow ? categoryColors[ci] : s.color;
               const labelColor = settings.labels.dataPointColorMode === 'auto'
                 ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(barColorForLabel))
-                : (settings.labels.dataPointSeriesColors[s.name] || settings.labels.dataPointColor);
+                : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor);
 
               const offsetX = settings.labels.dataPointCustomPadding
                 ? settings.labels.dataPointPaddingLeft - settings.labels.dataPointPaddingRight

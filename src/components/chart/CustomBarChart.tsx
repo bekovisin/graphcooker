@@ -7,6 +7,7 @@ import { resolveColors } from '@/lib/chart/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface SeriesData {
+  key: string;
   name: string;
   data: number[];
   color: string;
@@ -200,6 +201,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
     let cats = data.map((row) => String(row[columnMapping.labels] || ''));
 
     let rawSeries: SeriesData[] = seriesNames.map((key, i) => ({
+      key,
       name: (seriesNamesProp && seriesNamesProp[key]) || key,
       data: data.map((row) => {
         const val = row[key];
@@ -882,7 +884,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
               const labelPos = settings.labels.dataPointPosition === 'custom'
                 ? (settings.labels.dataPointCustomMode === 'row'
                   ? (settings.labels.dataPointRowPositions?.[cat] || 'center')
-                  : (settings.labels.dataPointSeriesPositions?.[s.name] || 'center'))
+                  : (settings.labels.dataPointSeriesPositions?.[s.key] || 'center'))
                 : settings.labels.dataPointPosition;
               let labelX: number;
               let anchor: 'start' | 'middle' | 'end';
@@ -903,7 +905,7 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
               const labelColor = settings.labels.dataPointColorMode === 'auto'
                 ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(s.color))
-                : (settings.labels.dataPointSeriesColors[s.name] || settings.labels.dataPointColor);
+                : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor);
 
               const offsetX = settings.labels.dataPointCustomPadding
                 ? settings.labels.dataPointPaddingLeft - settings.labels.dataPointPaddingRight
