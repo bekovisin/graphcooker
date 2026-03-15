@@ -199,7 +199,7 @@ export function NewVisualizationDialog({
                     <div className="aspect-[16/10] bg-gray-50 flex items-center justify-center border-b">
                       {template.thumbnail ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={template.thumbnail} alt="" className="w-full h-full object-contain" />
+                        <img src={template.thumbnail} alt="" loading="lazy" className="w-full h-full object-contain" />
                       ) : (
                         <BarChart3 className="w-8 h-8 text-gray-200" />
                       )}

@@ -63,7 +63,7 @@ export function ListViewRow({
 
   const thumbnailImg = viz.thumbnail
     // eslint-disable-next-line @next/next/no-img-element
-    ? <img src={viz.thumbnail} alt="" className="w-full h-full object-contain" />
+    ? <img src={viz.thumbnail} alt="" loading="lazy" className="w-full h-full object-contain" />
     : <BarChart3 className="w-4 h-4 text-gray-200" />;
 
   return (

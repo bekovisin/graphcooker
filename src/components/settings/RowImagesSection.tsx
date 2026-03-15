@@ -152,15 +152,15 @@ export function RowImagesSection() {
     [updateSettings],
   );
 
-  // Fetch library images once for custom override resolution
+  // Fetch library images only when custom overrides exist (lazy — skip heavy fetch on editor open)
   useEffect(() => {
-    if (libraryFetched.current) return;
+    if (libraryFetched.current || !settings.customImageOverrides) return;
     libraryFetched.current = true;
     fetch('/api/image-library')
       .then((res) => (res.ok ? res.json() : []))
       .then((imgs: LibraryImageEntry[]) => setLibraryImages(imgs))
       .catch(() => {});
-  }, []);
+  }, [settings.customImageOverrides]);
 
   // Resolve custom image overrides whenever text or library changes
   const resolveOverrides = useCallback(

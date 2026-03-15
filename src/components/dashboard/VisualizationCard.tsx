@@ -170,6 +170,7 @@ export function VisualizationCard({
           <img
             src={viz.thumbnail}
             alt={viz.name}
+            loading="lazy"
             className="w-full h-full object-contain"
           />
         ) : (

@@ -38,6 +38,34 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 const ACCEPT = 'image/png,image/jpeg,image/svg+xml,image/webp';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB client-side default
 
+/** Compress raster images to max dimension and JPEG quality to reduce base64 size */
+function compressImage(dataUrl: string, maxDim = 512, quality = 0.7): Promise<string> {
+  // Skip SVGs — they're already small and vector
+  if (dataUrl.startsWith('data:image/svg')) return Promise.resolve(dataUrl);
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      // Only downscale if larger than maxDim
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(dataUrl); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl); // Fallback to original
+    img.src = dataUrl;
+  });
+}
+
 export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibraryPickerProps) {
   const [images, setImages] = useState<LibraryImage[]>([]);
   const [search, setSearch] = useState('');
@@ -154,13 +182,16 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
           reader.readAsDataURL(file);
         });
 
+        // Compress raster images to reduce storage size
+        const compressedDataUrl = await compressImage(dataUrl);
+
         // Strip extension from filename
         const name = file.name.replace(/\.[^.]+$/, '');
 
         const res = await fetch('/api/image-library', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, dataUrl }),
+          body: JSON.stringify({ name, dataUrl: compressedDataUrl }),
         });
 
         if (res.ok) {

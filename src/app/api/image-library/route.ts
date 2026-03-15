@@ -8,11 +8,26 @@ import { validateImageDataUrl, checkUserLimits } from '@/lib/image-security';
 export async function GET(request: NextRequest) {
   try {
     const userId = getUserId(request);
-    const images = await db
-      .select()
-      .from(imageLibrary)
-      .where(eq(imageLibrary.userId, userId))
-      .orderBy(desc(imageLibrary.lastUsedAt));
+    const { searchParams } = new URL(request.url);
+    const metadataOnly = searchParams.get('fields') === 'metadata';
+
+    const images = metadataOnly
+      ? await db
+          .select({
+            id: imageLibrary.id,
+            name: imageLibrary.name,
+            createdAt: imageLibrary.createdAt,
+            lastUsedAt: imageLibrary.lastUsedAt,
+          })
+          .from(imageLibrary)
+          .where(eq(imageLibrary.userId, userId))
+          .orderBy(desc(imageLibrary.lastUsedAt))
+      : await db
+          .select()
+          .from(imageLibrary)
+          .where(eq(imageLibrary.userId, userId))
+          .orderBy(desc(imageLibrary.lastUsedAt));
+
     return NextResponse.json(images);
   } catch (error) {
     console.error('Failed to fetch image library:', error);
