@@ -201,13 +201,13 @@ export function ColorsSection() {
           </SelectContent>
         </Select>
         {settings.themeId && !themes.find((t) => t.id === settings.themeId)?.isBuiltIn && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             {renamingThemeId === settings.themeId ? (
-              <form onSubmit={(e) => { e.preventDefault(); handleRenameTheme(); }} className="flex items-center gap-1">
+              <form onSubmit={(e) => { e.preventDefault(); handleRenameTheme(); }} className="flex items-center gap-1 flex-1 min-w-0">
                 <input
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
-                  className="text-xs border rounded px-1.5 py-0.5 w-32"
+                  className="text-xs border rounded px-2 h-8 flex-1 min-w-0"
                   autoFocus
                   onBlur={handleRenameTheme}
                   onKeyDown={(e) => { if (e.key === 'Escape') setRenamingThemeId(null); }}
@@ -227,7 +227,7 @@ export function ColorsSection() {
             )}
             <button
               onClick={() => handleDeleteTheme(settings.themeId!)}
-              className="text-[10px] text-red-500 hover:text-red-700"
+              className="text-[10px] text-red-500 hover:text-red-700 shrink-0"
             >
               Delete
             </button>
