@@ -29,6 +29,7 @@ import {
   useTemplateFolderTemplateCounts,
   useTemplateFolderSubCounts,
   useGridClass,
+  useSortTemplate,
   type TemplateItem,
 } from '@/store/dashboardStore';
 
@@ -64,6 +65,7 @@ export default function TemplatesPage() {
   const templateCounts = useTemplateFolderTemplateCounts();
   const templateSubCounts = useTemplateFolderSubCounts();
   const gridClass = useGridClass();
+  const sortTemplate = useSortTemplate();
 
   // Local state
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
@@ -99,8 +101,8 @@ export default function TemplatesPage() {
       const q = searchQuery.toLowerCase();
       result = result.filter((t) => t.templateName.toLowerCase().includes(q));
     }
-    return result;
-  }, [ownershipTemplates, searchQuery]);
+    return sortTemplate(result);
+  }, [ownershipTemplates, searchQuery, sortTemplate]);
 
   const toggleFolderExpand = useCallback((folderId: number) => {
     setExpandedFolderIds((prev) => {
@@ -113,9 +115,9 @@ export default function TemplatesPage() {
   const templateFoldersWithItems = useMemo(() => {
     return rootTemplateFolders.map((folder) => ({
       folder,
-      items: ownershipTemplates.filter((t) => t.folderId === folder.id),
+      items: sortTemplate(ownershipTemplates.filter((t) => t.folderId === folder.id)),
     }));
-  }, [rootTemplateFolders, ownershipTemplates]);
+  }, [rootTemplateFolders, ownershipTemplates, sortTemplate]);
 
   const handleShareTemplate = (templateId: number) => {
     setShareTemplateIds([templateId]);

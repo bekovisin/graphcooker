@@ -46,7 +46,7 @@ export default function FolderPage() {
   const renameFolder = useDashboardStore((s) => s.renameFolder);
   const duplicateFolder = useDashboardStore((s) => s.duplicateFolder);
   const deleteFolder = useDashboardStore((s) => s.deleteFolder);
-  const createVisualization = useDashboardStore((s) => s.createVisualization);
+  const setShowNewVizDialog = useDashboardStore((s) => s.setShowNewVizDialog);
 
   // Selection from store
   const isSelectionMode = useDashboardStore((s) => s.isSelectionMode);
@@ -122,11 +122,6 @@ export default function FolderPage() {
       vizItems: sortViz(visualizations.filter((v) => v.folderId === folder.id)),
     }));
   }, [activeSubFolders, visualizations, sortViz]);
-
-  const createNew = async () => {
-    const id = await createVisualization(folderId);
-    if (id) router.push(`/editor/${id}`);
-  };
 
   // Render helpers
   const renderSubFolderGroupHeader = (folder: typeof folders[0], vizCount: number) => {
@@ -212,7 +207,7 @@ export default function FolderPage() {
             <p className="text-sm text-gray-500 mb-4">
               Create a new visualization or move one here
             </p>
-            <Button onClick={createNew} disabled={creating} size="sm" className="gap-1.5">
+            <Button onClick={() => setShowNewVizDialog(true)} disabled={creating} size="sm" className="gap-1.5">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               New visualization
             </Button>

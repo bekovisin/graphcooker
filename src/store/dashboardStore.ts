@@ -1109,3 +1109,20 @@ export const useSortViz = () => {
     });
   };
 };
+
+export const useSortTemplate = () => {
+  const sortMode = useDashboardStore((s) => s.sortMode);
+  return (arr: TemplateItem[]) => {
+    return [...arr].sort((a, b) => {
+      switch (sortMode) {
+        case 'updated_desc': return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        case 'updated_asc': return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+        case 'name_asc': return a.templateName.localeCompare(b.templateName, undefined, { numeric: true, sensitivity: 'base' });
+        case 'name_desc': return b.templateName.localeCompare(a.templateName, undefined, { numeric: true, sensitivity: 'base' });
+        case 'created_desc': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'created_asc': return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default: return 0;
+      }
+    });
+  };
+};
