@@ -143,6 +143,16 @@ export const waitlist = pgTable('waitlist', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const imageLibrary = pgTable('image_library', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  dataUrl: text('data_url').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastUsedAt: timestamp('last_used_at').defaultNow().notNull(),
+});
+
 export const dashboardTemplates = pgTable('dashboard_templates', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull(),

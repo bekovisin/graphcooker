@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
 import { SettingRow } from '@/components/shared/SettingRow';
+import { ImageLibraryPicker } from '@/components/shared/ImageLibraryPicker';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import {
@@ -14,66 +15,37 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Settings2, Upload, X, ImageIcon } from 'lucide-react';
+import { Settings2, X, ImageIcon } from 'lucide-react';
 import type { RowImagesSettings } from '@/types/chart';
 
-const ACCEPT = 'image/png,image/jpeg,image/svg+xml,image/webp';
-
-/* ── Reusable image uploader (drag & drop + browse) ── */
-function ImageUploader({
+/* ── Image preview with remove + choose from library ── */
+function ImageSelector({
   value,
-  onChange,
+  onRemove,
+  onChoose,
   compact,
 }: {
   value: string;
-  onChange: (dataUrl: string) => void;
+  onRemove: () => void;
+  onChoose: () => void;
   compact?: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-
-  const handleFile = useCallback(
-    (file: File) => {
-      if (!file.type.match(/^image\/(png|jpe?g|svg\+xml|webp)$/)) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') onChange(reader.result);
-      };
-      reader.readAsDataURL(file);
-    },
-    [onChange],
-  );
-
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(false);
-      const file = e.dataTransfer.files?.[0];
-      if (file) handleFile(file);
-    },
-    [handleFile],
-  );
-
-  const onFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (file) handleFile(file);
-      e.target.value = '';
-    },
-    [handleFile],
-  );
-
   if (value) {
     return (
       <div className={`relative group rounded-md border border-gray-200 bg-gray-50/50 ${compact ? 'p-1' : 'p-2'} flex items-center gap-2`}>
         <img
           src={value}
-          alt="Uploaded"
+          alt="Selected"
           className={`${compact ? 'w-8 h-8' : 'w-12 h-12'} object-contain rounded bg-white border border-gray-100`}
         />
-        <span className="text-[10px] text-gray-400 truncate flex-1">Image uploaded</span>
         <button
-          onClick={() => onChange('')}
+          onClick={onChoose}
+          className="text-[10px] text-blue-500 hover:text-blue-600 font-medium truncate flex-1 text-left"
+        >
+          Change
+        </button>
+        <button
+          onClick={onRemove}
           className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-gray-200 hover:bg-red-100 text-gray-500 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
           title="Remove image"
         >
@@ -84,42 +56,17 @@ function ImageUploader({
   }
 
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragging(true);
-      }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={onDrop}
-      onClick={() => inputRef.current?.click()}
-      className={`flex flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed cursor-pointer transition-colors ${
-        dragging
-          ? 'border-blue-400 bg-blue-50/50'
-          : 'border-gray-200 hover:border-gray-300 bg-gray-50/30 hover:bg-gray-50'
-      } ${compact ? 'py-2 px-2' : 'py-4 px-3'}`}
+    <button
+      onClick={onChoose}
+      className={`flex items-center justify-center gap-1.5 w-full rounded-md border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50/30 cursor-pointer transition-colors ${
+        compact ? 'py-2 px-2' : 'py-4 px-3'
+      }`}
     >
-      {compact ? (
-        <div className="flex items-center gap-1.5">
-          <Upload className="w-3 h-3 text-gray-400" />
-          <span className="text-[10px] text-gray-400">Drop or click</span>
-        </div>
-      ) : (
-        <>
-          <ImageIcon className="w-5 h-5 text-gray-300" />
-          <span className="text-[10px] text-gray-400 text-center">
-            Drag & drop or click to browse
-          </span>
-          <span className="text-[9px] text-gray-300">PNG, JPG, SVG, WEBP</span>
-        </>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPT}
-        onChange={onFileChange}
-        className="hidden"
-      />
-    </div>
+      <ImageIcon className={`${compact ? 'w-3 h-3' : 'w-5 h-5'} text-gray-300`} />
+      <span className={`${compact ? 'text-[10px]' : 'text-[11px]'} text-gray-400 font-medium`}>
+        Choose from library
+      </span>
+    </button>
   );
 }
 
@@ -180,6 +127,8 @@ export function RowImagesSection() {
   const labelsColumn = useEditorStore((s) => s.columnMapping.labels);
 
   const [showPerRowDialog, setShowPerRowDialog] = useState(false);
+  const [showImageLibrary, setShowImageLibrary] = useState(false);
+  const [imageTarget, setImageTarget] = useState<'default' | string | null>(null);
 
   const rowLabels = useMemo(() => {
     if (!data.length || !labelsColumn) return [];
@@ -188,6 +137,21 @@ export function RowImagesSection() {
 
   const update = (updates: Partial<RowImagesSettings>) => {
     updateSettings('rowImages', updates);
+  };
+
+  const openLibrary = (target: 'default' | string) => {
+    setImageTarget(target);
+    setShowImageLibrary(true);
+  };
+
+  const handleLibrarySelect = (dataUrl: string) => {
+    if (imageTarget === 'default') {
+      update({ defaultUrl: dataUrl });
+    } else if (imageTarget) {
+      update({ perRowUrls: { ...settings.perRowUrls, [imageTarget]: dataUrl } });
+    }
+    setShowImageLibrary(false);
+    setImageTarget(null);
   };
 
   const isAxisMode = barLabelStyle !== 'above_bars';
@@ -225,12 +189,13 @@ export function RowImagesSection() {
             </div>
           )}
 
-          {/* Default image upload */}
+          {/* Default image — choose from library */}
           <div className="space-y-1">
             <label className="text-xs text-gray-600 font-medium">Default image</label>
-            <ImageUploader
+            <ImageSelector
               value={settings.defaultUrl}
-              onChange={(dataUrl) => update({ defaultUrl: dataUrl })}
+              onRemove={() => update({ defaultUrl: '' })}
+              onChoose={() => openLibrary('default')}
             />
           </div>
 
@@ -324,7 +289,7 @@ export function RowImagesSection() {
               <DialogHeader>
                 <DialogTitle className="text-sm">Per-row image overrides</DialogTitle>
                 <DialogDescription className="text-xs text-gray-500">
-                  Upload different images and set dimensions for specific rows. Leave empty to use defaults.
+                  Choose different images and set dimensions for specific rows. Leave empty to use defaults.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 mt-2">
@@ -332,17 +297,14 @@ export function RowImagesSection() {
                   <div key={label} className="space-y-1.5 p-2 rounded-md border border-gray-100 bg-gray-50/50">
                     <span className="text-xs font-medium text-gray-700">{label}</span>
                     <div className="space-y-1.5">
-                      <ImageUploader
+                      <ImageSelector
                         value={settings.perRowUrls[label] ?? ''}
-                        onChange={(dataUrl) => {
+                        onRemove={() => {
                           const newUrls = { ...settings.perRowUrls };
-                          if (dataUrl) {
-                            newUrls[label] = dataUrl;
-                          } else {
-                            delete newUrls[label];
-                          }
+                          delete newUrls[label];
                           update({ perRowUrls: newUrls });
                         }}
+                        onChoose={() => openLibrary(label)}
                         compact
                       />
                       <div className="grid grid-cols-2 gap-1.5">
@@ -400,6 +362,16 @@ export function RowImagesSection() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Image Library Picker */}
+          <ImageLibraryPicker
+            open={showImageLibrary}
+            onOpenChange={(open) => {
+              setShowImageLibrary(open);
+              if (!open) setImageTarget(null);
+            }}
+            onSelect={handleLibrarySelect}
+          />
         </>
       )}
     </AccordionSection>
