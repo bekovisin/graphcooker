@@ -38,8 +38,8 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 const ACCEPT = 'image/png,image/jpeg,image/svg+xml,image/webp';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB client-side default
 
-/** Compress raster images to max dimension and JPEG quality to reduce base64 size */
-function compressImage(dataUrl: string, maxDim = 512, quality = 0.7): Promise<string> {
+/** Downscale large raster images to reduce base64 size while preserving quality */
+function compressImage(dataUrl: string, maxDim = 1024): Promise<string> {
   // Skip SVGs — they're already small and vector
   if (dataUrl.startsWith('data:image/svg')) return Promise.resolve(dataUrl);
 
@@ -47,19 +47,20 @@ function compressImage(dataUrl: string, maxDim = 512, quality = 0.7): Promise<st
     const img = new Image();
     img.onload = () => {
       let w = img.width, h = img.height;
-      // Only downscale if larger than maxDim
-      if (w > maxDim || h > maxDim) {
-        const ratio = Math.min(maxDim / w, maxDim / h);
-        w = Math.round(w * ratio);
-        h = Math.round(h * ratio);
-      }
+      // Only downscale if larger than maxDim — skip if already small enough
+      if (w <= maxDim && h <= maxDim) { resolve(dataUrl); return; }
+      const ratio = Math.min(maxDim / w, maxDim / h);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       if (!ctx) { resolve(dataUrl); return; }
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      // Preserve original format (PNG keeps transparency, JPEG stays JPEG)
+      const mime = dataUrl.match(/^data:(image\/\w+)/)?.[1] || 'image/png';
+      resolve(canvas.toDataURL(mime, 0.9));
     };
     img.onerror = () => resolve(dataUrl); // Fallback to original
     img.src = dataUrl;
