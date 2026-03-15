@@ -256,12 +256,12 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-2">
-            {!isTemplatesView && !isTrashView && (
+            {!isTrashView && (
               <Button
                 variant="outline"
                 size="sm"
                 className="gap-1.5 text-xs h-8"
-                onClick={() => setShowNewFolderDialog(true)}
+                onClick={() => isTemplatesView ? setShowNewTemplateFolderDialog(true) : setShowNewFolderDialog(true)}
               >
                 <FolderPlus className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">New folder</span>
@@ -384,19 +384,6 @@ export default function DashboardLayout({
 
             {!isTrashView && (
               <>
-                {/* Template "New folder" button — only on templates routes */}
-                {isTemplatesView && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs h-8"
-                    onClick={() => setShowNewTemplateFolderDialog(true)}
-                  >
-                    <FolderPlus className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">New folder</span>
-                  </Button>
-                )}
-
                 {/* Sort */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
