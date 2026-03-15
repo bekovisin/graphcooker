@@ -988,7 +988,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
                 const labelColor = settings.labels.dataPointColorMode === 'auto'
                   ? ((labelPos === 'outside_right' || labelPos === 'fixed') ? '#333333' : getContrastColor(barColor))
                   : (settings.labels.dataPointColorCustomMode === 'row'
-                    ? (settings.labels.dataPointRowColors?.[cat] || settings.labels.dataPointColor)
+                    ? (settings.labels.dataPointRowColors?.[String(ci)] || settings.labels.dataPointColor)
                     : (settings.labels.dataPointSeriesColors[columnMapping.values[0]] || settings.labels.dataPointColor));
 
                 const labelCenterY = renderBarY + barHeight / 2 + padOffsetY;

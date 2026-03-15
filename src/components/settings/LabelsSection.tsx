@@ -1794,26 +1794,29 @@ export function LabelsSection() {
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                      {colorCustomNames.map((name) => (
-                        <div key={name} className="flex items-center justify-between gap-3">
+                      {colorCustomNames.map((name, idx) => {
+                        const itemKey = colorIsRowMode ? String(idx) : name;
+                        return (
+                        <div key={itemKey} className="flex items-center justify-between gap-3">
                           <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
                             {name}
                           </span>
                           <div className="flex-shrink-0">
                             <ColorPicker
-                              value={colorCustomValues?.[name] || settings.dataPointColor}
+                              value={colorCustomValues?.[itemKey] || settings.dataPointColor}
                               onChange={(color) => {
                                 update({
                                   [colorCustomKey]: {
                                     ...colorCustomValues,
-                                    [name]: color,
+                                    [itemKey]: color,
                                   },
                                 } as Partial<LabelsSettings>);
                               }}
                             />
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                       {colorCustomNames.length === 0 && (
                         <p className="text-xs text-gray-400 text-center py-4">
                           No data {colorIsRowMode ? 'rows' : 'columns'}. Add data to configure colors.
