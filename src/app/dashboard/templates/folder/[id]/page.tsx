@@ -75,20 +75,6 @@ export default function TemplateFolderPage() {
   const [shareTemplateIds, setShareTemplateIds] = useState<number[]>([]);
   const [shareFolderIds, setShareFolderIds] = useState<number[]>([]);
 
-  // Current folder info
-  const currentFolder = useMemo(() => templateFolders.find((f) => f.id === folderId), [templateFolders, folderId]);
-
-  // Breadcrumb path
-  const breadcrumb = useMemo(() => {
-    const path: typeof templateFolders = [];
-    let current = currentFolder;
-    while (current) {
-      path.unshift(current);
-      current = current.parentId !== null ? templateFolders.find((f) => f.id === current!.parentId) : undefined;
-    }
-    return path;
-  }, [currentFolder, templateFolders]);
-
   // Child folders of the current folder
   const childFolders = useMemo(() => {
     return templateFolders.filter((f) => f.parentId === folderId);
@@ -351,29 +337,6 @@ export default function TemplateFolderPage() {
 
   return (
     <div>
-      {/* Breadcrumb navigation */}
-      <div className="flex items-center gap-1.5 text-sm mb-4 flex-wrap">
-        <button
-          onClick={() => router.push('/dashboard/templates')}
-          className="text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          Templates
-        </button>
-        {breadcrumb.map((folder) => (
-          <span key={folder.id} className="flex items-center gap-1.5">
-            <ChevronRight className="w-3 h-3 text-gray-300" />
-            <button
-              onClick={() => router.push(`/dashboard/templates/folder/${folder.id}`)}
-              className={`transition-colors ${
-                folder.id === folderId ? 'text-gray-800 font-medium' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {folder.name}
-            </button>
-          </span>
-        ))}
-      </div>
-
       {/* Empty state */}
       {folderTemplates.length === 0 && childFolders.length === 0 ? (
         <div className="text-center py-20">

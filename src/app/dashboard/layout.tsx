@@ -156,6 +156,33 @@ export default function DashboardLayout({
   const isTemplatesView = pathname.startsWith('/dashboard/templates');
   const isNotRoot = pathname !== '/dashboard';
 
+  // Build full breadcrumb path for folder views
+  const breadcrumbPath = useMemo(() => {
+    const vizMatch = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
+    if (vizMatch) {
+      const fId = parseInt(vizMatch[1]);
+      const path: typeof folders = [];
+      let current = folders.find((f) => f.id === fId);
+      while (current) {
+        path.unshift(current);
+        current = current.parentId !== null ? folders.find((f) => f.id === current!.parentId) : undefined;
+      }
+      return { type: 'viz' as const, path };
+    }
+    const tplMatch = pathname.match(/^\/dashboard\/templates\/folder\/(\d+)$/);
+    if (tplMatch) {
+      const fId = parseInt(tplMatch[1]);
+      const path: typeof templateFolders = [];
+      let current = templateFolders.find((f) => f.id === fId);
+      while (current) {
+        path.unshift(current);
+        current = current.parentId !== null ? templateFolders.find((f) => f.id === current!.parentId) : undefined;
+      }
+      return { type: 'template' as const, path };
+    }
+    return null;
+  }, [pathname, folders, templateFolders]);
+
   // Compute visible viz IDs for "Select All" based on current route
   const visibleVizIds = useMemo(() => {
     if (isTemplatesView || isTrashView) return [];
@@ -293,31 +320,66 @@ export default function DashboardLayout({
 
         {/* Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Toolbar */}
-          <div className="px-3 sm:px-6 py-3 border-b border-gray-200 bg-white flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap">
-            {/* Breadcrumb: GC icon + chevron + title (only when NOT on root) */}
-            {isNotRoot && (
-              <>
+          {/* Toolbar — Row 1: Breadcrumbs */}
+          {(breadcrumbPath || isNotRoot) && (
+            <div className="px-3 sm:px-6 pt-2 pb-1 border-b border-gray-100 bg-white shrink-0">
+              <div className="flex items-center gap-1 text-xs flex-wrap">
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="flex items-center gap-1 px-1.5 h-8 rounded-md hover:bg-gray-100 transition-colors shrink-0"
+                  className="flex items-center gap-1 px-1 h-6 rounded hover:bg-gray-100 transition-colors shrink-0"
                   title="GraphCooker — All visualizations"
                 >
-                  <Image src="/icon-sm.svg" alt="GC" width={20} height={20} />
+                  <Image src="/icon-sm.svg" alt="GC" width={18} height={18} />
                 </button>
-                <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
-              </>
-            )}
+                <ChevronRight className="w-2.5 h-2.5 text-gray-300 shrink-0" />
 
-            <h2 className="text-sm font-semibold text-gray-800 mr-2">
-              {isTrashView && <Trash2 className="w-4 h-4 inline-block mr-1.5 text-red-500 -mt-0.5" />}
-              {isTemplatesView && <LayoutTemplate className="w-4 h-4 inline-block mr-1.5 text-orange-500 -mt-0.5" />}
-              {pageTitle}
-            </h2>
+                {breadcrumbPath ? (
+                  <>
+                    <button
+                      onClick={() => router.push(breadcrumbPath.type === 'template' ? '/dashboard/templates' : '/dashboard')}
+                      className="text-gray-500 hover:text-gray-700 transition-colors shrink-0"
+                    >
+                      {breadcrumbPath.type === 'template' ? 'Templates' : 'Visualizations'}
+                    </button>
+                    {breadcrumbPath.path.map((folder, i) => (
+                      <span key={folder.id} className="flex items-center gap-1">
+                        <ChevronRight className="w-2.5 h-2.5 text-gray-300" />
+                        <button
+                          onClick={() => router.push(
+                            breadcrumbPath.type === 'template'
+                              ? `/dashboard/templates/folder/${folder.id}`
+                              : `/dashboard/folder/${folder.id}`
+                          )}
+                          className={`transition-colors truncate max-w-[150px] ${
+                            i === breadcrumbPath.path.length - 1
+                              ? 'text-gray-800 font-semibold'
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          {folder.name}
+                        </button>
+                      </span>
+                    ))}
+                  </>
+                ) : (
+                  <span className="font-semibold text-gray-800">
+                    {isTrashView && <Trash2 className="w-3.5 h-3.5 inline-block mr-1 text-red-500 -mt-0.5" />}
+                    {isTemplatesView && <LayoutTemplate className="w-3.5 h-3.5 inline-block mr-1 text-orange-500 -mt-0.5" />}
+                    {pageTitle}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
-            {/* Ownership filter tabs */}
+          {/* Toolbar — Row 2: Tabs (centered), Search, Sort, View controls */}
+          <div className="px-3 sm:px-6 py-2 border-b border-gray-200 bg-white flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Left spacer for centering tabs */}
+            <div className="flex-1 min-w-0" />
+
+            {/* Ownership filter tabs (centered) */}
             {!isTrashView && !isTemplatesView && (
-              <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+              <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5 shrink-0">
                 {([
                   { value: 'all' as OwnershipFilter, label: 'All Visualizations' },
                   { value: 'mine' as OwnershipFilter, label: 'My Visualizations' },
@@ -338,7 +400,7 @@ export default function DashboardLayout({
               </div>
             )}
             {isTemplatesView && (
-              <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5">
+              <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5 shrink-0">
                 {([
                   { value: 'all' as OwnershipFilter, label: 'All Templates' },
                   { value: 'mine' as OwnershipFilter, label: 'My Templates' },
@@ -359,9 +421,12 @@ export default function DashboardLayout({
               </div>
             )}
 
-            {/* Search (hidden on trash view) */}
+            {/* Right spacer for centering tabs */}
+            <div className="flex-1 min-w-0" />
+
+            {/* Search (before sort, narrower) */}
             {!isTrashView && (
-              <div className="relative flex-1 max-w-xs min-w-[120px]">
+              <div className="relative w-48 min-w-[120px] shrink-0">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
                 <input
                   value={searchQuery}
@@ -379,8 +444,6 @@ export default function DashboardLayout({
                 )}
               </div>
             )}
-
-            <div className="flex-1" />
 
             {!isTrashView && (
               <>
