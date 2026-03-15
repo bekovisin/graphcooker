@@ -123,6 +123,8 @@ export interface LabelsSettings {
   dataPointColorMode: DataPointLabelColorMode;
   dataPointColor: string;
   dataPointSeriesColors: Record<string, string>;
+  dataPointColorCustomMode?: 'column' | 'row';
+  dataPointRowColors?: Record<string, string>;
   dataPointPosition: DataPointLabelPosition | 'custom';
   dataPointCustomMode: 'column' | 'row';
   dataPointSeriesPositions: Record<string, DataPointLabelPosition>;

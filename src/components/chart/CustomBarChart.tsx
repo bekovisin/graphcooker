@@ -905,7 +905,9 @@ export function CustomBarChart({ data, columnMapping, settings, width, height: h
 
               const labelColor = settings.labels.dataPointColorMode === 'auto'
                 ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(s.color))
-                : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor);
+                : (settings.labels.dataPointColorCustomMode === 'row'
+                  ? (settings.labels.dataPointRowColors?.[cat] || settings.labels.dataPointColor)
+                  : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor));
 
               const offsetX = settings.labels.dataPointCustomPadding
                 ? settings.labels.dataPointPaddingLeft - settings.labels.dataPointPaddingRight

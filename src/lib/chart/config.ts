@@ -75,6 +75,8 @@ export const defaultChartSettings: ChartSettings = {
     dataPointColorMode: 'auto',
     dataPointColor: '#333333',
     dataPointSeriesColors: {},
+    dataPointColorCustomMode: 'column',
+    dataPointRowColors: {},
     dataPointPosition: 'center',
     dataPointCustomMode: 'column',
     dataPointSeriesPositions: {},

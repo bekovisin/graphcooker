@@ -244,6 +244,7 @@ export function LabelsSection() {
   const [expandedLabelSeries, setExpandedLabelSeries] = useState<Record<string, boolean>>({});
   const [showRowSeriesPaddingModal, setShowRowSeriesPaddingModal] = useState(false);
   const [expandedPaddingRows, setExpandedPaddingRows] = useState<Record<string, boolean>>({});
+  const [showDpColorModal, setShowDpColorModal] = useState(false);
   const [dataPointStylingOpen, setDataPointStylingOpen] = useState(true);
   const isLineChart = chartType === 'line_chart';
   const isRowMode = settings.dataPointCustomMode === 'row';
@@ -1747,39 +1748,83 @@ export function LabelsSection() {
             />
           </SettingRow>
 
-          {/* Custom color mode - grid layout */}
-          {settings.dataPointColorMode === 'custom' && (
-            <div className="space-y-2">
-              <ColorPicker
-                label="Default color"
-                value={settings.dataPointColor}
-                onChange={(color) => update({ dataPointColor: color })}
-              />
-              {seriesNames.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[10px] text-gray-400 font-medium">Per-series colors</span>
-                  <div className="grid grid-cols-3 gap-2">
-                    {seriesNames.map((name) => (
-                      <div key={name} className="space-y-1">
-                        <span className="text-[10px] text-gray-500 truncate block">{name}</span>
-                        <ColorPicker
-                          value={settings.dataPointSeriesColors?.[name] || settings.dataPointColor}
-                          onChange={(color) => {
-                            update({
-                              dataPointSeriesColors: {
-                                ...settings.dataPointSeriesColors,
-                                [name]: color,
-                              },
-                            });
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Custom color mode - modal based */}
+          {settings.dataPointColorMode === 'custom' && (() => {
+            const colorIsRowMode = settings.dataPointColorCustomMode === 'row';
+            const colorCustomNames = colorIsRowMode ? categoryNames : seriesNames;
+            const colorCustomValues = colorIsRowMode ? settings.dataPointRowColors : settings.dataPointSeriesColors;
+            const colorCustomKey = colorIsRowMode ? 'dataPointRowColors' : 'dataPointSeriesColors';
+            return (
+              <div className="space-y-2">
+                <ColorPicker
+                  label="Default color"
+                  value={settings.dataPointColor}
+                  onChange={(color) => update({ dataPointColor: color })}
+                />
+
+                <SettingRow label="Custom by">
+                  <Select
+                    value={settings.dataPointColorCustomMode || 'column'}
+                    onValueChange={(v) => update({ dataPointColorCustomMode: v as 'column' | 'row' })}
+                  >
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="column">By Column</SelectItem>
+                      <SelectItem value="row">By Row</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingRow>
+
+                <button
+                  onClick={() => setShowDpColorModal(true)}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                  Configure per-{colorIsRowMode ? 'row' : 'column'} colors...
+                </button>
+
+                <Dialog open={showDpColorModal} onOpenChange={setShowDpColorModal}>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Per-{colorIsRowMode ? 'Row' : 'Column'} Label Colors</DialogTitle>
+                      <DialogDescription>
+                        Set the data point label color for each {colorIsRowMode ? 'row' : 'column'} independently.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                      {colorCustomNames.map((name) => (
+                        <div key={name} className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                            {name}
+                          </span>
+                          <div className="flex-shrink-0">
+                            <ColorPicker
+                              value={colorCustomValues?.[name] || settings.dataPointColor}
+                              onChange={(color) => {
+                                update({
+                                  [colorCustomKey]: {
+                                    ...colorCustomValues,
+                                    [name]: color,
+                                  },
+                                } as Partial<LabelsSettings>);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      {colorCustomNames.length === 0 && (
+                        <p className="text-xs text-gray-400 text-center py-4">
+                          No data {colorIsRowMode ? 'rows' : 'columns'}. Add data to configure colors.
+                        </p>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            );
+          })()}
 
           {/* PERCENT PREFIX (not for bar_chart_custom_2) */}
           {chartType !== 'bar_chart_custom_2' && (
