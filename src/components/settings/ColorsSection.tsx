@@ -33,6 +33,8 @@ export function ColorsSection() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [themes, setThemes] = useState<SavedTheme[]>([]);
   const [, setLoadingThemes] = useState(false);
+  const [renamingThemeId, setRenamingThemeId] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const update = (updates: Partial<ColorsSettings>) => {
     updateSettings('colors', updates);
@@ -144,6 +146,26 @@ export function ColorsSection() {
     }
   };
 
+  const handleRenameTheme = async () => {
+    if (!renamingThemeId || !renameValue.trim()) {
+      setRenamingThemeId(null);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/themes/${renamingThemeId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: renameValue.trim() }),
+      });
+      if (res.ok) {
+        setThemes((prev) => prev.map((t) => t.id === renamingThemeId ? { ...t, name: renameValue.trim() } : t));
+      }
+    } catch (err) {
+      console.error('Failed to rename theme:', err);
+    }
+    setRenamingThemeId(null);
+  };
+
   return (
     <AccordionSection id="colors" title="Colors">
       {/* Theme Selector */}
@@ -178,13 +200,38 @@ export function ColorsSection() {
             ))}
           </SelectContent>
         </Select>
-        {settings.themeId && (
-          <button
-            onClick={() => handleDeleteTheme(settings.themeId!)}
-            className="text-[10px] text-red-500 hover:text-red-700"
-          >
-            Delete this theme
-          </button>
+        {settings.themeId && !themes.find((t) => t.id === settings.themeId)?.isBuiltIn && (
+          <div className="flex items-center gap-2">
+            {renamingThemeId === settings.themeId ? (
+              <form onSubmit={(e) => { e.preventDefault(); handleRenameTheme(); }} className="flex items-center gap-1">
+                <input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  className="text-xs border rounded px-1.5 py-0.5 w-32"
+                  autoFocus
+                  onBlur={handleRenameTheme}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setRenamingThemeId(null); }}
+                />
+              </form>
+            ) : (
+              <button
+                onClick={() => {
+                  setRenamingThemeId(settings.themeId!);
+                  const theme = themes.find((t) => t.id === settings.themeId);
+                  setRenameValue(theme?.name || '');
+                }}
+                className="text-[10px] text-blue-500 hover:text-blue-700"
+              >
+                Rename
+              </button>
+            )}
+            <button
+              onClick={() => handleDeleteTheme(settings.themeId!)}
+              className="text-[10px] text-red-500 hover:text-red-700"
+            >
+              Delete
+            </button>
+          </div>
         )}
       </div>
 
