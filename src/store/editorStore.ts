@@ -60,6 +60,7 @@ interface EditorState {
   removeRows: (rowIndices: number[]) => void;
   insertColumn: (atIndex: number, name: string) => void;
   removeColumn: (colIndex: number) => void;
+  removeColumns: (colIndices: number[]) => void;
   reorderColumn: (fromIndex: number, toIndex: number) => void;
   reorderRow: (fromIndex: number, toIndex: number) => void;
   sortByColumn: (colName: string, direction: 'asc' | 'desc') => void;
@@ -237,6 +238,27 @@ export const useEditorStore = create<EditorState>((set) => ({
       if (mapping.chartsGrid === colName) mapping.chartsGrid = undefined;
       if (mapping.rowFilter === colName) mapping.rowFilter = undefined;
       if (mapping.infoPopups) mapping.infoPopups = mapping.infoPopups.filter((v) => v !== colName);
+      return { data: newData, columnOrder: newOrder, columnMapping: mapping, isDirty: true };
+    }),
+
+  removeColumns: (colIndices) =>
+    set((state) => {
+      const indexSet = new Set(colIndices);
+      const removedNames = state.columnOrder.filter((_, i) => indexSet.has(i));
+      const newOrder = state.columnOrder.filter((_, i) => !indexSet.has(i));
+      if (newOrder.length === 0) return {};
+      const newData = state.data.map((row) => {
+        const newRow: DataRow = {};
+        newOrder.forEach((col) => { newRow[col] = row[col] ?? ''; });
+        return newRow;
+      });
+      const removedSet = new Set(removedNames);
+      const mapping = { ...state.columnMapping };
+      if (mapping.labels && removedSet.has(mapping.labels)) mapping.labels = '';
+      if (mapping.values) mapping.values = mapping.values.filter((v) => !removedSet.has(v));
+      if (mapping.chartsGrid && removedSet.has(mapping.chartsGrid)) mapping.chartsGrid = undefined;
+      if (mapping.rowFilter && removedSet.has(mapping.rowFilter)) mapping.rowFilter = undefined;
+      if (mapping.infoPopups) mapping.infoPopups = mapping.infoPopups.filter((v) => !removedSet.has(v));
       return { data: newData, columnOrder: newOrder, columnMapping: mapping, isDirty: true };
     }),
 

@@ -17,6 +17,8 @@ interface SpreadsheetContextMenuProps {
   onSortDescending: () => void;
   onCombineColumns: () => void;
   onUploadFile: () => void;
+  selectedRowCount?: number;
+  selectedColCount?: number;
 }
 
 function MenuItem({
@@ -63,6 +65,8 @@ export function SpreadsheetContextMenu({
   onSortDescending,
   onCombineColumns,
   onUploadFile,
+  selectedRowCount = 0,
+  selectedColCount = 0,
 }: SpreadsheetContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -111,8 +115,8 @@ export function SpreadsheetContextMenu({
       <MenuItem label="Insert column left" onClick={() => { onInsertColumnLeft(); onClose(); }} disabled={!hasCol} />
       <MenuItem label="Insert column right" onClick={() => { onInsertColumnRight(); onClose(); }} disabled={!hasCol} />
       <Divider />
-      <MenuItem label="Remove row" onClick={() => { onRemoveRow(); onClose(); }} disabled={!hasRow} />
-      <MenuItem label="Remove column" onClick={() => { onRemoveColumn(); onClose(); }} disabled={!hasCol} />
+      <MenuItem label={selectedRowCount > 1 ? `Remove ${selectedRowCount} rows` : "Remove row"} onClick={() => { onRemoveRow(); onClose(); }} disabled={!hasRow && selectedRowCount === 0} />
+      <MenuItem label={selectedColCount > 1 ? `Remove ${selectedColCount} columns` : "Remove column"} onClick={() => { onRemoveColumn(); onClose(); }} disabled={!hasCol && selectedColCount === 0} />
       <Divider />
       <MenuItem label="Sort by column (A→Z)" onClick={() => { onSortAscending(); onClose(); }} disabled={!hasCol} />
       <MenuItem label="Sort by column (Z→A)" onClick={() => { onSortDescending(); onClose(); }} disabled={!hasCol} />

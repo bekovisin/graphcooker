@@ -40,8 +40,10 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
     setDataAndColumns,
     insertRow,
     removeRow,
+    removeRows,
     insertColumn,
     removeColumn,
+    removeColumns,
     reorderColumn,
     reorderRow,
     sortByColumn,
@@ -290,16 +292,39 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
   }, [contextMenu, pushHistory, columnOrder, insertColumn]);
 
   const handleRemoveRow = useCallback(() => {
-    if (contextMenu?.targetRow == null) return;
     pushHistory();
-    removeRow(contextMenu.targetRow);
-  }, [contextMenu, pushHistory, removeRow]);
+    const range = selection.selectionRange;
+    if (range) {
+      const norm = normalizeRange(range);
+      const minRow = Math.max(0, norm.minRow);
+      if (minRow <= norm.maxRow) {
+        const indices: number[] = [];
+        for (let r = minRow; r <= norm.maxRow; r++) indices.push(r);
+        if (indices.length > 1) { removeRows(indices); return; }
+        if (indices.length === 1) { removeRow(indices[0]); return; }
+      }
+    }
+    if (contextMenu?.targetRow != null) {
+      removeRow(contextMenu.targetRow);
+    }
+  }, [selection.selectionRange, contextMenu, pushHistory, removeRow, removeRows]);
 
   const handleRemoveColumn = useCallback(() => {
-    if (contextMenu?.targetCol == null) return;
     pushHistory();
-    removeColumn(contextMenu.targetCol);
-  }, [contextMenu, pushHistory, removeColumn]);
+    const range = selection.selectionRange;
+    if (range) {
+      const norm = normalizeRange(range);
+      if (norm.minCol <= norm.maxCol) {
+        const indices: number[] = [];
+        for (let c = norm.minCol; c <= norm.maxCol; c++) indices.push(c);
+        if (indices.length > 1) { removeColumns(indices); return; }
+        if (indices.length === 1) { removeColumn(indices[0]); return; }
+      }
+    }
+    if (contextMenu?.targetCol != null) {
+      removeColumn(contextMenu.targetCol);
+    }
+  }, [selection.selectionRange, contextMenu, pushHistory, removeColumn, removeColumns]);
 
   const handleSortAscending = useCallback(() => {
     if (contextMenu?.targetCol == null) return;
@@ -615,6 +640,8 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
         onSortDescending={handleSortDescending}
         onCombineColumns={() => {}}
         onUploadFile={onUploadFile}
+        selectedRowCount={selection.selectionRange ? Math.max(0, normalizeRange(selection.selectionRange).maxRow - Math.max(0, normalizeRange(selection.selectionRange).minRow) + 1) : 0}
+        selectedColCount={selection.selectionRange ? normalizeRange(selection.selectionRange).maxCol - normalizeRange(selection.selectionRange).minCol + 1 : 0}
       />
     </div>
   );
