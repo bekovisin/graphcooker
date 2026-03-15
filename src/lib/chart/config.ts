@@ -453,6 +453,8 @@ export const defaultChartSettings: ChartSettings = {
     paddingRight: 4,
     paddingBottom: 0,
     paddingLeft: 0,
+    customImageOverrides: '',
+    resolvedImageOverrides: {},
     perRowUrls: {},
     perRowWidths: {},
     perRowHeights: {},

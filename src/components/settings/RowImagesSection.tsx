@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
@@ -8,6 +8,7 @@ import { SettingRow } from '@/components/shared/SettingRow';
 import { ImageLibraryPicker } from '@/components/shared/ImageLibraryPicker';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Settings2, X, ImageIcon } from 'lucide-react';
+import { parseCustomOverrides } from '@/lib/chart/utils';
 import type { RowImagesSettings } from '@/types/chart';
+
+interface LibraryImageEntry {
+  id: number;
+  name: string;
+  dataUrl: string;
+}
 
 /* ── Image preview with remove + choose from library ── */
 function ImageSelector({
@@ -129,30 +137,97 @@ export function RowImagesSection() {
   const [showPerRowDialog, setShowPerRowDialog] = useState(false);
   const [showImageLibrary, setShowImageLibrary] = useState(false);
   const [imageTarget, setImageTarget] = useState<'default' | string | null>(null);
+  const [libraryImages, setLibraryImages] = useState<LibraryImageEntry[]>([]);
+  const libraryFetched = useRef(false);
 
   const rowLabels = useMemo(() => {
     if (!data.length || !labelsColumn) return [];
     return data.map((row) => String(row[labelsColumn] ?? ''));
   }, [data, labelsColumn]);
 
-  const update = (updates: Partial<RowImagesSettings>) => {
-    updateSettings('rowImages', updates);
-  };
+  const update = useCallback(
+    (updates: Partial<RowImagesSettings>) => {
+      updateSettings('rowImages', updates);
+    },
+    [updateSettings],
+  );
+
+  // Fetch library images once for custom override resolution
+  useEffect(() => {
+    if (libraryFetched.current) return;
+    libraryFetched.current = true;
+    fetch('/api/image-library')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((imgs: LibraryImageEntry[]) => setLibraryImages(imgs))
+      .catch(() => {});
+  }, []);
+
+  // Resolve custom image overrides whenever text or library changes
+  const resolveOverrides = useCallback(
+    (text: string) => {
+      const parsed = parseCustomOverrides(text);
+      if (Object.keys(parsed).length === 0) {
+        return {};
+      }
+      // Build case-insensitive lookup for library images: name → dataUrl
+      const libByName: Record<string, string> = {};
+      const libByNameLower: Record<string, string> = {};
+      for (const img of libraryImages) {
+        libByName[img.name] = img.dataUrl;
+        libByNameLower[img.name.toLowerCase()] = img.dataUrl;
+      }
+      const resolved: Record<string, string> = {};
+      for (const [rowName, imageName] of Object.entries(parsed)) {
+        // Exact match first, then case-insensitive
+        const url = libByName[imageName] || libByNameLower[imageName.toLowerCase()];
+        if (url) {
+          resolved[rowName] = url;
+        }
+      }
+      return resolved;
+    },
+    [libraryImages],
+  );
+
+  // Re-resolve when library images load and there's existing override text
+  useEffect(() => {
+    if (libraryImages.length > 0 && settings.customImageOverrides) {
+      const resolved = resolveOverrides(settings.customImageOverrides);
+      update({ resolvedImageOverrides: resolved });
+    }
+  }, [libraryImages]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCustomOverridesChange = useCallback(
+    (text: string) => {
+      const resolved = resolveOverrides(text);
+      update({ customImageOverrides: text, resolvedImageOverrides: resolved });
+    },
+    [resolveOverrides, update],
+  );
 
   const openLibrary = (target: 'default' | string) => {
     setImageTarget(target);
     setShowImageLibrary(true);
   };
 
-  const handleLibrarySelect = (dataUrl: string) => {
-    if (imageTarget === 'default') {
-      update({ defaultUrl: dataUrl });
-    } else if (imageTarget) {
-      update({ perRowUrls: { ...settings.perRowUrls, [imageTarget]: dataUrl } });
-    }
-    setShowImageLibrary(false);
-    setImageTarget(null);
-  };
+  const handleLibrarySelect = useCallback(
+    (dataUrl: string) => {
+      if (imageTarget === 'default') {
+        update({ defaultUrl: dataUrl });
+      } else if (imageTarget) {
+        update({ perRowUrls: { ...settings.perRowUrls, [imageTarget]: dataUrl } });
+      }
+      setShowImageLibrary(false);
+      setImageTarget(null);
+
+      // Refresh library cache after selection (new images may have been added)
+      fetch('/api/image-library')
+        .then((res) => (res.ok ? res.json() : []))
+        .then((imgs: LibraryImageEntry[]) => setLibraryImages(imgs))
+        .catch(() => {});
+    },
+    [imageTarget, settings.perRowUrls, update],
+  );
 
   const isAxisMode = barLabelStyle !== 'above_bars';
 
@@ -282,6 +357,21 @@ export function RowImagesSection() {
             <Settings2 className="w-3.5 h-3.5" />
             Per-row image overrides
           </button>
+
+          {/* Custom image overrides textarea */}
+          <div className="space-y-1">
+            <label className="text-xs text-gray-600 font-medium">Custom image overrides</label>
+            <p className="text-[10px] text-gray-400">
+              Map rows to library images by name. Format: RowName: ImageName (one per line).
+            </p>
+            <Textarea
+              value={settings.customImageOverrides ?? ''}
+              onChange={(e) => handleCustomOverridesChange(e.target.value)}
+              placeholder={"CHP: CHP_1\nAKP: AKP_Logo\nMHP: mhp_icon"}
+              className="text-xs font-mono min-h-[80px] resize-y"
+              rows={4}
+            />
+          </div>
 
           {/* Per-row dialog */}
           <Dialog open={showPerRowDialog} onOpenChange={setShowPerRowDialog}>

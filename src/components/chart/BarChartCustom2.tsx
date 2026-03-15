@@ -876,7 +876,7 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
 
               {/* ── Row images ── */}
               {ri.show && (() => {
-                const imgUrl = ri.perRowUrls[cat] || ri.defaultUrl;
+                const imgUrl = ri.resolvedImageOverrides?.[cat] || ri.perRowUrls[cat] || ri.defaultUrl;
                 if (!imgUrl) return null;
                 const imgW = ri.perRowWidths[cat] ?? ri.defaultWidth;
                 const imgH = ri.perRowHeights[cat] ?? ri.defaultHeight;

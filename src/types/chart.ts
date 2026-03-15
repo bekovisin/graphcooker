@@ -654,6 +654,8 @@ export interface RowImagesSettings {
   paddingRight: number;
   paddingBottom: number;
   paddingLeft: number;
+  customImageOverrides: string;
+  resolvedImageOverrides: Record<string, string>;
   perRowUrls: Record<string, string>;
   perRowWidths: Record<string, number>;
   perRowHeights: Record<string, number>;
