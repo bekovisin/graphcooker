@@ -1026,34 +1026,50 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 }));
 
 // Selectors / utilities
-export const useFolderItemCounts = () => useDashboardStore(useShallow((s) => {
-  const counts: Record<string, { vizCount: number; subFolderCount: number }> = {};
+export const useFolderVizCounts = () => useDashboardStore(useShallow((s) => {
+  const counts: Record<string, number> = {};
   s.folders.forEach((folder) => {
     const descendants = getDescendantIds(folder.id, s.folders);
-    const subFolderCount = descendants.size;
     const allFolderIds = new Set(Array.from(descendants));
     allFolderIds.add(folder.id);
     let vizCount = 0;
     s.visualizations.forEach((v) => {
       if (v.folderId !== null && allFolderIds.has(v.folderId)) vizCount++;
     });
-    counts[String(folder.id)] = { vizCount, subFolderCount };
+    counts[String(folder.id)] = vizCount;
   });
   return counts;
 }));
 
-export const useTemplateFolderItemCounts = () => useDashboardStore(useShallow((s) => {
-  const counts: Record<string, { templateCount: number; subFolderCount: number }> = {};
+export const useFolderSubCounts = () => useDashboardStore(useShallow((s) => {
+  const counts: Record<string, number> = {};
+  s.folders.forEach((folder) => {
+    const descendants = getDescendantIds(folder.id, s.folders);
+    counts[String(folder.id)] = descendants.size;
+  });
+  return counts;
+}));
+
+export const useTemplateFolderTemplateCounts = () => useDashboardStore(useShallow((s) => {
+  const counts: Record<string, number> = {};
   s.templateFolders.forEach((folder) => {
     const descendants = getDescendantIds(folder.id, s.templateFolders);
-    const subFolderCount = descendants.size;
     const allFolderIds = new Set(Array.from(descendants));
     allFolderIds.add(folder.id);
     let templateCount = 0;
     s.templates.forEach((t) => {
       if (t.folderId !== null && allFolderIds.has(t.folderId)) templateCount++;
     });
-    counts[String(folder.id)] = { templateCount, subFolderCount };
+    counts[String(folder.id)] = templateCount;
+  });
+  return counts;
+}));
+
+export const useTemplateFolderSubCounts = () => useDashboardStore(useShallow((s) => {
+  const counts: Record<string, number> = {};
+  s.templateFolders.forEach((folder) => {
+    const descendants = getDescendantIds(folder.id, s.templateFolders);
+    counts[String(folder.id)] = descendants.size;
   });
   return counts;
 }));

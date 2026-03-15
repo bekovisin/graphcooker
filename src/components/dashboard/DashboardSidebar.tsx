@@ -33,7 +33,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { getDescendantIds } from '@/lib/folder-utils';
-import { useDashboardStore, useFolderItemCounts } from '@/store/dashboardStore';
+import { useDashboardStore, useFolderVizCounts } from '@/store/dashboardStore';
 import type { FolderItem } from '@/store/dashboardStore';
 
 export function DashboardSidebar() {
@@ -46,7 +46,7 @@ export function DashboardSidebar() {
   const visualizations = useDashboardStore((s) => s.visualizations);
   const templates = useDashboardStore((s) => s.templates);
   const trashItems = useDashboardStore((s) => s.trashItems);
-  const folderItemCounts = useFolderItemCounts();
+  const folderVizCounts = useFolderVizCounts();
   const totalVizCount = useDashboardStore((s) => s.visualizations.length);
 
   // Store actions
@@ -205,7 +205,7 @@ export function DashboardSidebar() {
     const isExpanded = expandedFolders.has(folder.id);
     const isActive = activeFolderId === folder.id;
     const isEditing = editingFolderId === folder.id;
-    const count = folderItemCounts[String(folder.id)]?.vizCount || 0;
+    const count = folderVizCounts[String(folder.id)] || 0;
     const isDragOver = dragOverFolderId === folder.id;
 
     return (

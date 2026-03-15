@@ -25,7 +25,8 @@ import { EditTemplateDialog } from '@/components/dashboard/EditTemplateDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import {
   useDashboardStore,
-  useTemplateFolderItemCounts,
+  useTemplateFolderTemplateCounts,
+  useTemplateFolderSubCounts,
   useGridClass,
   type TemplateItem,
 } from '@/store/dashboardStore';
@@ -61,7 +62,8 @@ export default function TemplateFolderPage() {
   const exitTemplateSelectionMode = useDashboardStore((s) => s.exitTemplateSelectionMode);
 
   const gridClass = useGridClass();
-  const templateFolderCounts = useTemplateFolderItemCounts();
+  const templateCounts = useTemplateFolderTemplateCounts();
+  const templateSubCounts = useTemplateFolderSubCounts();
 
   // Local state
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<number>>(new Set());
@@ -412,8 +414,8 @@ export default function TemplateFolderPage() {
               key={`folder-${folder.id}`}
               folder={folder}
               cardSize={cardSize}
-              vizCount={templateFolderCounts[String(folder.id)]?.templateCount || 0}
-              subFolderCount={templateFolderCounts[String(folder.id)]?.subFolderCount || 0}
+              vizCount={templateCounts[String(folder.id)] || 0}
+              subFolderCount={templateSubCounts[String(folder.id)] || 0}
               allFolders={templateFolders}
               isSelected={selectedTemplateFolderIds.has(folder.id)}
               isSelectionMode={isTemplateSelectionMode}
