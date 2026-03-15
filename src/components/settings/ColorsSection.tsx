@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { SettingRow } from '@/components/shared/SettingRow';
@@ -14,6 +14,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { ChevronDown, Search } from 'lucide-react';
 import { PaletteDropdown } from './PaletteDropdown';
 import { PaletteEditor } from './PaletteEditor';
 import { getPaletteColors } from '@/lib/chart/palettes';
@@ -35,6 +37,9 @@ export function ColorsSection() {
   const [, setLoadingThemes] = useState(false);
   const [renamingThemeId, setRenamingThemeId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [themeSearch, setThemeSearch] = useState('');
+  const [themePopoverOpen, setThemePopoverOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const update = (updates: Partial<ColorsSettings>) => {
     updateSettings('colors', updates);
@@ -166,40 +171,86 @@ export function ColorsSection() {
     setRenamingThemeId(null);
   };
 
+  const sortedFilteredThemes = useMemo(() => {
+    let result = [...themes].sort((a, b) =>
+      a.name.localeCompare(b.name, 'tr', { numeric: true, sensitivity: 'base' })
+    );
+    if (themeSearch.trim()) {
+      const q = themeSearch.toLowerCase();
+      result = result.filter((t) => t.name.toLowerCase().includes(q));
+    }
+    return result;
+  }, [themes, themeSearch]);
+
+  const activeTheme = useMemo(() =>
+    settings.themeId ? themes.find((t) => t.id === settings.themeId) : null
+  , [settings.themeId, themes]);
+
   return (
     <AccordionSection id="colors" title="Colors">
       {/* Theme Selector */}
       <div className="space-y-1.5">
         <Label className="text-xs text-gray-600">Theme</Label>
-        <Select
-          value={settings.themeId ? String(settings.themeId) : '__none__'}
-          onValueChange={handleSelectTheme}
-        >
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue placeholder="No theme" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__" className="text-xs">
-              No theme
-            </SelectItem>
-            {themes.map((theme) => (
-              <SelectItem key={theme.id} value={String(theme.id)} className="text-xs">
-                <div className="flex items-center gap-2">
+        <Popover open={themePopoverOpen} onOpenChange={(open) => { setThemePopoverOpen(open); if (!open) setThemeSearch(''); }}>
+          <PopoverTrigger asChild>
+            <button className="flex items-center justify-between h-8 w-full rounded-md border border-input bg-background px-3 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+              {activeTheme ? (
+                <div className="flex items-center gap-2 min-w-0">
                   <div className="flex gap-0.5 shrink-0">
-                    {(theme.colors as string[]).slice(0, 5).map((color, i) => (
-                      <div
-                        key={i}
-                        className="w-2.5 h-2.5 rounded-[1px]"
-                        style={{ backgroundColor: color }}
-                      />
+                    {(activeTheme.colors as string[]).slice(0, 5).map((color, i) => (
+                      <div key={i} className="w-2.5 h-2.5 rounded-[1px]" style={{ backgroundColor: color }} />
                     ))}
                   </div>
-                  <span>{theme.name}</span>
+                  <span className="truncate">{activeTheme.name}</span>
                 </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              ) : (
+                <span className="text-muted-foreground">No theme</span>
+              )}
+              <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-50" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" sideOffset={4}>
+            {/* Search */}
+            <div className="flex items-center border-b px-2">
+              <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <input
+                ref={searchInputRef}
+                value={themeSearch}
+                onChange={(e) => setThemeSearch(e.target.value)}
+                placeholder="Search themes..."
+                className="flex-1 h-8 px-2 text-xs bg-transparent outline-none placeholder:text-gray-400"
+              />
+            </div>
+            {/* List */}
+            <div className="max-h-[200px] overflow-y-auto py-1">
+              <button
+                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-accent ${!settings.themeId ? 'bg-accent font-medium' : ''}`}
+                onClick={() => { handleSelectTheme('__none__'); setThemePopoverOpen(false); }}
+              >
+                No theme
+              </button>
+              {sortedFilteredThemes.map((theme) => (
+                <button
+                  key={theme.id}
+                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-accent ${settings.themeId === theme.id ? 'bg-accent font-medium' : ''}`}
+                  onClick={() => { handleSelectTheme(String(theme.id)); setThemePopoverOpen(false); }}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-0.5 shrink-0">
+                      {(theme.colors as string[]).slice(0, 5).map((color, i) => (
+                        <div key={i} className="w-2.5 h-2.5 rounded-[1px]" style={{ backgroundColor: color }} />
+                      ))}
+                    </div>
+                    <span className="truncate">{theme.name}</span>
+                  </div>
+                </button>
+              ))}
+              {sortedFilteredThemes.length === 0 && themeSearch.trim() && (
+                <div className="px-3 py-2 text-xs text-gray-400">No themes found</div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
         {settings.themeId && !themes.find((t) => t.id === settings.themeId)?.isBuiltIn && (
           <div className="flex items-center gap-1">
             {renamingThemeId === settings.themeId ? (
