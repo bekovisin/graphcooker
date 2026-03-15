@@ -283,6 +283,26 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Search in navbar */}
+            {!isTrashView && (
+              <div className="relative w-48 min-w-[120px] shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search visualizations..."
+                  className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
             {!isTrashView && (
               <Button
                 variant="outline"
@@ -320,64 +340,67 @@ export default function DashboardLayout({
 
         {/* Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Toolbar — Row 1: Breadcrumbs */}
-          {(breadcrumbPath || isNotRoot) && (
-            <div className="px-3 sm:px-6 pt-2 pb-1 border-b border-gray-100 bg-white shrink-0">
-              <div className="flex items-center gap-1 text-xs flex-wrap">
+          {/* Toolbar — single row: Breadcrumbs (left), spacer, Tabs, Sort, View controls */}
+          <div className="px-3 sm:px-6 py-2 border-b border-gray-200 bg-white flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Breadcrumbs (left-aligned) */}
+            {breadcrumbPath ? (
+              <div className="flex items-center gap-1 text-sm shrink-0">
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="flex items-center gap-1 px-1 h-6 rounded hover:bg-gray-100 transition-colors shrink-0"
+                  className="flex items-center gap-1 px-1 h-7 rounded hover:bg-gray-100 transition-colors shrink-0"
                   title="GraphCooker — All visualizations"
                 >
-                  <Image src="/icon-sm.svg" alt="GC" width={18} height={18} />
+                  <Image src="/icon-sm.svg" alt="GC" width={20} height={20} />
                 </button>
-                <ChevronRight className="w-2.5 h-2.5 text-gray-300 shrink-0" />
-
-                {breadcrumbPath ? (
-                  <>
+                <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
+                <button
+                  onClick={() => router.push(breadcrumbPath.type === 'template' ? '/dashboard/templates' : '/dashboard')}
+                  className="text-gray-500 hover:text-gray-700 transition-colors shrink-0"
+                >
+                  {breadcrumbPath.type === 'template' ? 'Templates' : 'Visualizations'}
+                </button>
+                {breadcrumbPath.path.map((folder, i) => (
+                  <span key={folder.id} className="flex items-center gap-1">
+                    <ChevronRight className="w-3 h-3 text-gray-300" />
                     <button
-                      onClick={() => router.push(breadcrumbPath.type === 'template' ? '/dashboard/templates' : '/dashboard')}
-                      className="text-gray-500 hover:text-gray-700 transition-colors shrink-0"
+                      onClick={() => router.push(
+                        breadcrumbPath.type === 'template'
+                          ? `/dashboard/templates/folder/${folder.id}`
+                          : `/dashboard/folder/${folder.id}`
+                      )}
+                      className={`transition-colors truncate max-w-[150px] ${
+                        i === breadcrumbPath.path.length - 1
+                          ? 'text-gray-800 font-semibold'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
                     >
-                      {breadcrumbPath.type === 'template' ? 'Templates' : 'Visualizations'}
+                      {folder.name}
                     </button>
-                    {breadcrumbPath.path.map((folder, i) => (
-                      <span key={folder.id} className="flex items-center gap-1">
-                        <ChevronRight className="w-2.5 h-2.5 text-gray-300" />
-                        <button
-                          onClick={() => router.push(
-                            breadcrumbPath.type === 'template'
-                              ? `/dashboard/templates/folder/${folder.id}`
-                              : `/dashboard/folder/${folder.id}`
-                          )}
-                          className={`transition-colors truncate max-w-[150px] ${
-                            i === breadcrumbPath.path.length - 1
-                              ? 'text-gray-800 font-semibold'
-                              : 'text-gray-500 hover:text-gray-700'
-                          }`}
-                        >
-                          {folder.name}
-                        </button>
-                      </span>
-                    ))}
-                  </>
-                ) : (
-                  <span className="font-semibold text-gray-800">
-                    {isTrashView && <Trash2 className="w-3.5 h-3.5 inline-block mr-1 text-red-500 -mt-0.5" />}
-                    {isTemplatesView && <LayoutTemplate className="w-3.5 h-3.5 inline-block mr-1 text-orange-500 -mt-0.5" />}
-                    {pageTitle}
                   </span>
-                )}
+                ))}
               </div>
-            </div>
-          )}
+            ) : isNotRoot ? (
+              <div className="flex items-center gap-1 text-sm shrink-0">
+                <button
+                  onClick={() => router.push('/dashboard')}
+                  className="flex items-center gap-1 px-1 h-7 rounded hover:bg-gray-100 transition-colors shrink-0"
+                  title="GraphCooker — All visualizations"
+                >
+                  <Image src="/icon-sm.svg" alt="GC" width={20} height={20} />
+                </button>
+                <ChevronRight className="w-3 h-3 text-gray-300 shrink-0" />
+                <span className="font-semibold text-gray-800">
+                  {isTrashView && <Trash2 className="w-4 h-4 inline-block mr-1 text-red-500 -mt-0.5" />}
+                  {isTemplatesView && <LayoutTemplate className="w-4 h-4 inline-block mr-1 text-orange-500 -mt-0.5" />}
+                  {pageTitle}
+                </span>
+              </div>
+            ) : null}
 
-          {/* Toolbar — Row 2: Tabs (centered), Search, Sort, View controls */}
-          <div className="px-3 sm:px-6 py-2 border-b border-gray-200 bg-white flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Left spacer for centering tabs */}
+            {/* Spacer */}
             <div className="flex-1 min-w-0" />
 
-            {/* Ownership filter tabs (centered) */}
+            {/* Ownership filter tabs (before sort) */}
             {!isTrashView && !isTemplatesView && (
               <div className="flex items-center gap-0.5 bg-gray-100 rounded-md p-0.5 shrink-0">
                 {([
@@ -418,30 +441,6 @@ export default function DashboardLayout({
                     {label}
                   </button>
                 ))}
-              </div>
-            )}
-
-            {/* Right spacer for centering tabs */}
-            <div className="flex-1 min-w-0" />
-
-            {/* Search (before sort, narrower) */}
-            {!isTrashView && (
-              <div className="relative w-48 min-w-[120px] shrink-0">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search visualizations..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm border rounded-md bg-gray-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 focus:border-blue-300"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
               </div>
             )}
 
