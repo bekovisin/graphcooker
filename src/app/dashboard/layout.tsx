@@ -101,6 +101,7 @@ export default function DashboardLayout({
   const closeConfirm = useDashboardStore((s) => s.closeConfirm);
   const createVisualization = useDashboardStore((s) => s.createVisualization);
   const createTemplateFolder = useDashboardStore((s) => s.createTemplateFolder);
+  const createFolder = useDashboardStore((s) => s.createFolder);
   const fetchTemplatesAction = useDashboardStore((s) => s.fetchTemplates);
 
   // Ownership filter
@@ -109,8 +110,9 @@ export default function DashboardLayout({
   const setVizOwnershipFilter = useDashboardStore((s) => s.setVizOwnershipFilter);
   const setTemplateOwnershipFilter = useDashboardStore((s) => s.setTemplateOwnershipFilter);
 
-  // Template folder dialog (local)
+  // Folder dialogs (local)
   const [showNewTemplateFolderDialog, setShowNewTemplateFolderDialog] = useState(false);
+  const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
 
   // Share template dialog (local)
   const [showShareTemplate, setShowShareTemplate] = useState(false);
@@ -254,6 +256,17 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-2">
+            {!isTemplatesView && !isTrashView && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs h-8"
+                onClick={() => setShowNewFolderDialog(true)}
+              >
+                <FolderPlus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">New folder</span>
+              </Button>
+            )}
             <Button
               onClick={() => setShowNewVizDialog(true)}
               disabled={creating}
@@ -668,6 +681,16 @@ export default function DashboardLayout({
         placeholder="Folder name..."
         confirmLabel="Create"
         onConfirm={(name) => createTemplateFolder(name)}
+      />
+
+      <InputDialog
+        open={showNewFolderDialog}
+        onOpenChange={setShowNewFolderDialog}
+        title="New folder"
+        description="Create a folder to organize your visualizations."
+        placeholder="Folder name..."
+        confirmLabel="Create"
+        onConfirm={(name) => createFolder(name, activeFolderId)}
       />
     </div>
   );
