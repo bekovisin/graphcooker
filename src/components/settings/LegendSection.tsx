@@ -273,7 +273,7 @@ export function LegendSection() {
                 onChange={(e) => update({ swatchPadding: parseInt(e.target.value) || 0 })}
                 className="h-7 text-xs w-full"
                 min={0}
-                max={20}
+                max={60}
               />
             </div>
           </div>
