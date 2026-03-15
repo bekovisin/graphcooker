@@ -26,6 +26,7 @@ interface FolderCardProps {
   folder: FolderItem;
   cardSize?: 'small' | 'medium' | 'large';
   vizCount: number;
+  subFolderCount?: number;
   allFolders?: FolderItem[];
   isSelected?: boolean;
   isSelectionMode?: boolean;
@@ -44,6 +45,7 @@ export function FolderCard({
   folder,
   cardSize = 'large',
   vizCount,
+  subFolderCount = 0,
   allFolders,
   isSelected = false,
   isSelectionMode = false,
@@ -156,7 +158,10 @@ export function FolderCard({
       <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gray-50 rounded-t-lg border-b border-gray-100">
         <FolderOpen className={`${cardSize === 'small' ? 'w-7 h-7' : cardSize === 'medium' ? 'w-9 h-9' : 'w-12 h-12'} ${isDragOver ? 'text-blue-400' : 'text-gray-300'} transition-colors`} />
         <span className={`text-gray-400 mt-1 ${cardSize === 'small' ? 'text-[9px]' : cardSize === 'medium' ? 'text-[10px]' : 'text-xs'}`}>
-          {vizCount} {vizCount === 1 ? 'item' : 'items'}
+          {vizCount > 0 && `${vizCount} ${vizCount === 1 ? 'item' : 'items'}`}
+          {vizCount > 0 && subFolderCount > 0 && ', '}
+          {subFolderCount > 0 && `${subFolderCount} ${subFolderCount === 1 ? 'folder' : 'folders'}`}
+          {vizCount === 0 && subFolderCount === 0 && '0 items'}
         </span>
       </div>
 

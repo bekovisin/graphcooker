@@ -26,7 +26,7 @@ import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog'
 import { InputDialog } from '@/components/dashboard/InputDialog';
 import {
   useDashboardStore,
-  useTemplateCountByFolder,
+  useTemplateFolderItemCounts,
   useGridClass,
   type TemplateItem,
 } from '@/store/dashboardStore';
@@ -60,7 +60,7 @@ export default function TemplatesPage() {
 
   const viewMode = useDashboardStore((s) => s.viewMode);
   const templateOwnershipFilter = useDashboardStore((s) => s.templateOwnershipFilter);
-  const templateCountByFolder = useTemplateCountByFolder();
+  const templateFolderCounts = useTemplateFolderItemCounts();
   const gridClass = useGridClass();
 
   // Local state
@@ -451,7 +451,8 @@ export default function TemplatesPage() {
                 key={`folder-${folder.id}`}
                 folder={folder}
                 cardSize={cardSize}
-                vizCount={templateCountByFolder[String(folder.id)] || 0}
+                vizCount={templateFolderCounts[String(folder.id)]?.templateCount || 0}
+                subFolderCount={templateFolderCounts[String(folder.id)]?.subFolderCount || 0}
                 allFolders={templateFolders}
                 isSelected={selectedTemplateFolderIds.has(folder.id)}
                 isSelectionMode={isTemplateSelectionMode}

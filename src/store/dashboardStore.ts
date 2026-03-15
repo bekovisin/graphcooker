@@ -704,18 +704,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   duplicateFolder: async (id) => {
-    const original = get().folders.find((f) => f.id === id);
-    if (!original) return;
     try {
-      const res = await fetch('/api/folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: `${original.name} (copy)`, parentId: original.parentId || null }),
-      });
+      const res = await fetch(`/api/folders/${id}/duplicate`, { method: 'POST' });
       if (res.ok) {
-        const newFolder = await res.json();
-        set((s) => ({ folders: [...s.folders, newFolder] }));
-        toast.success(`Folder duplicated as "${newFolder.name}"`);
+        const { folders: newFolders, visualizations: newVizs } = await res.json();
+        set((s) => ({
+          folders: [...s.folders, ...newFolders],
+          visualizations: [...newVizs, ...s.visualizations],
+        }));
+        toast.success('Folder duplicated with all contents');
       }
     } catch (error) {
       console.error('Failed to duplicate folder:', error);
@@ -910,18 +907,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   duplicateTemplateFolder: async (id) => {
-    const original = get().templateFolders.find((f) => f.id === id);
-    if (!original) return;
     try {
-      const res = await fetch('/api/template-folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: `${original.name} (copy)`, parentId: original.parentId || null }),
-      });
+      const res = await fetch(`/api/template-folders/${id}/duplicate`, { method: 'POST' });
       if (res.ok) {
-        const newFolder = await res.json();
-        set((s) => ({ templateFolders: [...s.templateFolders, newFolder] }));
-        toast.success(`Folder duplicated as "${newFolder.name}"`);
+        const { folders: newFolders, templates: newTpls } = await res.json();
+        set((s) => ({
+          templateFolders: [...s.templateFolders, ...newFolders],
+          templates: [...newTpls, ...s.templates],
+        }));
+        toast.success('Folder duplicated with all contents');
       }
     } catch {
       toast.error('Failed to duplicate folder');
@@ -1032,24 +1026,34 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 }));
 
 // Selectors / utilities
-export const useVizCountByFolder = () => useDashboardStore(useShallow((s) => {
-  const counts: Record<string, number> = {};
-  s.visualizations.forEach((v) => {
-    if (v.folderId !== null) {
-      const key = String(v.folderId);
-      counts[key] = (counts[key] || 0) + 1;
-    }
+export const useFolderItemCounts = () => useDashboardStore(useShallow((s) => {
+  const counts: Record<string, { vizCount: number; subFolderCount: number }> = {};
+  s.folders.forEach((folder) => {
+    const descendants = getDescendantIds(folder.id, s.folders);
+    const subFolderCount = descendants.size;
+    const allFolderIds = new Set(Array.from(descendants));
+    allFolderIds.add(folder.id);
+    let vizCount = 0;
+    s.visualizations.forEach((v) => {
+      if (v.folderId !== null && allFolderIds.has(v.folderId)) vizCount++;
+    });
+    counts[String(folder.id)] = { vizCount, subFolderCount };
   });
   return counts;
 }));
 
-export const useTemplateCountByFolder = () => useDashboardStore(useShallow((s) => {
-  const counts: Record<string, number> = {};
-  s.templates.forEach((t) => {
-    if (t.folderId !== null) {
-      const key = String(t.folderId);
-      counts[key] = (counts[key] || 0) + 1;
-    }
+export const useTemplateFolderItemCounts = () => useDashboardStore(useShallow((s) => {
+  const counts: Record<string, { templateCount: number; subFolderCount: number }> = {};
+  s.templateFolders.forEach((folder) => {
+    const descendants = getDescendantIds(folder.id, s.templateFolders);
+    const subFolderCount = descendants.size;
+    const allFolderIds = new Set(Array.from(descendants));
+    allFolderIds.add(folder.id);
+    let templateCount = 0;
+    s.templates.forEach((t) => {
+      if (t.folderId !== null && allFolderIds.has(t.folderId)) templateCount++;
+    });
+    counts[String(folder.id)] = { templateCount, subFolderCount };
   });
   return counts;
 }));

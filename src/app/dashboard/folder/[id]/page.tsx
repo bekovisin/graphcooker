@@ -18,7 +18,7 @@ import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizat
 import { useAuthStore } from '@/store/authStore';
 import {
   useDashboardStore,
-  useVizCountByFolder,
+  useFolderItemCounts,
   useGridClass,
   useSortViz,
 } from '@/store/dashboardStore';
@@ -57,7 +57,7 @@ export default function FolderPage() {
   const vizOwnershipFilter = useDashboardStore((s) => s.vizOwnershipFilter);
   const sortViz = useSortViz();
   const gridClass = useGridClass();
-  const vizCountByFolder = useVizCountByFolder();
+  const folderItemCounts = useFolderItemCounts();
 
   // Share state
   const [showShareViz, setShowShareViz] = useState(false);
@@ -229,7 +229,8 @@ export default function FolderPage() {
               key={`folder-${sf.id}`}
               folder={sf}
               cardSize={cardSize}
-              vizCount={vizCountByFolder[String(sf.id)] || 0}
+              vizCount={folderItemCounts[String(sf.id)]?.vizCount || 0}
+              subFolderCount={folderItemCounts[String(sf.id)]?.subFolderCount || 0}
               allFolders={folders}
               isSelected={selectedFolderIds.has(sf.id)}
               isSelectionMode={isSelectionMode}
