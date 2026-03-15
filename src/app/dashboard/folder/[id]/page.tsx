@@ -142,37 +142,41 @@ export default function FolderPage() {
     );
   };
 
+  const intrinsicHeight = cardSize === 'small' ? '200px' : cardSize === 'medium' ? '240px' : '280px';
+
   const renderVizCard = (viz: typeof visualizations[0]) => (
-    <VisualizationCard
-      key={viz.id}
-      viz={viz}
-      cardSize={cardSize}
-      isSelected={selectedVizIds.has(viz.id)}
-      isSelectionMode={isSelectionMode}
-      onToggleSelect={toggleSelectViz}
-      onDelete={deleteViz}
-      onDuplicate={duplicateViz}
-      onRename={renameViz}
-      onMoveToFolder={moveVizToFolder}
-      onShare={handleShareViz}
-      folders={folders}
-    />
+    <div key={viz.id} style={{ contentVisibility: 'auto', containIntrinsicSize: `auto ${intrinsicHeight}` }}>
+      <VisualizationCard
+        viz={viz}
+        cardSize={cardSize}
+        isSelected={selectedVizIds.has(viz.id)}
+        isSelectionMode={isSelectionMode}
+        onToggleSelect={toggleSelectViz}
+        onDelete={deleteViz}
+        onDuplicate={duplicateViz}
+        onRename={renameViz}
+        onMoveToFolder={moveVizToFolder}
+        onShare={handleShareViz}
+        folders={folders}
+      />
+    </div>
   );
 
   const renderListRow = (viz: typeof visualizations[0]) => (
-    <ListViewRow
-      key={viz.id}
-      viz={viz}
-      isSelected={selectedVizIds.has(viz.id)}
-      isSelectionMode={isSelectionMode}
-      onToggleSelect={toggleSelectViz}
-      onDelete={deleteViz}
-      onDuplicate={duplicateViz}
-      onRename={renameViz}
-      onMoveToFolder={moveVizToFolder}
-      onShare={handleShareViz}
-      folders={folders}
-    />
+    <div key={viz.id} style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 48px' }}>
+      <ListViewRow
+        viz={viz}
+        isSelected={selectedVizIds.has(viz.id)}
+        isSelectionMode={isSelectionMode}
+        onToggleSelect={toggleSelectViz}
+        onDelete={deleteViz}
+        onDuplicate={duplicateViz}
+        onRename={renameViz}
+        onMoveToFolder={moveVizToFolder}
+        onShare={handleShareViz}
+        folders={folders}
+      />
+    </div>
   );
 
   // Loading

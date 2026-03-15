@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { LUCIDE_ICONS } from '@/lib/chart/lucideIconData';
@@ -94,7 +94,7 @@ function getDashArray(style: string, dashLength: number, width: number): string 
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function BarChartCustom2({ data, columnMapping, settings, width, height: heightProp, skipAnimation }: BarChartCustom2Props) {
+export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, columnMapping, settings, width, height: heightProp, skipAnimation }: BarChartCustom2Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', value: 0, color: '' });
   const [animProgress, setAnimProgress] = useState(skipAnimation || !settings.animations.enabled ? 1 : 0);
@@ -1294,4 +1294,4 @@ export function BarChartCustom2({ data, columnMapping, settings, width, height: 
       )}
     </div>
   );
-}
+});

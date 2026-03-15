@@ -1027,16 +1027,17 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
 // Selectors / utilities
 export const useFolderVizCounts = () => useDashboardStore(useShallow((s) => {
+  const parentMap = new Map<number, number | null>();
+  s.folders.forEach((f) => parentMap.set(f.id, f.parentId));
   const counts: Record<string, number> = {};
-  s.folders.forEach((folder) => {
-    const descendants = getDescendantIds(folder.id, s.folders);
-    const allFolderIds = new Set(Array.from(descendants));
-    allFolderIds.add(folder.id);
-    let vizCount = 0;
-    s.visualizations.forEach((v) => {
-      if (v.folderId !== null && allFolderIds.has(v.folderId)) vizCount++;
-    });
-    counts[String(folder.id)] = vizCount;
+  s.folders.forEach((f) => { counts[String(f.id)] = 0; });
+  s.visualizations.forEach((v) => {
+    if (v.folderId === null) return;
+    let current: number | null = v.folderId;
+    while (current !== null) {
+      if (counts[String(current)] !== undefined) counts[String(current)]++;
+      current = parentMap.get(current) ?? null;
+    }
   });
   return counts;
 }));
@@ -1051,16 +1052,17 @@ export const useFolderSubCounts = () => useDashboardStore(useShallow((s) => {
 }));
 
 export const useTemplateFolderTemplateCounts = () => useDashboardStore(useShallow((s) => {
+  const parentMap = new Map<number, number | null>();
+  s.templateFolders.forEach((f) => parentMap.set(f.id, f.parentId));
   const counts: Record<string, number> = {};
-  s.templateFolders.forEach((folder) => {
-    const descendants = getDescendantIds(folder.id, s.templateFolders);
-    const allFolderIds = new Set(Array.from(descendants));
-    allFolderIds.add(folder.id);
-    let templateCount = 0;
-    s.templates.forEach((t) => {
-      if (t.folderId !== null && allFolderIds.has(t.folderId)) templateCount++;
-    });
-    counts[String(folder.id)] = templateCount;
+  s.templateFolders.forEach((f) => { counts[String(f.id)] = 0; });
+  s.templates.forEach((t) => {
+    if (t.folderId === null) return;
+    let current: number | null = t.folderId;
+    while (current !== null) {
+      if (counts[String(current)] !== undefined) counts[String(current)]++;
+      current = parentMap.get(current) ?? null;
+    }
   });
   return counts;
 }));

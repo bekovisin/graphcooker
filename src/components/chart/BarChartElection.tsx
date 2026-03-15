@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import type { ChartSettings, ColumnMapping, ElectionPerRowNumberFormat, ElectionPerRowTextStyle, ElectionPerRowPrefixSettings, ElectionRowImageSide } from '@/types/chart';
 import type { DataRow } from '@/types/data';
 import {
@@ -100,7 +100,7 @@ function resolveImageSide(
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function BarChartElection({
+export const BarChartElection = React.memo(function BarChartElection({
   data,
   columnMapping,
   settings,
@@ -672,4 +672,4 @@ export function BarChartElection({
       })()}
     </svg>
   );
-}
+});

@@ -311,13 +311,21 @@ export const useEditorStore = create<EditorState>((set) => ({
     })),
 
   updateSettings: (section, updates) =>
-    set((state) => ({
-      settings: {
-        ...state.settings,
-        [section]: { ...state.settings[section], ...updates },
-      },
-      isDirty: true,
-    })),
+    set((state) => {
+      const current = state.settings[section];
+      const keys = Object.keys(updates) as (keyof typeof updates)[];
+      const cur = current as unknown as Record<string, unknown>;
+      const upd = updates as unknown as Record<string, unknown>;
+      const changed = keys.some((k) => cur[k as string] !== upd[k as string]);
+      if (!changed) return state;
+      return {
+        settings: {
+          ...state.settings,
+          [section]: { ...current, ...updates },
+        },
+        isDirty: true,
+      };
+    }),
 
   setSettings: (settings) => set({ settings, isDirty: true }),
   setEditingTemplateId: (id) => set({ editingTemplateId: id }),

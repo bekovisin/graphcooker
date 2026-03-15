@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping, AnnotationEndpointType } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { resolveColors } from '@/lib/chart/utils';
@@ -244,7 +244,7 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export function LineChart({
+export const LineChart = React.memo(function LineChart({
   data,
   columnMapping,
   settings,
@@ -1552,4 +1552,4 @@ export function LineChart({
       )}
     </div>
   );
-}
+});

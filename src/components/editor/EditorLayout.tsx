@@ -19,20 +19,18 @@ interface EditorLayoutProps {
 }
 
 export function EditorLayout({ visualizationId }: EditorLayoutProps) {
-  const {
-    activeTab,
-    settings,
-    data,
-    columnMapping,
-    columnOrder,
-    seriesNames,
-    visualizationName,
-    isDirty,
-    loadVisualization,
-    setIsSaving,
-    setIsDirty,
-    setLastSavedAt,
-  } = useEditorStore();
+  const activeTab = useEditorStore((s) => s.activeTab);
+  const settings = useEditorStore((s) => s.settings);
+  const data = useEditorStore((s) => s.data);
+  const columnMapping = useEditorStore((s) => s.columnMapping);
+  const columnOrder = useEditorStore((s) => s.columnOrder);
+  const seriesNames = useEditorStore((s) => s.seriesNames);
+  const visualizationName = useEditorStore((s) => s.visualizationName);
+  const isDirty = useEditorStore((s) => s.isDirty);
+  const loadVisualization = useEditorStore((s) => s.loadVisualization);
+  const setIsSaving = useEditorStore((s) => s.setIsSaving);
+  const setIsDirty = useEditorStore((s) => s.setIsDirty);
+  const setLastSavedAt = useEditorStore((s) => s.setLastSavedAt);
 
   const { showDialog: showUnsavedDialog, onConfirmLeave, onCancelLeave } = useUnsavedChangesGuard(isDirty);
 
@@ -184,7 +182,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
     saveTimeoutRef.current = setTimeout(() => {
       saveVisualization();
-    }, 3000);
+    }, 1000);
 
     return () => {
       if (saveTimeoutRef.current) {

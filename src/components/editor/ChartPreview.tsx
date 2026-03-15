@@ -97,7 +97,16 @@ export function ChartPreview() {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const [chartAreaWidth, setChartAreaWidth] = useState(600);
-  const { settings, data, columnMapping, columnOrder, seriesNames, previewDevice, customPreviewWidth, activeTab, canvasBackgroundColor, setAutoComputedHeight } = useEditorStore();
+  const settings = useEditorStore((s) => s.settings);
+  const data = useEditorStore((s) => s.data);
+  const columnMapping = useEditorStore((s) => s.columnMapping);
+  const columnOrder = useEditorStore((s) => s.columnOrder);
+  const seriesNames = useEditorStore((s) => s.seriesNames);
+  const previewDevice = useEditorStore((s) => s.previewDevice);
+  const customPreviewWidth = useEditorStore((s) => s.customPreviewWidth);
+  const activeTab = useEditorStore((s) => s.activeTab);
+  const canvasBackgroundColor = useEditorStore((s) => s.canvasBackgroundColor);
+  const setAutoComputedHeight = useEditorStore((s) => s.setAutoComputedHeight);
 
   // Measure chart area width — always observe so width is ready when switching tabs/chart types
   useEffect(() => {
