@@ -18,6 +18,12 @@ interface GridOfChartsProps {
 
 const GRID_GAP = 12;
 
+interface Panel {
+  title: string;
+  data: DataRow[];
+  columnMapping: ColumnMapping;
+}
+
 export const GridOfCharts = React.memo(function GridOfCharts({
   data,
   columnMapping,
@@ -29,33 +35,55 @@ export const GridOfCharts = React.memo(function GridOfCharts({
   skipAnimation,
 }: GridOfChartsProps) {
   const gridColumn = columnMapping.chartsGrid;
+  const valueColumns = columnMapping.values || [];
 
-  // Group data by chartsGrid column values (preserve insertion order)
-  const panels = useMemo(() => {
-    if (!gridColumn) return [{ title: '', data }];
-    const groups = new Map<string, DataRow[]>();
-    for (const row of data) {
-      const key = String(row[gridColumn] ?? '');
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(row);
+  // Determine split mode:
+  // 1. If chartsGrid column is set → split rows by that column's values
+  // 2. If no chartsGrid but multiple value columns → each column becomes a panel
+  const splitByColumns = !gridColumn && valueColumns.length > 1;
+
+  const panels: Panel[] = useMemo(() => {
+    if (splitByColumns) {
+      // Each value column becomes its own panel
+      return valueColumns.map((colKey) => ({
+        title: (seriesNames && seriesNames[colKey]) || colKey,
+        data,
+        columnMapping: { ...columnMapping, values: [colKey] },
+      }));
     }
-    return Array.from(groups.entries()).map(([title, rows]) => ({ title, data: rows }));
-  }, [data, gridColumn]);
+
+    if (gridColumn) {
+      // Split rows by chartsGrid column values
+      const groups = new Map<string, DataRow[]>();
+      for (const row of data) {
+        const key = String(row[gridColumn] ?? '');
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(row);
+      }
+      return Array.from(groups.entries()).map(([title, rows]) => ({
+        title,
+        data: rows,
+        columnMapping,
+      }));
+    }
+
+    // Fallback: single panel
+    return [{ title: '', data, columnMapping }];
+  }, [data, gridColumn, splitByColumns, valueColumns, columnMapping, seriesNames]);
 
   // Compute shared min/max across all panels for consistent x-axis scale
   const { sharedMin, sharedMax } = useMemo(() => {
-    if (!columnMapping.values || columnMapping.values.length === 0) {
-      return { sharedMin: 0, sharedMax: 0 };
-    }
-
     let globalMin = 0;
     let globalMax = 0;
 
     for (const panel of panels) {
+      const panelValues = panel.columnMapping.values || [];
+      if (panelValues.length === 0) continue;
+
       for (let ci = 0; ci < panel.data.length; ci++) {
         let posSum = 0;
         let negSum = 0;
-        for (const colKey of columnMapping.values) {
+        for (const colKey of panelValues) {
           const raw = panel.data[ci][colKey];
           const v = typeof raw === 'number' ? raw : parseFloat(String(raw).replace(',', '.')) || 0;
           if (v >= 0) posSum += v;
@@ -66,7 +94,6 @@ export const GridOfCharts = React.memo(function GridOfCharts({
       }
     }
 
-    // Apply user overrides from axis settings
     const userMin = settings.xAxis.min ? parseFloat(settings.xAxis.min) : undefined;
     const userMax = settings.xAxis.max ? parseFloat(settings.xAxis.max) : undefined;
 
@@ -74,7 +101,7 @@ export const GridOfCharts = React.memo(function GridOfCharts({
       sharedMin: userMin !== undefined ? userMin : Math.min(0, globalMin),
       sharedMax: userMax !== undefined ? userMax : globalMax,
     };
-  }, [panels, columnMapping.values, settings.xAxis.min, settings.xAxis.max]);
+  }, [panels, settings.xAxis.min, settings.xAxis.max]);
 
   const numPanels = panels.length;
   const totalGap = Math.max(0, (numPanels - 1) * GRID_GAP);
@@ -86,7 +113,7 @@ export const GridOfCharts = React.memo(function GridOfCharts({
         <div key={panel.title || i} style={{ flex: '1 1 0%', minWidth: 0 }}>
           <GroupedBarChart
             data={panel.data}
-            columnMapping={columnMapping}
+            columnMapping={panel.columnMapping}
             settings={settings}
             width={panelWidth}
             height={height}

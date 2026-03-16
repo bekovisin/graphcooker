@@ -173,7 +173,7 @@ export function ChartPreview() {
               seriesNames={seriesNames}
             />
           ) : settings.chartType.chartType === 'bar_grouped' ? (
-            settings.chartType.gridMode === 'grid' && columnMapping.chartsGrid ? (
+            settings.chartType.gridMode === 'grid' && (columnMapping.chartsGrid || (columnMapping.values && columnMapping.values.length > 1)) ? (
               <GridOfCharts
                 data={data}
                 columnMapping={columnMapping}

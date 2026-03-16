@@ -818,7 +818,7 @@ export async function renderChartOffscreen(
   const { createRoot } = await import('react-dom/client');
 
   const chartType = renderSettings.chartType.chartType;
-  const isGridMode = chartType === 'bar_grouped' && renderSettings.chartType.gridMode === 'grid' && columnMapping.chartsGrid;
+  const isGridMode = chartType === 'bar_grouped' && renderSettings.chartType.gridMode === 'grid' && (columnMapping.chartsGrid || (columnMapping.values && columnMapping.values.length > 1));
   const ChartComponent = chartType === 'line_chart'
     ? (await import('@/components/chart/LineChart')).LineChart
     : chartType === 'bar_grouped'
