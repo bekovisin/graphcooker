@@ -12,8 +12,8 @@ interface HistorySnapshot {
   settings: ChartSettings;
 }
 
-const MAX_HISTORY = 50;
-const DEBOUNCE_MS = 300;
+const MAX_HISTORY = 20;
+const DEBOUNCE_MS = 1000;
 
 // Module-level state
 let _undoStack: HistorySnapshot[] = [];
