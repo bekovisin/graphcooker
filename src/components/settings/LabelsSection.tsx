@@ -224,6 +224,7 @@ export function LabelsSection() {
   const settings = useEditorStore((s) => s.settings.labels);
   const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const seriesNames = useEditorStore((s) => s.columnMapping.values || []);
+  const storeSeriesNames = useEditorStore((s) => s.seriesNames);
   const data = useEditorStore((s) => s.data);
   const labelsColumn = useEditorStore((s) => s.columnMapping.labels);
   const categoryNames = useMemo(() => {
@@ -262,7 +263,7 @@ export function LabelsSection() {
   const gridPanelNames = useMemo(() => {
     if (!showGridTitleSection) return [];
     const splitByColumns = !chartsGridColumn && seriesNames.length > 1;
-    if (splitByColumns) return seriesNames;
+    if (splitByColumns) return seriesNames.map((colKey) => storeSeriesNames[colKey] || colKey);
     if (chartsGridColumn && data.length > 0) {
       const unique = new Set<string>();
       return data.reduce<string[]>((acc, r) => {
@@ -272,7 +273,7 @@ export function LabelsSection() {
       }, []);
     }
     return [];
-  }, [showGridTitleSection, chartsGridColumn, seriesNames, data]);
+  }, [showGridTitleSection, chartsGridColumn, seriesNames, storeSeriesNames, data]);
   const isRowMode = settings.dataPointCustomMode === 'row';
   const customNames = isRowMode ? categoryNames : seriesNames;
   // Column mode uses flat Record<string, position>
