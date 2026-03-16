@@ -2036,6 +2036,19 @@ export function LabelsSection() {
               </Select>
             </SettingRow>
 
+            {/* Alignment */}
+            <SettingRow label="Alignment">
+              <TabMenu
+                value={settings.gridTitleAlignment ?? 'center'}
+                onChange={(v) => update({ gridTitleAlignment: v as 'start' | 'center' | 'end' })}
+                options={[
+                  { value: 'start', label: 'Left' },
+                  { value: 'center', label: 'Center' },
+                  { value: 'end', label: 'Right' },
+                ]}
+              />
+            </SettingRow>
+
             {/* Font family */}
             <SettingRow label="Font family">
               <Select
@@ -2055,8 +2068,8 @@ export function LabelsSection() {
               </Select>
             </SettingRow>
 
-            {/* Weight | Size | Color — 3-col grid */}
-            <div className="grid grid-cols-3 gap-2 items-end">
+            {/* Weight | Italic | Size | Color — 4-col grid */}
+            <div className="grid grid-cols-[1fr_auto_1fr_auto] gap-2 items-end">
               <div>
                 <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
                 <Select
@@ -2077,6 +2090,21 @@ export function LabelsSection() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex flex-col items-center">
+                <label className="text-[10px] text-gray-400 mb-0.5 block">&nbsp;</label>
+                <button
+                  type="button"
+                  onClick={() => update({ gridTitleFontStyle: (settings.gridTitleFontStyle ?? 'normal') === 'italic' ? 'normal' : 'italic' })}
+                  className={`h-8 w-8 flex items-center justify-center rounded-md border text-xs font-serif italic shrink-0 ${
+                    (settings.gridTitleFontStyle ?? 'normal') === 'italic'
+                      ? 'bg-blue-50 border-blue-300 text-blue-600'
+                      : 'border-gray-300 text-gray-500 hover:bg-gray-50'
+                  }`}
+                  title="Italic"
+                >
+                  I
+                </button>
+              </div>
               <NumberInput
                 label="Size"
                 value={settings.gridTitleFontSize ?? 14}
@@ -2092,22 +2120,6 @@ export function LabelsSection() {
                 onChange={(color) => update({ gridTitleColor: color })}
               />
             </div>
-
-            {/* Font style */}
-            <SettingRow label="Font style">
-              <Select
-                value={settings.gridTitleFontStyle ?? 'normal'}
-                onValueChange={(v) => update({ gridTitleFontStyle: v as FontStyle })}
-              >
-                <SelectTrigger className="h-8 text-xs w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                  <SelectItem value="italic" className="text-xs">Italic</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
 
             {/* Padding H/V */}
             <div className="grid grid-cols-2 gap-2">
@@ -2171,52 +2183,88 @@ export function LabelsSection() {
                             </button>
                             {expanded && (
                               <div className="px-3 pb-3 space-y-3 border-t border-gray-100">
-                                <NumberInput
-                                  label="Font size (px)"
-                                  value={overrides.fontSize ?? (settings.gridTitleFontSize ?? 14)}
-                                  onChange={(v) => updateOverride({ fontSize: v })}
-                                  min={1}
-                                  max={72}
-                                  step={1}
-                                />
-                                <SettingRow label="Font weight">
+                                {/* Alignment */}
+                                <SettingRow label="Alignment">
+                                  <TabMenu
+                                    value={overrides.alignment ?? (settings.gridTitleAlignment ?? 'center')}
+                                    onChange={(v) => updateOverride({ alignment: v as 'start' | 'center' | 'end' })}
+                                    options={[
+                                      { value: 'start', label: 'Left' },
+                                      { value: 'center', label: 'Center' },
+                                      { value: 'end', label: 'Right' },
+                                    ]}
+                                  />
+                                </SettingRow>
+                                {/* Font family */}
+                                <SettingRow label="Font family">
                                   <Select
-                                    value={overrides.fontWeight ?? (settings.gridTitleFontWeight ?? '600')}
-                                    onValueChange={(v) => updateOverride({ fontWeight: v as FontWeight })}
+                                    value={overrides.fontFamily ?? (settings.gridTitleFontFamily || 'Inter, sans-serif')}
+                                    onValueChange={(v) => updateOverride({ fontFamily: v })}
                                   >
                                     <SelectTrigger className="h-8 text-xs">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
-                                      <SelectItem value="300" className="text-xs">Light</SelectItem>
-                                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                                      <SelectItem value="500" className="text-xs">Medium</SelectItem>
-                                      <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
-                                      <SelectItem value="bold" className="text-xs">Bold</SelectItem>
-                                      <SelectItem value="900" className="text-xs">Black</SelectItem>
+                                      {fontFamilyOptions.map((font) => (
+                                        <SelectItem key={font} value={font} className="text-xs">
+                                          {font}
+                                        </SelectItem>
+                                      ))}
                                     </SelectContent>
                                   </Select>
                                 </SettingRow>
-                                <SettingRow label="Font style">
-                                  <Select
-                                    value={overrides.fontStyle ?? (settings.gridTitleFontStyle ?? 'normal')}
-                                    onValueChange={(v) => updateOverride({ fontStyle: v as FontStyle })}
-                                  >
-                                    <SelectTrigger className="h-8 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
-                                      <SelectItem value="italic" className="text-xs">Italic</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </SettingRow>
-                                <ColorPicker
-                                  label="Color"
-                                  value={overrides.color ?? (settings.gridTitleColor ?? '#333333')}
-                                  onChange={(color) => updateOverride({ color })}
-                                />
+                                {/* Weight | Italic | Size | Color — 4-col grid */}
+                                <div className="grid grid-cols-[1fr_auto_1fr_auto] gap-2 items-end">
+                                  <div>
+                                    <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
+                                    <Select
+                                      value={overrides.fontWeight ?? (settings.gridTitleFontWeight ?? '600')}
+                                      onValueChange={(v) => updateOverride({ fontWeight: v as FontWeight })}
+                                    >
+                                      <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                                        <SelectItem value="300" className="text-xs">Light</SelectItem>
+                                        <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                                        <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                                        <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                                        <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                                        <SelectItem value="900" className="text-xs">Black</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="flex flex-col items-center">
+                                    <label className="text-[10px] text-gray-400 mb-0.5 block">&nbsp;</label>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateOverride({ fontStyle: (overrides.fontStyle ?? (settings.gridTitleFontStyle ?? 'normal')) === 'italic' ? 'normal' : 'italic' })}
+                                      className={`h-8 w-8 flex items-center justify-center rounded-md border text-xs font-serif italic shrink-0 ${
+                                        (overrides.fontStyle ?? (settings.gridTitleFontStyle ?? 'normal')) === 'italic'
+                                          ? 'bg-blue-50 border-blue-300 text-blue-600'
+                                          : 'border-gray-300 text-gray-500 hover:bg-gray-50'
+                                      }`}
+                                      title="Italic"
+                                    >
+                                      I
+                                    </button>
+                                  </div>
+                                  <NumberInput
+                                    label="Size"
+                                    value={overrides.fontSize ?? (settings.gridTitleFontSize ?? 14)}
+                                    onChange={(v) => updateOverride({ fontSize: v })}
+                                    min={1}
+                                    max={72}
+                                    step={1}
+                                    suffix="px"
+                                  />
+                                  <ColorPicker
+                                    label="Color"
+                                    value={overrides.color ?? (settings.gridTitleColor ?? '#333333')}
+                                    onChange={(color) => updateOverride({ color })}
+                                  />
+                                </div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <NumberInput
                                     label="Padding H"

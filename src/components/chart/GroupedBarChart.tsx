@@ -646,8 +646,10 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   const gtFontWeight = gtOverride?.fontWeight ?? settings.labels.gridTitleFontWeight ?? '600';
   const gtFontStyle = gtOverride?.fontStyle ?? settings.labels.gridTitleFontStyle ?? 'normal';
   const gtColor = gtOverride?.color ?? settings.labels.gridTitleColor ?? '#333333';
-  const gtFontFamily = settings.labels.gridTitleFontFamily ?? 'Inter, sans-serif';
+  const gtFontFamily = gtOverride?.fontFamily ?? settings.labels.gridTitleFontFamily ?? 'Inter, sans-serif';
   const gtPaddingH = gtOverride?.padding?.h ?? settings.labels.gridTitlePaddingH ?? 0;
+  const gtAlignment = gtOverride?.alignment ?? settings.labels.gridTitleAlignment ?? 'center';
+  const gtTextAnchor = gtAlignment === 'start' ? 'start' : gtAlignment === 'end' ? 'end' : 'middle';
   const gtPaddingV = gtOverride?.padding?.v ?? settings.labels.gridTitlePaddingV ?? 0;
   const gridTitleAtBottom = (settings.labels.gridTitlePosition ?? 'top') === 'bottom';
   const gridTitleHeight = gridTitle ? (gtFontSize + 14 + Math.abs(gtPaddingV) * 2) : 0;
@@ -689,9 +691,9 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
         {/* Grid title (panel label in grid mode) */}
         {gridTitle && (
           <text
-            x={width / 2 + gtPaddingH}
+            x={(gtAlignment === 'start' ? padding.left : gtAlignment === 'end' ? width - padding.right : width / 2) + gtPaddingH}
             y={gridTitleAtBottom ? svgHeight + gtPaddingV + gtFontSize : gtPaddingV + gtFontSize}
-            textAnchor="middle"
+            textAnchor={gtTextAnchor}
             fontSize={gtFontSize}
             fontFamily={gtFontFamily}
             fontWeight={gtFontWeight}

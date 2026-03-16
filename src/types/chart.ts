@@ -235,6 +235,7 @@ export interface LabelsSettings {
   gridTitleColor?: string;
   gridTitlePaddingH?: number;
   gridTitlePaddingV?: number;
+  gridTitleAlignment?: 'start' | 'center' | 'end';
   gridTitlePerSeriesOverrides?: Record<string, GridTitleSeriesOverride>;
 }
 
@@ -254,7 +255,9 @@ export interface GridTitleSeriesOverride {
   fontSize?: number;
   fontWeight?: FontWeight;
   fontStyle?: FontStyle;
+  fontFamily?: string;
   color?: string;
+  alignment?: 'start' | 'center' | 'end';
   padding?: { h: number; v: number };
 }
 

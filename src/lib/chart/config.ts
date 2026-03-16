@@ -157,6 +157,7 @@ export const defaultChartSettings: ChartSettings = {
     gridTitleColor: '#333333',
     gridTitlePaddingH: 0,
     gridTitlePaddingV: 0,
+    gridTitleAlignment: 'center',
     gridTitlePerSeriesOverrides: {},
   },
   xAxis: {
