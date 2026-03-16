@@ -182,15 +182,18 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const handleScroll = () => {
+    const checkNeedsMore = () => {
       const { scrollTop, scrollHeight, clientHeight } = container;
       if (scrollHeight - scrollTop - clientHeight < 100) {
         loadMore();
       }
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
+    // Check immediately in case content doesn't fill the viewport
+    checkNeedsMore();
+
+    container.addEventListener('scroll', checkNeedsMore);
+    return () => container.removeEventListener('scroll', checkNeedsMore);
   }, [loadMore]);
 
   // Persist sort preference

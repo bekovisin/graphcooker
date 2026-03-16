@@ -34,12 +34,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (limit > 0) {
-      // Paginated — return small thumbnails instead of full dataUrl
+      // Paginated — return thumbnailUrl for preview, fall back to dataUrl for old images without thumbnail
       const images = await db
         .select({
           id: imageLibrary.id,
           name: imageLibrary.name,
-          thumbnailUrl: imageLibrary.thumbnailUrl,
+          thumbnailUrl: sql<string | null>`COALESCE(${imageLibrary.thumbnailUrl}, ${imageLibrary.dataUrl})`.as('thumbnail_url'),
           createdAt: imageLibrary.createdAt,
           lastUsedAt: imageLibrary.lastUsedAt,
         })
