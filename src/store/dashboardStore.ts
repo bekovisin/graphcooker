@@ -447,10 +447,23 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   selectAllViz: (ids) => set({ selectedVizIds: new Set(ids) }),
   selectAllFolders: (ids) => set({ selectedFolderIds: new Set(ids) }),
   selectFolder: (folderId) => {
-    const vizInFolder = get().visualizations.filter((v) => v.folderId === folderId);
+    const { visualizations, folders } = get();
+    // Collect folderId + all descendant folder IDs
+    const allFolderIds = new Set<number>([folderId]);
+    const queue = [folderId];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const f of folders) {
+        if (f.parentId === current && !allFolderIds.has(f.id)) {
+          allFolderIds.add(f.id);
+          queue.push(f.id);
+        }
+      }
+    }
+    const vizInFolders = visualizations.filter((v) => v.folderId !== null && allFolderIds.has(v.folderId));
     set((s) => {
       const next = new Set(s.selectedVizIds);
-      vizInFolder.forEach((v) => next.add(v.id));
+      vizInFolders.forEach((v) => next.add(v.id));
       const nextFolders = new Set(s.selectedFolderIds);
       nextFolders.add(folderId);
       return { selectedVizIds: next, selectedFolderIds: nextFolders, isSelectionMode: true };
@@ -618,7 +631,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   handleBulkExport: async (selectedIds, exportOptions) => {
-    const { visualizations } = get();
+    const { visualizations, folders, selectedFolderIds } = get();
     const toExport = visualizations.filter((v) => selectedIds.has(v.id));
     if (toExport.length === 0) return;
 
@@ -632,6 +645,22 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const zip = new JSZip();
         let exported = 0;
         let failed = 0;
+
+        // Build folder path map for ZIP structure
+        const folderMap = new Map(folders.map((f) => [f.id, f]));
+        const getZipPath = (viz: VizItem): string => {
+          if (viz.folderId == null) return '';
+          const pathParts: string[] = [];
+          let currentId: number | null = viz.folderId;
+          while (currentId != null) {
+            const folder = folderMap.get(currentId);
+            if (!folder) break;
+            pathParts.unshift(folder.name.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim());
+            if (selectedFolderIds.has(currentId)) break; // stop at selected folder (include it as root dir)
+            currentId = folder.parentId;
+          }
+          return pathParts.length > 0 ? pathParts.join('/') + '/' : '';
+        };
 
         for (const viz of toExport) {
           try {
@@ -656,7 +685,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
               chartHeight = dims.height;
             }
 
-            const fileName = `${vizName}${ext}`;
+            const zipPath = getZipPath(viz);
+            const fileName = `${zipPath}${vizName}${ext}`;
 
             if (format === 'html') {
               const { captureAsHtmlBlob } = await import('@/lib/export/captureChart');
@@ -1212,14 +1242,28 @@ export const useGridClass = () => useDashboardStore((s) => {
     : 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
 });
 
-// Returns all viz IDs that should be exported (direct selections + viz inside selected folders)
+// Returns all viz IDs that should be exported (direct selections + viz inside selected folders, recursively including subfolders)
 export const useEffectiveSelectedVizIds = () => useDashboardStore(useShallow((s) => {
   const ids = new Set(s.selectedVizIds);
-  s.selectedFolderIds.forEach((folderId) => {
+  if (s.selectedFolderIds.size > 0) {
+    // BFS to collect all selected folder IDs + their descendant folder IDs
+    const allFolderIds = new Set<number>();
+    s.selectedFolderIds.forEach((id) => allFolderIds.add(id));
+    const queue: number[] = [];
+    s.selectedFolderIds.forEach((id) => queue.push(id));
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      for (const f of s.folders) {
+        if (f.parentId === current && !allFolderIds.has(f.id)) {
+          allFolderIds.add(f.id);
+          queue.push(f.id);
+        }
+      }
+    }
     s.visualizations.forEach((v) => {
-      if (v.folderId === folderId) ids.add(v.id);
+      if (v.folderId !== null && allFolderIds.has(v.folderId)) ids.add(v.id);
     });
-  });
+  }
   return ids;
 }));
 

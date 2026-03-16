@@ -189,19 +189,31 @@ export default function DashboardLayout({
     const folderMatch2 = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
     if (folderMatch2) {
       const fId = parseInt(folderMatch2[1]);
-      return visualizations.filter((v) => v.folderId === fId).map((v) => v.id);
+      // Collect this folder + all descendant folder IDs
+      const allFolderIds = new Set<number>([fId]);
+      const queue = [fId];
+      while (queue.length > 0) {
+        const current = queue.shift()!;
+        for (const f of folders) {
+          if (f.parentId === current && !allFolderIds.has(f.id)) {
+            allFolderIds.add(f.id);
+            queue.push(f.id);
+          }
+        }
+      }
+      return visualizations.filter((v) => v.folderId !== null && allFolderIds.has(v.folderId)).map((v) => v.id);
     }
     // Root — all viz
     return visualizations.map((v) => v.id);
-  }, [pathname, visualizations, isTemplatesView, isTrashView]);
+  }, [pathname, visualizations, folders, isTemplatesView, isTrashView]);
 
   // Compute visible folder IDs for "Select All" based on current route
   const visibleFolderIds = useMemo(() => {
     if (isTemplatesView || isTrashView) return [];
     const folderMatch2 = pathname.match(/^\/dashboard\/folder\/(\d+)$/);
     if (folderMatch2) {
-      // Inside a folder view — no sub-folder cards typically, return empty
-      return [];
+      const fId = parseInt(folderMatch2[1]);
+      return folders.filter((f) => f.parentId === fId).map((f) => f.id);
     }
     // Root — all root-level folders
     return folders.filter((f) => f.parentId === null).map((f) => f.id);
