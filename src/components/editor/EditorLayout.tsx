@@ -13,12 +13,14 @@ import { SettingsPanel } from './SettingsPanel';
 import { ExportDialog, ExportOptions } from './ExportDialog';
 import { UnsavedChangesDialog } from './UnsavedChangesDialog';
 import { captureThumbnail } from '@/lib/capture-thumbnail';
+import { useGlobalUndoRedo } from '@/hooks/useGlobalUndoRedo';
 
 interface EditorLayoutProps {
   visualizationId: number;
 }
 
 export function EditorLayout({ visualizationId }: EditorLayoutProps) {
+  useGlobalUndoRedo();
   const activeTab = useEditorStore((s) => s.activeTab);
   const settings = useEditorStore((s) => s.settings);
   const data = useEditorStore((s) => s.data);

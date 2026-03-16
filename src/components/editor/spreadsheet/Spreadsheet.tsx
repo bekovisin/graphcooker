@@ -365,11 +365,13 @@ export function Spreadsheet({ onUploadFile, onSelectionInfoChange, onColumnTypeC
       // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y (undo/redo)
       if (isMod && key === 'z' && !e.shiftKey) {
         e.preventDefault();
+        e.stopPropagation();
         handleUndo();
         return;
       }
       if (isMod && (key === 'y' || (key === 'z' && e.shiftKey))) {
         e.preventDefault();
+        e.stopPropagation();
         handleRedo();
         return;
       }

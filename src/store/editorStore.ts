@@ -3,6 +3,7 @@ import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { ColumnTypeConfig } from '@/components/editor/spreadsheet/types';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
+import { initHistory, clearHistory } from '@/lib/history';
 
 export type EditorTab = 'preview' | 'data';
 export type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'fullscreen' | 'custom';
@@ -34,6 +35,10 @@ interface EditorState {
 
   // Template editing
   editingTemplateId: number | null;
+
+  // Undo/redo counters (for UI reactivity)
+  _undoLen: number;
+  _redoLen: number;
 
   // Dirty tracking
   isDirty: boolean;
@@ -137,6 +142,8 @@ export const useEditorStore = create<EditorState>((set) => ({
   customPreviewHeight: 600,
   autoComputedHeight: null,
   editingTemplateId: null,
+  _undoLen: 0,
+  _redoLen: 0,
   canvasBackgroundColor: '#e5e7eb',
   settingsSearchQuery: '',
   data: defaultData,
@@ -333,7 +340,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   setIsSaving: (saving) => set({ isSaving: saving }),
   setLastSavedAt: (date) => set({ lastSavedAt: date }),
 
-  resetEditor: () =>
+  resetEditor: () => {
     set({
       visualizationId: null,
       visualizationName: 'Untitled visualization',
@@ -354,7 +361,11 @@ export const useEditorStore = create<EditorState>((set) => ({
       isDirty: false,
       isSaving: false,
       lastSavedAt: null,
-    }),
+      _undoLen: 0,
+      _redoLen: 0,
+    });
+    clearHistory(useEditorStore);
+  },
 
   loadVisualization: (viz) => {
     // Extract persisted preview state from columnMapping (if any)
@@ -391,6 +402,13 @@ export const useEditorStore = create<EditorState>((set) => ({
       canvasBackgroundColor: ps?.canvasBackgroundColor || '#e5e7eb',
       isDirty: false,
       lastSavedAt: new Date(),
+      _undoLen: 0,
+      _redoLen: 0,
     });
+    clearHistory(useEditorStore);
   },
 }));
+
+// Initialize global undo/redo history tracking
+initHistory(useEditorStore);
+

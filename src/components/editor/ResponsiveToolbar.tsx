@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useEditorStore, PreviewDevice } from '@/store/editorStore';
-import { Monitor, Tablet, Smartphone, Maximize2, Settings2, Paintbrush } from 'lucide-react';
+import { Monitor, Tablet, Smartphone, Maximize2, Settings2, Paintbrush, Undo2, Redo2 } from 'lucide-react';
+import { undo, redo } from '@/lib/history';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
@@ -125,6 +126,8 @@ export function ResponsiveToolbar() {
     setCanvasBackgroundColor,
     settings,
     updateSettings,
+    _undoLen,
+    _redoLen,
   } = useEditorStore();
 
   const isAutoHeight = settings.chartType.heightMode === 'auto';
@@ -222,6 +225,38 @@ export function ResponsiveToolbar() {
               </div>
             </PopoverContent>
           </Popover>
+        </div>
+
+        {/* Undo / Redo */}
+        <div className="ml-2 border-l border-gray-200 pl-2 flex items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => undo(useEditorStore)}
+                disabled={_undoLen === 0}
+                className="flex items-center justify-center w-8 h-8 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500"
+              >
+                <Undo2 className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Undo (⌘Z)
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => redo(useEditorStore)}
+                disabled={_redoLen === 0}
+                className="flex items-center justify-center w-8 h-8 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500"
+              >
+                <Redo2 className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">
+              Redo (⌘⇧Z)
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </TooltipProvider>
