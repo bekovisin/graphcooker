@@ -45,6 +45,7 @@ interface VisualizationCardProps {
   cardSize?: CardSize;
   isSelected: boolean;
   isSelectionMode: boolean;
+  thumbnailsLoading?: boolean;
   onToggleSelect: (id: number) => void;
   onDelete: (id: number) => void;
   onDuplicate: (id: number) => void;
@@ -66,6 +67,7 @@ export const VisualizationCard = React.memo(function VisualizationCard({
   onMoveToFolder,
   onShare,
   folders,
+  thumbnailsLoading,
 }: VisualizationCardProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -171,6 +173,8 @@ export const VisualizationCard = React.memo(function VisualizationCard({
             loading="lazy"
             className="w-full h-full object-contain"
           />
+        ) : thumbnailsLoading ? (
+          <div className="w-full h-full bg-gray-50 animate-pulse" />
         ) : (
           <div className="flex flex-col items-center gap-1">
             <BarChart3 className={cardSize === 'small' ? 'w-5 h-5 text-gray-200' : cardSize === 'medium' ? 'w-6 h-6 text-gray-200' : 'w-8 h-8 text-gray-200'} />

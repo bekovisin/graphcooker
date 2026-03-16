@@ -36,6 +36,7 @@ export default function FolderPage() {
   const viewMode = useDashboardStore((s) => s.viewMode);
   const cardSize = useDashboardStore((s) => s.cardSize);
   const loading = useDashboardStore((s) => s.loading);
+  const thumbnailsLoading = useDashboardStore((s) => s.thumbnailsLoading);
   const creating = useDashboardStore((s) => s.creating);
   const setSearchQuery = useDashboardStore((s) => s.setSearchQuery);
   const deleteViz = useDashboardStore((s) => s.deleteViz);
@@ -152,6 +153,7 @@ export default function FolderPage() {
         cardSize={cardSize}
         isSelected={selectedVizIds.has(viz.id)}
         isSelectionMode={isSelectionMode}
+        thumbnailsLoading={thumbnailsLoading}
         onToggleSelect={toggleSelectViz}
         onDelete={deleteViz}
         onDuplicate={duplicateViz}
@@ -169,6 +171,7 @@ export default function FolderPage() {
         viz={viz}
         isSelected={selectedVizIds.has(viz.id)}
         isSelectionMode={isSelectionMode}
+        thumbnailsLoading={thumbnailsLoading}
         onToggleSelect={toggleSelectViz}
         onDelete={deleteViz}
         onDuplicate={duplicateViz}
@@ -180,11 +183,19 @@ export default function FolderPage() {
     </div>
   );
 
-  // Loading
+  // Loading — show skeleton cards
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      <div className={gridClass}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-lg border bg-white overflow-hidden">
+            <div className="aspect-[16/10] bg-gray-100 animate-pulse" />
+            <div className="p-3 space-y-2">
+              <div className="h-3.5 bg-gray-100 rounded animate-pulse w-3/4" />
+              <div className="h-2.5 bg-gray-50 rounded animate-pulse w-1/2" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

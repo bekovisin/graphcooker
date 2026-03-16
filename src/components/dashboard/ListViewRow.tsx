@@ -15,6 +15,7 @@ export interface ListViewRowProps {
   viz: VizItem;
   isSelected: boolean;
   isSelectionMode: boolean;
+  thumbnailsLoading?: boolean;
   onToggleSelect: (id: number) => void;
   onDelete: (id: number) => void;
   onDuplicate: (id: number) => void;
@@ -28,6 +29,7 @@ export const ListViewRow = React.memo(function ListViewRow({
   viz,
   isSelected,
   isSelectionMode,
+  thumbnailsLoading,
   onToggleSelect,
   onDelete,
   onDuplicate,
@@ -64,6 +66,8 @@ export const ListViewRow = React.memo(function ListViewRow({
   const thumbnailImg = viz.thumbnail
     // eslint-disable-next-line @next/next/no-img-element
     ? <img src={viz.thumbnail} alt="" loading="lazy" className="w-full h-full object-contain" />
+    : thumbnailsLoading
+    ? <div className="w-full h-full bg-gray-50 animate-pulse rounded" />
     : <BarChart3 className="w-4 h-4 text-gray-200" />;
 
   return (

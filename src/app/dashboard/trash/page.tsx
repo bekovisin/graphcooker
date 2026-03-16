@@ -14,6 +14,7 @@ export default function TrashPage() {
   // Individual selectors to prevent full-store subscription
   const trashItems = useDashboardStore((s) => s.trashItems);
   const loading = useDashboardStore((s) => s.loading);
+  const thumbnailsLoading = useDashboardStore((s) => s.thumbnailsLoading);
   const fetchTrash = useDashboardStore((s) => s.fetchTrash);
   const restoreTrashItem = useDashboardStore((s) => s.restoreTrashItem);
   const permanentDeleteTrashItem = useDashboardStore((s) => s.permanentDeleteTrashItem);
@@ -102,6 +103,8 @@ export default function TrashPage() {
             {viz.thumbnail ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={viz.thumbnail} alt="" className="w-full h-full object-contain" />
+            ) : thumbnailsLoading ? (
+              <div className="w-full h-full bg-gray-100 animate-pulse rounded" />
             ) : (
               <BarChart3 className="w-4 h-4 text-gray-200" />
             )}

@@ -85,6 +85,7 @@ interface DashboardState {
     folders: Array<FolderItem & { deletedAt: string }>;
   };
   loading: boolean;
+  thumbnailsLoading: boolean;
 
   // Preferences
   sortMode: SortMode;
@@ -212,6 +213,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   templateFolders: [],
   trashItems: { visualizations: [], folders: [] },
   loading: true,
+  thumbnailsLoading: false,
 
   // Initial preferences
   sortMode: 'updated_desc',
@@ -253,22 +255,30 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const data = await res.json();
         // Thumbnails excluded from list query — set null placeholder
         const vizs = data.map((v: VizItem) => ({ ...v, thumbnail: v.thumbnail ?? null }));
-        set({ visualizations: vizs });
+        set({ visualizations: vizs, thumbnailsLoading: true });
         // Lazy-load thumbnails in background batches of 50
         const ids = vizs.map((v: VizItem) => v.id);
+        if (ids.length === 0) {
+          set({ thumbnailsLoading: false });
+          return;
+        }
+        const batchPromises: Promise<void>[] = [];
         for (let i = 0; i < ids.length; i += 50) {
           const batch = ids.slice(i, i + 50);
-          fetch(`/api/visualizations/thumbnails?ids=${batch.join(',')}`)
-            .then((r) => (r.ok ? r.json() : {}))
-            .then((thumbs: Record<string, string>) => {
-              set((s) => ({
-                visualizations: s.visualizations.map((v) =>
-                  thumbs[String(v.id)] ? { ...v, thumbnail: thumbs[String(v.id)] } : v
-                ),
-              }));
-            })
-            .catch(() => {});
+          batchPromises.push(
+            fetch(`/api/visualizations/thumbnails?ids=${batch.join(',')}`)
+              .then((r) => (r.ok ? r.json() : {}))
+              .then((thumbs: Record<string, string>) => {
+                set((s) => ({
+                  visualizations: s.visualizations.map((v) =>
+                    thumbs[String(v.id)] ? { ...v, thumbnail: thumbs[String(v.id)] } : v
+                  ),
+                }));
+              })
+              .catch(() => {})
+          );
         }
+        Promise.all(batchPromises).then(() => set({ thumbnailsLoading: false }));
       }
     } catch (error) {
       console.error('Failed to fetch visualizations:', error);

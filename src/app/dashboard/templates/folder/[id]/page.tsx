@@ -44,6 +44,7 @@ export default function TemplateFolderPage() {
   const viewMode = useDashboardStore((s) => s.viewMode);
   const searchQuery = useDashboardStore((s) => s.searchQuery);
   const loading = useDashboardStore((s) => s.loading);
+  const thumbnailsLoading = useDashboardStore((s) => s.thumbnailsLoading);
   const deleteTemplate = useDashboardStore((s) => s.deleteTemplate);
   const applyTemplate = useDashboardStore((s) => s.applyTemplate);
   const applyingTemplateId = useDashboardStore((s) => s.applyingTemplateId);
@@ -216,6 +217,8 @@ export default function TemplateFolderPage() {
           {tpl.thumbnail ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={tpl.thumbnail} alt="" className="w-full h-full object-contain" />
+          ) : thumbnailsLoading ? (
+            <div className="w-full h-full bg-gray-100 animate-pulse rounded" />
           ) : (
             <LayoutTemplate className="w-4 h-4 text-orange-200" />
           )}
@@ -281,6 +284,8 @@ export default function TemplateFolderPage() {
           {tpl.thumbnail ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={tpl.thumbnail} alt={tpl.templateName} className="w-full h-full object-contain" />
+          ) : thumbnailsLoading ? (
+            <div className="w-full h-full bg-gray-50 animate-pulse" />
           ) : (
             <div className="flex flex-col items-center gap-1">
               <LayoutTemplate className={cardSize === 'small' ? 'w-5 h-5 text-orange-200' : cardSize === 'medium' ? 'w-6 h-6 text-orange-200' : 'w-8 h-8 text-orange-200'} />
@@ -327,11 +332,19 @@ export default function TemplateFolderPage() {
     );
   };
 
-  // Loading
+  // Loading — show skeleton cards
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      <div className={gridClass}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-lg border bg-white overflow-hidden">
+            <div className="aspect-[16/10] bg-gray-100 animate-pulse" />
+            <div className="p-3 space-y-2">
+              <div className="h-3.5 bg-gray-100 rounded animate-pulse w-3/4" />
+              <div className="h-2.5 bg-gray-50 rounded animate-pulse w-1/2" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
