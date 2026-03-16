@@ -12,7 +12,12 @@ import {
   DropdownMenuSubContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { getDescendantIds } from '@/lib/folder-utils';
 
 interface FolderItem {
@@ -319,67 +324,84 @@ export function FolderCard({
         )}
       </div>
 
-      {/* Color picker popover */}
+      {/* Color picker dialog */}
       {onUpdateColors && (
-        <Popover open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
-          <PopoverTrigger asChild>
-            <span className="hidden" />
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-64 p-3"
-            side="right"
-            align="start"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Background</label>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {PRESET_BG_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
-                        bgColor === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
-                      }`}
-                      style={{ backgroundColor: c }}
-                      onClick={() => onUpdateColors(folder.id, { bgColor: c })}
-                    />
-                  ))}
+        <Dialog open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
+          <DialogContent className="sm:max-w-[340px] p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5">
+              <DialogHeader className="flex-row items-center gap-3 space-y-0 mb-4">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: bgColor }}
+                >
+                  <FolderOpen className="w-4.5 h-4.5" style={{ color: iconColor }} />
                 </div>
+                <DialogTitle className="text-sm font-semibold text-gray-900">
+                  Change folder color
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Preview */}
+              <div
+                className="rounded-lg border border-gray-200 p-4 flex flex-col items-center justify-center mb-4"
+                style={{ backgroundColor: bgColor }}
+              >
+                <FolderOpen className="w-8 h-8" style={{ color: iconColor }} />
+                <span className="text-xs mt-1 font-medium" style={{ color: textColor }}>
+                  {folder.name}
+                </span>
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Icon</label>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {PRESET_ICON_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
-                        (folder.iconColor || '#9ca3af') === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
-                      }`}
-                      style={{ backgroundColor: c }}
-                      onClick={() => onUpdateColors(folder.id, { iconColor: c })}
-                    />
-                  ))}
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">Background</label>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {PRESET_BG_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
+                          bgColor === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
+                        }`}
+                        style={{ backgroundColor: c }}
+                        onClick={() => onUpdateColors(folder.id, { bgColor: c })}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Text</label>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {PRESET_TEXT_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
-                        (folder.textColor || '#374151') === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
-                      }`}
-                      style={{ backgroundColor: c }}
-                      onClick={() => onUpdateColors(folder.id, { textColor: c })}
-                    />
-                  ))}
+                <div>
+                  <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">Icon</label>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {PRESET_ICON_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
+                          (folder.iconColor || '#9ca3af') === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
+                        }`}
+                        style={{ backgroundColor: c }}
+                        onClick={() => onUpdateColors(folder.id, { iconColor: c })}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">Text</label>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {PRESET_TEXT_COLORS.map((c) => (
+                      <button
+                        key={c}
+                        className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
+                          (folder.textColor || '#374151') === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
+                        }`}
+                        style={{ backgroundColor: c }}
+                        onClick={() => onUpdateColors(folder.id, { textColor: c })}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </PopoverContent>
-        </Popover>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
