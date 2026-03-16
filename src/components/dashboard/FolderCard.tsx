@@ -91,7 +91,9 @@ export function FolderCard({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(folder.name);
-  const [colorPopoverOpen, setColorPopoverOpen] = useState(false);
+  const [colorDialogOpen, setColorDialogOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const ignoreClickRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -134,7 +136,8 @@ export function FolderCard({
         isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : isSelected ? 'ring-2 ring-blue-400 border-blue-300' : 'border-gray-200'
       }`}
       onClick={() => {
-        if (colorPopoverOpen) return;
+        if (ignoreClickRef.current) { ignoreClickRef.current = false; return; }
+        if (colorDialogOpen) return;
         if (isEditing) return;
         if (isSelectionMode && onToggleSelect) {
           onToggleSelect(folder.id);
@@ -240,7 +243,7 @@ export function FolderCard({
             </div>
             {hasMenu && (
               <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
-                <DropdownMenu>
+                <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <button className={`rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors ${
                       cardSize === 'small' ? 'p-0.5' : 'p-1.5'
@@ -257,9 +260,9 @@ export function FolderCard({
                     )}
                     {onUpdateColors && (
                       <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setColorPopoverOpen(true);
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setTimeout(() => setColorDialogOpen(true), 100);
                         }}
                       >
                         <Palette className="w-3.5 h-3.5 mr-2" />
@@ -327,7 +330,10 @@ export function FolderCard({
 
       {/* Color picker dialog */}
       {onUpdateColors && (
-        <Dialog open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
+        <Dialog open={colorDialogOpen} onOpenChange={(open) => {
+          setColorDialogOpen(open);
+          if (!open) ignoreClickRef.current = true;
+        }}>
           <DialogContent className="sm:max-w-[340px] p-0 overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
               <DialogHeader className="flex-row items-center gap-3 space-y-0 mb-4">
