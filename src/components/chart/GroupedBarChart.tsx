@@ -55,6 +55,14 @@ interface GroupedBarChartProps {
   seriesNames?: Record<string, string>;
   /** Skip animation and render at full values immediately (used for export) */
   skipAnimation?: boolean;
+  /** Override min value for shared axis scale (grid mode) */
+  overrideMinVal?: number;
+  /** Override max value for shared axis scale (grid mode) */
+  overrideMaxVal?: number;
+  /** Title rendered above the chart (grid mode panel label) */
+  gridTitle?: string;
+  /** Hide legend (used in grid mode to show legend only on first panel) */
+  hideLegend?: boolean;
 }
 
 function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number): string {
@@ -178,7 +186,7 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export const GroupedBarChart = React.memo(function GroupedBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation }: GroupedBarChartProps) {
+export const GroupedBarChart = React.memo(function GroupedBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation, overrideMinVal, overrideMaxVal, gridTitle, hideLegend }: GroupedBarChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', series: '', value: 0, color: '' });
   const [animProgress, setAnimProgress] = useState(skipAnimation || !settings.animations.enabled ? 1 : 0);
@@ -282,10 +290,10 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
       series: rawSeries,
       categories: cats,
       categoryColors: catColors,
-      maxVal: userMax !== undefined ? userMax : maxV,
-      minVal: userMin !== undefined ? userMin : Math.min(0, minV),
+      maxVal: overrideMaxVal !== undefined ? overrideMaxVal : (userMax !== undefined ? userMax : maxV),
+      minVal: overrideMinVal !== undefined ? overrideMinVal : (userMin !== undefined ? userMin : Math.min(0, minV)),
     };
-  }, [data, columnMapping, columnOrderProp, seriesNamesProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max]);
+  }, [data, columnMapping, columnOrderProp, seriesNamesProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max, overrideMinVal, overrideMaxVal]);
 
   // ── Color mode ──
   const colorByRow = settings.colors.colorMode === 'by_row';
@@ -454,7 +462,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   const legendGapEarly = settings.legend.swatchPadding || 8;
   const legendRowGap = settings.legend.rowGap ?? 4;
   const legendHeight = (() => {
-    if (!settings.legend.show || legendIsOverlay) return 0;
+    if (!settings.legend.show || legendIsOverlay || hideLegend) return 0;
     const marginTop = settings.legend.marginTop || 0;
     if (settings.legend.orientation === 'vertical') {
       return series.length * (legendFontSize + legendGapEarly) + marginTop + 10;
@@ -627,7 +635,8 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   // Y-axis label max width for truncation/wrapping
   const yLabelMaxWidth = yAxisLabelWidth - 4;
 
-  const totalSvgHeight = svgHeight;
+  const gridTitleHeight = gridTitle ? 28 : 0;
+  const totalSvgHeight = svgHeight + gridTitleHeight;
 
   // Background color - use layout bg with opacity support
   const bgOpacity = (settings.layout.backgroundOpacity ?? 100) / 100;
@@ -662,6 +671,22 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
         {/* Background for export - uses layout background color with opacity */}
         <rect x="0" y="0" width={width} height={totalSvgHeight} fill={bgColor === 'transparent' ? 'none' : bgColor} fillOpacity={bgOpacity} />
 
+        {/* Grid title (panel label in grid mode) */}
+        {gridTitle && (
+          <text
+            x={width / 2}
+            y={20}
+            textAnchor="middle"
+            fontSize={14}
+            fontFamily="Inter, sans-serif"
+            fontWeight={600}
+            fill="#333"
+          >
+            {gridTitle}
+          </text>
+        )}
+
+        <g transform={gridTitleHeight ? `translate(0, ${gridTitleHeight})` : undefined}>
         {/* Plot background */}
         {settings.plotBackground.backgroundColor && settings.plotBackground.backgroundColor !== 'transparent' && (
           <rect
@@ -1299,7 +1324,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
         })}
 
         {/* ── Legend (rendered inside SVG for proper export) ── */}
-        {settings.legend.show && (() => {
+        {settings.legend.show && !hideLegend && (() => {
           // Legend padding offsets
           const lPadT = settings.legend.paddingTop || 0;
           const lPadR = settings.legend.paddingRight || 0;
@@ -1456,6 +1481,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
             });
           });
         })()}
+        </g>
       </svg>
 
       {/* ── Tooltip ── */}

@@ -5,6 +5,7 @@ import { useEditorStore } from '@/store/editorStore';
 import { ResponsiveToolbar } from './ResponsiveToolbar';
 import { CustomBarChart } from '@/components/chart/CustomBarChart';
 import { GroupedBarChart } from '@/components/chart/GroupedBarChart';
+import { GridOfCharts } from '@/components/chart/GridOfCharts';
 import { LineChart } from '@/components/chart/LineChart';
 import { BarChartCustom2 } from '@/components/chart/BarChartCustom2';
 import { BarChartElection } from '@/components/chart/BarChartElection';
@@ -172,15 +173,27 @@ export function ChartPreview() {
               seriesNames={seriesNames}
             />
           ) : settings.chartType.chartType === 'bar_grouped' ? (
-            <GroupedBarChart
-              data={data}
-              columnMapping={columnMapping}
-              settings={settings}
-              width={chartAreaWidth}
-              height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
-              columnOrder={columnOrder}
-              seriesNames={seriesNames}
-            />
+            settings.chartType.gridMode === 'grid' && columnMapping.chartsGrid ? (
+              <GridOfCharts
+                data={data}
+                columnMapping={columnMapping}
+                settings={settings}
+                width={chartAreaWidth}
+                height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+                columnOrder={columnOrder}
+                seriesNames={seriesNames}
+              />
+            ) : (
+              <GroupedBarChart
+                data={data}
+                columnMapping={columnMapping}
+                settings={settings}
+                width={chartAreaWidth}
+                height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+                columnOrder={columnOrder}
+                seriesNames={seriesNames}
+              />
+            )
           ) : settings.chartType.chartType === 'bar_chart_custom_2' ? (
             <BarChartCustom2
               data={data}

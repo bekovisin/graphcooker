@@ -818,10 +818,13 @@ export async function renderChartOffscreen(
   const { createRoot } = await import('react-dom/client');
 
   const chartType = renderSettings.chartType.chartType;
+  const isGridMode = chartType === 'bar_grouped' && renderSettings.chartType.gridMode === 'grid' && columnMapping.chartsGrid;
   const ChartComponent = chartType === 'line_chart'
     ? (await import('@/components/chart/LineChart')).LineChart
     : chartType === 'bar_grouped'
-      ? (await import('@/components/chart/GroupedBarChart')).GroupedBarChart
+      ? (isGridMode
+          ? (await import('@/components/chart/GridOfCharts')).GridOfCharts
+          : (await import('@/components/chart/GroupedBarChart')).GroupedBarChart)
       : chartType === 'bar_chart_custom_2'
         ? (await import('@/components/chart/BarChartCustom2')).BarChartCustom2
         : chartType === 'bar_stacked_2'
@@ -847,7 +850,46 @@ export async function renderChartOffscreen(
   await new Promise((r) => setTimeout(r, 200));
 
   // ── Inject header / question / footer into the SVG ──
-  const svgEl = container.querySelector('svg');
+  // For grid mode, composite multiple SVGs into a single SVG
+  let svgEl = container.querySelector('svg');
+  if (isGridMode) {
+    const allSvgs = container.querySelectorAll('svg');
+    if (allSvgs.length > 1) {
+      const gap = 12;
+      let totalW = 0;
+      let maxH = 0;
+      const svgInfos: { el: SVGSVGElement; w: number; h: number }[] = [];
+      allSvgs.forEach((s) => {
+        const w = parseFloat(s.getAttribute('width') || '0');
+        const h = parseFloat(s.getAttribute('height') || '0');
+        svgInfos.push({ el: s, w, h });
+        totalW += w;
+        if (h > maxH) maxH = h;
+      });
+      totalW += (svgInfos.length - 1) * gap;
+
+      const compositeSvg = document.createElementNS(NS, 'svg');
+      compositeSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      compositeSvg.setAttribute('width', String(totalW));
+      compositeSvg.setAttribute('height', String(maxH));
+      compositeSvg.setAttribute('viewBox', `0 0 ${totalW} ${maxH}`);
+      compositeSvg.style.display = 'block';
+
+      let xOffset = 0;
+      for (const info of svgInfos) {
+        const g = document.createElementNS(NS, 'g');
+        g.setAttribute('transform', `translate(${xOffset}, 0)`);
+        while (info.el.firstChild) g.appendChild(info.el.firstChild);
+        compositeSvg.appendChild(g);
+        xOffset += info.w + gap;
+      }
+
+      // Replace all SVGs with the composite one
+      container.innerHTML = '';
+      container.appendChild(compositeSvg);
+      svgEl = compositeSvg;
+    }
+  }
 
   // For auto height, read the actual SVG height and resize container to fit
   const actualChartHeight = svgEl ? parseFloat(svgEl.getAttribute('height') || String(chartHeight)) : chartHeight;
