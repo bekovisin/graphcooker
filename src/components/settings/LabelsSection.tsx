@@ -251,6 +251,8 @@ export function LabelsSection() {
   const [showGridTitleModal, setShowGridTitleModal] = useState(false);
   const [expandedGridTitleSeries, setExpandedGridTitleSeries] = useState<Record<string, boolean>>({});
   const [expandedPositionRows, setExpandedPositionRows] = useState<Record<string, boolean>>({});
+  const [showBarPaddingModal, setShowBarPaddingModal] = useState(false);
+  const [expandedPaddingRowsBar, setExpandedPaddingRowsBar] = useState<Record<string, boolean>>({});
   const gridMode = useEditorStore((s) => s.settings.chartType.gridMode);
   const chartsGridColumn = useEditorStore((s) => s.columnMapping.chartsGrid);
   const isLineChart = chartType === 'line_chart';
@@ -1662,43 +1664,107 @@ export function LabelsSection() {
             />
           </SettingRow>
 
-          {/* Custom padding - 4 inputs side by side */}
+          {/* Custom padding - 2 inputs (H/V) + per-row modal */}
           {settings.dataPointCustomPadding && (
-            <div className="space-y-1.5 pl-2 border-l-2 border-gray-100">
-              <div className="grid grid-cols-4 gap-2">
+            <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+              <div className="grid grid-cols-2 gap-2">
                 <NumberInput
-                  label="T"
-                  value={settings.dataPointPaddingTop}
-                  onChange={(v) => update({ dataPointPaddingTop: v })}
-                  min={-50}
-                  max={50}
+                  label="H"
+                  value={settings.dataPointPaddingH ?? 0}
+                  onChange={(v) => update({ dataPointPaddingH: v })}
+                  min={-999}
+                  max={999}
                   step={1}
                 />
                 <NumberInput
-                  label="R"
-                  value={settings.dataPointPaddingRight}
-                  onChange={(v) => update({ dataPointPaddingRight: v })}
-                  min={-50}
-                  max={50}
-                  step={1}
-                />
-                <NumberInput
-                  label="B"
-                  value={settings.dataPointPaddingBottom}
-                  onChange={(v) => update({ dataPointPaddingBottom: v })}
-                  min={-50}
-                  max={50}
-                  step={1}
-                />
-                <NumberInput
-                  label="L"
-                  value={settings.dataPointPaddingLeft}
-                  onChange={(v) => update({ dataPointPaddingLeft: v })}
-                  min={-50}
-                  max={50}
+                  label="V"
+                  value={settings.dataPointPaddingV ?? 0}
+                  onChange={(v) => update({ dataPointPaddingV: v })}
+                  min={-999}
+                  max={999}
                   step={1}
                 />
               </div>
+
+              <button
+                onClick={() => setShowBarPaddingModal(true)}
+                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+                Configure per-row padding...
+              </button>
+
+              <Dialog open={showBarPaddingModal} onOpenChange={setShowBarPaddingModal}>
+                <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-sm">Per-row label padding</DialogTitle>
+                    <DialogDescription className="text-xs text-gray-500">
+                      Set H/V padding for each row&apos;s series independently.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-1 mt-2">
+                    {categoryNames.map((rowName) => {
+                      const expanded = expandedPaddingRowsBar[rowName] ?? false;
+                      const rowPaddings = settings.barDataPointRowSeriesPadding?.[rowName] || {};
+                      return (
+                        <div key={rowName} className="border border-gray-200 rounded-md">
+                          <button
+                            onClick={() => setExpandedPaddingRowsBar((prev) => ({ ...prev, [rowName]: !expanded }))}
+                            className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-gray-50"
+                          >
+                            {expanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+                            <span className="text-sm font-medium text-gray-800 truncate">{rowName}</span>
+                          </button>
+                          {expanded && (
+                            <div className="px-3 pb-3 space-y-2 border-t border-gray-100">
+                              {seriesNames.map((seriesKey) => {
+                                const pad = rowPaddings[seriesKey] || { h: 0, v: 0 };
+                                const updatePad = (patch: Partial<{ h: number; v: number }>) => {
+                                  const currentRow = settings.barDataPointRowSeriesPadding?.[rowName] || {};
+                                  update({
+                                    barDataPointRowSeriesPadding: {
+                                      ...settings.barDataPointRowSeriesPadding,
+                                      [rowName]: {
+                                        ...currentRow,
+                                        [seriesKey]: { ...pad, ...patch },
+                                      },
+                                    },
+                                  });
+                                };
+                                return (
+                                  <div key={seriesKey} className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-600 truncate min-w-0 flex-1">
+                                      {seriesKey}
+                                    </span>
+                                    <div className="flex-shrink-0 grid grid-cols-2 gap-2 w-[160px]">
+                                      <NumberInput
+                                        label="H"
+                                        value={pad.h}
+                                        onChange={(v) => updatePad({ h: v })}
+                                        min={-999}
+                                        max={999}
+                                        step={1}
+                                      />
+                                      <NumberInput
+                                        label="V"
+                                        value={pad.v}
+                                        onChange={(v) => updatePad({ v })}
+                                        min={-999}
+                                        max={999}
+                                        step={1}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
 

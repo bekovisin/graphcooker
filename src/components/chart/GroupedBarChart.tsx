@@ -1031,12 +1031,17 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
                   ? (settings.labels.dataPointRowColors?.[String(ci)] || settings.labels.dataPointColor)
                   : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor));
 
-              const offsetX = settings.labels.dataPointCustomPadding
-                ? settings.labels.dataPointPaddingLeft - settings.labels.dataPointPaddingRight
-                : 0;
-              const offsetY = settings.labels.dataPointCustomPadding
-                ? settings.labels.dataPointPaddingTop - settings.labels.dataPointPaddingBottom
-                : 0;
+              // Resolve padding: per-row per-series > global H/V
+              const rowSeriesPad = settings.labels.barDataPointRowSeriesPadding?.[cat]?.[s.key];
+              let offsetX = 0;
+              let offsetY = 0;
+              if (rowSeriesPad) {
+                offsetX = rowSeriesPad.h;
+                offsetY = rowSeriesPad.v;
+              } else if (settings.labels.dataPointCustomPadding) {
+                offsetX = settings.labels.dataPointPaddingH ?? (settings.labels.dataPointPaddingLeft - settings.labels.dataPointPaddingRight);
+                offsetY = settings.labels.dataPointPaddingV ?? (settings.labels.dataPointPaddingTop - settings.labels.dataPointPaddingBottom);
+              }
 
               const showPercent = settings.labels.showPercentPrefix;
               const prefixPos = settings.labels.percentPrefixPosition ?? 'right';

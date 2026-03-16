@@ -135,6 +135,9 @@ export interface LabelsSettings {
   dataPointPaddingRight: number;
   dataPointPaddingBottom: number;
   dataPointPaddingLeft: number;
+  dataPointPaddingH?: number;
+  dataPointPaddingV?: number;
+  barDataPointRowSeriesPadding?: Record<string, Record<string, { h: number; v: number }>>;
   outsideLabelPadding: number;
   fixedLabelAlignment: 'start' | 'center' | 'end';
   dataPointLetterSpacing: number;
