@@ -111,7 +111,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     return () => {
       ignore = true;
     };
-  }, [visualizationId, loadVisualization]);
+  }, [visualizationId, loadVisualization, fromTemplateId, setIsDirty]);
 
   // Capture thumbnail from chart container (shared utility)
 
@@ -177,7 +177,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     } finally {
       setIsSaving(false);
     }
-  }, [visualizationId, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
+  }, [visualizationId, setIsSaving, setIsDirty, setLastSavedAt]);
 
   // Debounced auto-save — blocked while loading to prevent saving stale data
   useEffect(() => {
@@ -227,7 +227,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     }, 2000); // Wait 2 seconds for chart to fully render
 
     return () => clearTimeout(timer);
-  }, [visualizationId, captureThumbnail, activeTab]);
+  }, [visualizationId, activeTab]);
 
   // Open export dialog instead of exporting directly
   const handleExportRequest = (format: 'png' | 'svg' | 'html' | 'pdf') => {

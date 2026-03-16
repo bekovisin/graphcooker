@@ -4,6 +4,8 @@ import { visualizations } from '@/lib/db/schema';
 import { inArray, eq, and } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth/helpers';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Batch fetch thumbnails for visualizations.
  * GET /api/visualizations/thumbnails?ids=1,2,3

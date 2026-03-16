@@ -355,7 +355,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
     }
 
     return ticks;
-  }, [xTicksAll, settings.xAxis.tickLabelCountMode, settings.xAxis.tickLabelCount, settings.xAxis.hiddenTickLabels, settings.numberFormatting]);
+  }, [xTicksAll, settings.xAxis.tickLabelCountMode, settings.xAxis.tickLabelCount, settings.xAxis.hiddenTickLabels, settings.numberFormatting, xAxisDecimals]);
 
   // X axis tick angle computations
   const tickAngle = settings.xAxis.tickAngle || 0;
@@ -390,7 +390,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
       left: Math.max(0, Math.ceil(firstW / 2) - firstLabelPad),
       right: Math.max(0, Math.ceil(lastW / 2) - lastLabelPad),
     };
-  }, [xTicks, xAxisHidden, xTickStyle, settings.numberFormatting, hasAngle, tickAngle, settings.xAxis.firstLabelPadding, settings.xAxis.lastLabelPadding]);
+  }, [xTicks, xAxisHidden, xTickStyle, settings.numberFormatting, xAxisDecimals, hasAngle, tickAngle, settings.xAxis.firstLabelPadding, settings.xAxis.lastLabelPadding]);
 
   // X axis height depends on angle
   const labelAxisPad = settings.xAxis.labelAxisPadding || 0;
@@ -405,7 +405,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
     const maxW = measureTextWidth(maxLabel, xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
     const rad = Math.abs(tickAngle) * (Math.PI / 180);
     return Math.ceil(maxW * Math.sin(rad) + xTickStyle.fontSize * Math.cos(rad)) + 10 + labelAxisPad;
-  }, [xAxisHidden, hasAngle, tickAngle, xTicks, xTickStyle, settings.numberFormatting, labelAxisPad]);
+  }, [xAxisHidden, hasAngle, tickAngle, xTicks, xTickStyle, settings.numberFormatting, xAxisDecimals, labelAxisPad]);
 
   const xAxisTitleHeight = settings.xAxis.titleType === 'custom' && settings.xAxis.titleText ? settings.xAxis.titleStyling.fontSize + 10 : 0;
   const yAxisTitleWidth = settings.yAxis.titleType === 'custom' && settings.yAxis.titleText ? settings.yAxis.titleStyling.fontSize + 10 : 0;
@@ -435,7 +435,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
       }
     }
     return maxW + pad + 4;
-  }, [series, categories, settings.labels.showDataPointLabels, settings.labels.dataPointPosition, settings.labels.dataPointFontSize, settings.labels.dataPointFontFamily, settings.labels.dataPointFontWeight, settings.labels.outsideLabelPadding, settings.labels.showPercentPrefix, settings.numberFormatting]);
+  }, [series, categories, settings.labels.showDataPointLabels, settings.labels.dataPointPosition, settings.labels.dataPointFontSize, settings.labels.dataPointFontFamily, settings.labels.dataPointFontWeight, settings.labels.outsideLabelPadding, settings.labels.showPercentPrefix, settings.labels.percentPrefixFontSize, settings.labels.percentPrefixFontWeight, settings.labels.percentPrefixPadding, settings.numberFormatting]);
 
   const padding = useMemo(() => {
     const yLabelSpace = yAxisLabelWidth + tickPadding + yAxisTitleWidth;

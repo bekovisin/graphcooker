@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
@@ -265,9 +265,9 @@ export function LineInfoAnnotationSection() {
     return data.map((row) => String(row[labelsColumn] ?? ''));
   }, [data, labelsColumn]);
 
-  const update = (updates: Partial<LineInfoAnnotationSettings>) => {
+  const update = useCallback((updates: Partial<LineInfoAnnotationSettings>) => {
     updateSettings('lineInfoAnnotation', updates);
-  };
+  }, [updateSettings]);
 
   const updateVerticalLine = (updates: Partial<LineInfoVerticalLineSettings>) => {
     update({ verticalLine: { ...settings.verticalLine, ...updates } });
@@ -295,7 +295,7 @@ export function LineInfoAnnotationSection() {
     if (settings.show && !settings.seriesA && !settings.seriesB && valueColumns.length >= 2) {
       update({ seriesA: valueColumns[0], seriesB: valueColumns[1] });
     }
-  }, [settings.show, settings.seriesA, settings.seriesB, valueColumns]);
+  }, [settings.show, settings.seriesA, settings.seriesB, valueColumns, update]);
 
   const toggleRowSection = (label: string, section: string) => {
     setExpandedRowSections((prev) => ({

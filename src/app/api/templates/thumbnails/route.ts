@@ -4,6 +4,8 @@ import { templates } from '@/lib/db/schema';
 import { inArray, eq, or, and } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth/helpers';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Batch fetch thumbnails for templates.
  * GET /api/templates/thumbnails?ids=1,2,3
