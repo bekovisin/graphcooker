@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
         .select({
           id: imageLibrary.id,
           name: imageLibrary.name,
-          thumbnailUrl: sql<string | null>`COALESCE(${imageLibrary.thumbnailUrl}, ${imageLibrary.dataUrl})`.as('thumbnail_url'),
+          thumbnailUrl: imageLibrary.thumbnailUrl,
           createdAt: imageLibrary.createdAt,
           lastUsedAt: imageLibrary.lastUsedAt,
         })
