@@ -164,7 +164,8 @@ function generateNiceTicks(min: number, max: number, desiredCount: number = 5): 
   let step: number;
   const normalized = roughStep / mag;
   if (normalized <= 1.5) step = 1 * mag;
-  else if (normalized <= 3) step = 2 * mag;
+  else if (normalized <= 2.25) step = 2 * mag;
+  else if (normalized <= 3.5) step = 2.5 * mag;
   else if (normalized <= 7) step = 5 * mag;
   else step = 10 * mag;
 
@@ -639,7 +640,17 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   // Y-axis label max width for truncation/wrapping
   const yLabelMaxWidth = yAxisLabelWidth - 4;
 
-  const gridTitleHeight = gridTitle ? 28 : 0;
+  // Grid title styling
+  const gtOverride = gridTitle ? settings.labels.gridTitlePerSeriesOverrides?.[gridTitle] : undefined;
+  const gtFontSize = gtOverride?.fontSize ?? settings.labels.gridTitleFontSize ?? 14;
+  const gtFontWeight = gtOverride?.fontWeight ?? settings.labels.gridTitleFontWeight ?? '600';
+  const gtFontStyle = gtOverride?.fontStyle ?? settings.labels.gridTitleFontStyle ?? 'normal';
+  const gtColor = gtOverride?.color ?? settings.labels.gridTitleColor ?? '#333333';
+  const gtFontFamily = settings.labels.gridTitleFontFamily ?? 'Inter, sans-serif';
+  const gtPaddingH = gtOverride?.padding?.h ?? settings.labels.gridTitlePaddingH ?? 0;
+  const gtPaddingV = gtOverride?.padding?.v ?? settings.labels.gridTitlePaddingV ?? 0;
+  const gridTitleAtBottom = (settings.labels.gridTitlePosition ?? 'top') === 'bottom';
+  const gridTitleHeight = gridTitle ? (gtFontSize + 14 + Math.abs(gtPaddingV) * 2) : 0;
   const totalSvgHeight = svgHeight + gridTitleHeight;
 
   // Background color - use layout bg with opacity support
@@ -678,19 +689,20 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
         {/* Grid title (panel label in grid mode) */}
         {gridTitle && (
           <text
-            x={width / 2}
-            y={20}
+            x={width / 2 + gtPaddingH}
+            y={gridTitleAtBottom ? svgHeight + gtPaddingV + gtFontSize : gtPaddingV + gtFontSize}
             textAnchor="middle"
-            fontSize={14}
-            fontFamily="Inter, sans-serif"
-            fontWeight={600}
-            fill="#333"
+            fontSize={gtFontSize}
+            fontFamily={gtFontFamily}
+            fontWeight={gtFontWeight}
+            fontStyle={gtFontStyle}
+            fill={gtColor}
           >
             {gridTitle}
           </text>
         )}
 
-        <g transform={gridTitleHeight ? `translate(0, ${gridTitleHeight})` : undefined}>
+        <g transform={gridTitleHeight && !gridTitleAtBottom ? `translate(0, ${gridTitleHeight})` : undefined}>
         {/* Plot background */}
         {settings.plotBackground.backgroundColor && settings.plotBackground.backgroundColor !== 'transparent' && (
           <rect

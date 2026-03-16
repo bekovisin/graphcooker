@@ -225,6 +225,17 @@ export interface LabelsSettings {
   // Line chart — Line Label space mode
   lineLabelSpaceMode?: 'auto' | 'fixed';
   lineLabelSpaceValue?: number;
+
+  // Grid title (panel label) settings — bar chart grouped grid mode
+  gridTitlePosition?: 'top' | 'bottom';
+  gridTitleFontFamily?: string;
+  gridTitleFontSize?: number;
+  gridTitleFontWeight?: FontWeight;
+  gridTitleFontStyle?: FontStyle;
+  gridTitleColor?: string;
+  gridTitlePaddingH?: number;
+  gridTitlePaddingV?: number;
+  gridTitlePerSeriesOverrides?: Record<string, GridTitleSeriesOverride>;
 }
 
 // Per-series line label override
@@ -234,6 +245,15 @@ export interface LineLabelSeriesOverride {
   fontWeight?: FontWeight;
   fontStyle?: FontStyle;   // 'normal' | 'italic'
   letterSpacing?: number;
+  color?: string;
+  padding?: { h: number; v: number };
+}
+
+// Per-series grid title override
+export interface GridTitleSeriesOverride {
+  fontSize?: number;
+  fontWeight?: FontWeight;
+  fontStyle?: FontStyle;
   color?: string;
   padding?: { h: number; v: number };
 }

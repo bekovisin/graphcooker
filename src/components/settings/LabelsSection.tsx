@@ -39,6 +39,7 @@ import type {
   DataPointLabelContent,
   LineDataPointPosition,
   LineLabelSeriesOverride,
+  GridTitleSeriesOverride,
 } from '@/types/chart';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -247,7 +248,28 @@ export function LabelsSection() {
   const [expandedPaddingRows, setExpandedPaddingRows] = useState<Record<string, boolean>>({});
   const [showDpColorModal, setShowDpColorModal] = useState(false);
   const [dataPointStylingOpen, setDataPointStylingOpen] = useState(true);
+  const [showGridTitleModal, setShowGridTitleModal] = useState(false);
+  const [expandedGridTitleSeries, setExpandedGridTitleSeries] = useState<Record<string, boolean>>({});
+  const gridMode = useEditorStore((s) => s.settings.chartType.gridMode);
+  const chartsGridColumn = useEditorStore((s) => s.columnMapping.chartsGrid);
   const isLineChart = chartType === 'line_chart';
+  const isBarGrouped = chartType === 'bar_grouped';
+  const showGridTitleSection = isBarGrouped && gridMode === 'grid';
+
+  const gridPanelNames = useMemo(() => {
+    if (!showGridTitleSection) return [];
+    const splitByColumns = !chartsGridColumn && seriesNames.length > 1;
+    if (splitByColumns) return seriesNames;
+    if (chartsGridColumn && data.length > 0) {
+      const unique = new Set<string>();
+      return data.reduce<string[]>((acc, r) => {
+        const name = String(r[chartsGridColumn] ?? '');
+        if (name && !unique.has(name)) { unique.add(name); acc.push(name); }
+        return acc;
+      }, []);
+    }
+    return [];
+  }, [showGridTitleSection, chartsGridColumn, seriesNames, data]);
   const isRowMode = settings.dataPointCustomMode === 'row';
   const customNames = isRowMode ? categoryNames : seriesNames;
   const customPositions = isRowMode ? settings.dataPointRowPositions : settings.dataPointSeriesPositions;
@@ -1991,6 +2013,239 @@ export function LabelsSection() {
               ]}
             />
           </SettingRow>
+        </>
+      )}
+      {/* GRID TITLES (bar_grouped grid mode only) */}
+      {showGridTitleSection && (
+        <>
+          <SubHeader>Grid Titles</SubHeader>
+          <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+            {/* Position */}
+            <SettingRow label="Position">
+              <Select
+                value={settings.gridTitlePosition ?? 'top'}
+                onValueChange={(v) => update({ gridTitlePosition: v as 'top' | 'bottom' })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top" className="text-xs">Top</SelectItem>
+                  <SelectItem value="bottom" className="text-xs">Bottom</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {/* Font family */}
+            <SettingRow label="Font family">
+              <Select
+                value={settings.gridTitleFontFamily || 'Inter, sans-serif'}
+                onValueChange={(v) => update({ gridTitleFontFamily: v })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fontFamilyOptions.map((font) => (
+                    <SelectItem key={font} value={font} className="text-xs">
+                      {font}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {/* Weight | Size | Color — 3-col grid */}
+            <div className="grid grid-cols-3 gap-2 items-end">
+              <div>
+                <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
+                <Select
+                  value={settings.gridTitleFontWeight ?? '600'}
+                  onValueChange={(v) => update({ gridTitleFontWeight: v as FontWeight })}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                    <SelectItem value="300" className="text-xs">Light</SelectItem>
+                    <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                    <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                    <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                    <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                    <SelectItem value="900" className="text-xs">Black</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <NumberInput
+                label="Size"
+                value={settings.gridTitleFontSize ?? 14}
+                onChange={(v) => update({ gridTitleFontSize: v })}
+                min={1}
+                max={72}
+                step={1}
+                suffix="px"
+              />
+              <ColorPicker
+                label="Color"
+                value={settings.gridTitleColor ?? '#333333'}
+                onChange={(color) => update({ gridTitleColor: color })}
+              />
+            </div>
+
+            {/* Font style */}
+            <SettingRow label="Font style">
+              <Select
+                value={settings.gridTitleFontStyle ?? 'normal'}
+                onValueChange={(v) => update({ gridTitleFontStyle: v as FontStyle })}
+              >
+                <SelectTrigger className="h-8 text-xs w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                  <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+
+            {/* Padding H/V */}
+            <div className="grid grid-cols-2 gap-2">
+              <NumberInput
+                label="Padding H"
+                value={settings.gridTitlePaddingH ?? 0}
+                onChange={(v) => update({ gridTitlePaddingH: v })}
+                min={-999}
+                max={999}
+                step={1}
+              />
+              <NumberInput
+                label="Padding V"
+                value={settings.gridTitlePaddingV ?? 0}
+                onChange={(v) => update({ gridTitlePaddingV: v })}
+                min={-999}
+                max={999}
+                step={1}
+              />
+            </div>
+
+            {/* Per-series overrides */}
+            {gridPanelNames.length > 0 && (
+              <>
+                <button
+                  onClick={() => setShowGridTitleModal(true)}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                  Configure per-series grid titles...
+                </button>
+
+                <Dialog open={showGridTitleModal} onOpenChange={setShowGridTitleModal}>
+                  <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm">Per-series grid title settings</DialogTitle>
+                      <DialogDescription className="text-xs text-gray-500">
+                        Customize font size, weight, style, color and padding for each panel&apos;s title.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-1 mt-2">
+                      {gridPanelNames.map((panelName) => {
+                        const expanded = expandedGridTitleSeries[panelName] ?? false;
+                        const overrides = settings.gridTitlePerSeriesOverrides?.[panelName] || {} as GridTitleSeriesOverride;
+                        const updateOverride = (patch: Partial<GridTitleSeriesOverride>) => {
+                          update({
+                            gridTitlePerSeriesOverrides: {
+                              ...settings.gridTitlePerSeriesOverrides,
+                              [panelName]: { ...overrides, ...patch },
+                            },
+                          });
+                        };
+                        return (
+                          <div key={panelName} className="border border-gray-200 rounded-md">
+                            <button
+                              onClick={() => setExpandedGridTitleSeries((prev) => ({ ...prev, [panelName]: !expanded }))}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-gray-50"
+                            >
+                              {expanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+                              <span className="text-sm font-medium text-gray-800 truncate">{panelName}</span>
+                            </button>
+                            {expanded && (
+                              <div className="px-3 pb-3 space-y-3 border-t border-gray-100">
+                                <NumberInput
+                                  label="Font size (px)"
+                                  value={overrides.fontSize ?? (settings.gridTitleFontSize ?? 14)}
+                                  onChange={(v) => updateOverride({ fontSize: v })}
+                                  min={1}
+                                  max={72}
+                                  step={1}
+                                />
+                                <SettingRow label="Font weight">
+                                  <Select
+                                    value={overrides.fontWeight ?? (settings.gridTitleFontWeight ?? '600')}
+                                    onValueChange={(v) => updateOverride({ fontWeight: v as FontWeight })}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="200" className="text-xs">Extra Light</SelectItem>
+                                      <SelectItem value="300" className="text-xs">Light</SelectItem>
+                                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                                      <SelectItem value="500" className="text-xs">Medium</SelectItem>
+                                      <SelectItem value="600" className="text-xs">Semi-bold</SelectItem>
+                                      <SelectItem value="bold" className="text-xs">Bold</SelectItem>
+                                      <SelectItem value="900" className="text-xs">Black</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </SettingRow>
+                                <SettingRow label="Font style">
+                                  <Select
+                                    value={overrides.fontStyle ?? (settings.gridTitleFontStyle ?? 'normal')}
+                                    onValueChange={(v) => updateOverride({ fontStyle: v as FontStyle })}
+                                  >
+                                    <SelectTrigger className="h-8 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="normal" className="text-xs">Normal</SelectItem>
+                                      <SelectItem value="italic" className="text-xs">Italic</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </SettingRow>
+                                <ColorPicker
+                                  label="Color"
+                                  value={overrides.color ?? (settings.gridTitleColor ?? '#333333')}
+                                  onChange={(color) => updateOverride({ color })}
+                                />
+                                <div className="grid grid-cols-2 gap-2">
+                                  <NumberInput
+                                    label="Padding H"
+                                    value={overrides.padding?.h ?? 0}
+                                    onChange={(v) => updateOverride({ padding: { h: v, v: overrides.padding?.v ?? 0 } })}
+                                    min={-999}
+                                    max={999}
+                                    step={1}
+                                  />
+                                  <NumberInput
+                                    label="Padding V"
+                                    value={overrides.padding?.v ?? 0}
+                                    onChange={(v) => updateOverride({ padding: { h: overrides.padding?.h ?? 0, v } })}
+                                    min={-999}
+                                    max={999}
+                                    step={1}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
+          </div>
         </>
       )}
     </AccordionSection>
