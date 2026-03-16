@@ -1000,11 +1000,11 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
             );
 
             // Data point labels
-            if (settings.labels.showDataPointLabels && rawValue !== 0) {
+            if (settings.labels.showDataPointLabels && (rawValue !== 0 || settings.labels.showZeroValues)) {
               const labelText = formatNumber(rawValue, settings.numberFormatting);
               const labelPos = settings.labels.dataPointPosition === 'custom'
                 ? (settings.labels.dataPointCustomMode === 'row'
-                  ? (settings.labels.dataPointRowPositions?.[cat] || 'center')
+                  ? (settings.labels.dataPointRowPositions?.[cat]?.[s.key] || settings.labels.dataPointRowPositions?.[cat]?.['__default'] || 'center')
                   : (settings.labels.dataPointSeriesPositions?.[s.key] || 'center'))
                 : settings.labels.dataPointPosition;
               let labelX: number;

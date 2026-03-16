@@ -81,6 +81,7 @@ export const defaultChartSettings: ChartSettings = {
     dataPointCustomMode: 'column',
     dataPointSeriesPositions: {},
     dataPointRowPositions: {},
+    showZeroValues: false,
     dataPointCustomPadding: false,
     dataPointPaddingTop: 0,
     dataPointPaddingRight: 0,

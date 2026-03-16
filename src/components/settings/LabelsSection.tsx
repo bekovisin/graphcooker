@@ -250,6 +250,7 @@ export function LabelsSection() {
   const [dataPointStylingOpen, setDataPointStylingOpen] = useState(true);
   const [showGridTitleModal, setShowGridTitleModal] = useState(false);
   const [expandedGridTitleSeries, setExpandedGridTitleSeries] = useState<Record<string, boolean>>({});
+  const [expandedPositionRows, setExpandedPositionRows] = useState<Record<string, boolean>>({});
   const gridMode = useEditorStore((s) => s.settings.chartType.gridMode);
   const chartsGridColumn = useEditorStore((s) => s.columnMapping.chartsGrid);
   const isLineChart = chartType === 'line_chart';
@@ -272,8 +273,9 @@ export function LabelsSection() {
   }, [showGridTitleSection, chartsGridColumn, seriesNames, data]);
   const isRowMode = settings.dataPointCustomMode === 'row';
   const customNames = isRowMode ? categoryNames : seriesNames;
-  const customPositions = isRowMode ? settings.dataPointRowPositions : settings.dataPointSeriesPositions;
-  const customPositionKey = isRowMode ? 'dataPointRowPositions' : 'dataPointSeriesPositions';
+  // Column mode uses flat Record<string, position>
+  const customPositions = settings.dataPointSeriesPositions;
+  const customPositionKey = 'dataPointSeriesPositions' as const;
 
   // Line chart custom position mode
   const isLineRowMode = (settings.lineDataPointCustomMode ?? 'column') === 'row';
@@ -1493,6 +1495,14 @@ export function LabelsSection() {
 
       {settings.showDataPointLabels && (
         <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+          {/* Show zero values toggle */}
+          <SettingRow label="Show zero values" variant="inline">
+            <Switch
+              checked={settings.showZeroValues ?? false}
+              onCheckedChange={(checked) => update({ showZeroValues: checked })}
+            />
+          </SettingRow>
+
           {/* Position - tab menu */}
           <SettingRow label="Position">
             <TabMenu
@@ -1551,41 +1561,95 @@ export function LabelsSection() {
               </button>
 
               <Dialog open={showPositionModal} onOpenChange={setShowPositionModal}>
-                <DialogContent className="max-w-md">
+                <DialogContent className={isRowMode ? 'max-w-lg max-h-[80vh] overflow-y-auto' : 'max-w-md'}>
                   <DialogHeader>
                     <DialogTitle>Per-{isRowMode ? 'Row' : 'Column'} Label Positions</DialogTitle>
                     <DialogDescription>
-                      Set the data point label position for each {isRowMode ? 'row' : 'column'} independently.
+                      Set the data point label position for each {isRowMode ? 'row (per series)' : 'column'} independently.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                    {customNames.map((name) => (
-                      <div key={name} className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
-                          {name}
-                        </span>
-                        <div className="flex-shrink-0 w-[220px]">
-                          <TabMenu
-                            value={customPositions?.[name] || 'center'}
-                            onChange={(v) => {
-                              update({
-                                [customPositionKey]: {
-                                  ...customPositions,
-                                  [name]: v as DataPointLabelPosition,
-                                },
-                              } as Partial<LabelsSettings>);
-                            }}
-                            options={[
-                              { value: 'left', label: 'Left' },
-                              { value: 'center', label: 'Center' },
-                              { value: 'right', label: 'Right' },
-                              { value: 'outside_right', label: 'Outside' },
-                            ]}
-                          />
+                  {isRowMode ? (
+                    <div className="space-y-1 max-h-[60vh] overflow-y-auto">
+                      {categoryNames.map((rowName) => {
+                        const expanded = expandedPositionRows[rowName] ?? false;
+                        const rowPositions = (settings.dataPointRowPositions as Record<string, Record<string, DataPointLabelPosition>>)?.[rowName] || {};
+                        return (
+                          <div key={rowName} className="border border-gray-200 rounded-md">
+                            <button
+                              onClick={() => setExpandedPositionRows((prev) => ({ ...prev, [rowName]: !expanded }))}
+                              className="flex items-center gap-2 w-full px-3 py-2 text-left hover:bg-gray-50"
+                            >
+                              {expanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-500" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-500" />}
+                              <span className="text-sm font-medium text-gray-800 truncate">{rowName}</span>
+                            </button>
+                            {expanded && (
+                              <div className="px-3 pb-3 space-y-2 border-t border-gray-100">
+                                {seriesNames.map((seriesKey) => (
+                                  <div key={seriesKey} className="flex items-center justify-between gap-3">
+                                    <span className="text-xs text-gray-600 truncate min-w-0 flex-shrink">
+                                      {seriesKey}
+                                    </span>
+                                    <div className="flex-shrink-0 w-[200px]">
+                                      <TabMenu
+                                        value={rowPositions[seriesKey] || 'center'}
+                                        onChange={(v) => {
+                                          const currentRow = (settings.dataPointRowPositions as Record<string, Record<string, DataPointLabelPosition>>)?.[rowName] || {};
+                                          update({
+                                            dataPointRowPositions: {
+                                              ...settings.dataPointRowPositions,
+                                              [rowName]: {
+                                                ...currentRow,
+                                                [seriesKey]: v as DataPointLabelPosition,
+                                              },
+                                            },
+                                          });
+                                        }}
+                                        options={[
+                                          { value: 'left', label: 'Left' },
+                                          { value: 'center', label: 'Center' },
+                                          { value: 'right', label: 'Right' },
+                                          { value: 'outside_right', label: 'Outside' },
+                                        ]}
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                      {customNames.map((name) => (
+                        <div key={name} className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-gray-700 font-medium truncate min-w-0 flex-shrink">
+                            {name}
+                          </span>
+                          <div className="flex-shrink-0 w-[220px]">
+                            <TabMenu
+                              value={customPositions?.[name] || 'center'}
+                              onChange={(v) => {
+                                update({
+                                  [customPositionKey]: {
+                                    ...customPositions,
+                                    [name]: v as DataPointLabelPosition,
+                                  },
+                                } as Partial<LabelsSettings>);
+                              }}
+                              options={[
+                                { value: 'left', label: 'Left' },
+                                { value: 'center', label: 'Center' },
+                                { value: 'right', label: 'Right' },
+                                { value: 'outside_right', label: 'Outside' },
+                              ]}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
             </>
@@ -1642,7 +1706,7 @@ export function LabelsSection() {
           {(settings.dataPointPosition === 'outside_right' ||
             (settings.dataPointPosition === 'custom' &&
               (Object.values(settings.dataPointSeriesPositions || {}).includes('outside_right') ||
-               Object.values(settings.dataPointRowPositions || {}).includes('outside_right')))) && (
+               Object.values(settings.dataPointRowPositions || {}).some((v) => typeof v === 'object' && Object.values(v).includes('outside_right'))))) && (
             <NumberInput
               label="Outside label padding"
               value={settings.outsideLabelPadding ?? 6}

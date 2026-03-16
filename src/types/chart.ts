@@ -128,7 +128,8 @@ export interface LabelsSettings {
   dataPointPosition: DataPointLabelPosition | 'custom';
   dataPointCustomMode: 'column' | 'row';
   dataPointSeriesPositions: Record<string, DataPointLabelPosition>;
-  dataPointRowPositions: Record<string, DataPointLabelPosition>;
+  dataPointRowPositions: Record<string, Record<string, DataPointLabelPosition>>;
+  showZeroValues?: boolean;
   dataPointCustomPadding: boolean;
   dataPointPaddingTop: number;
   dataPointPaddingRight: number;

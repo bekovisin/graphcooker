@@ -660,7 +660,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
           // Data label
           const labelPos = settings.labels.dataPointPosition === 'custom'
             ? (settings.labels.dataPointCustomMode === 'row'
-              ? (settings.labels.dataPointRowPositions?.[cat] || 'center')
+              ? (settings.labels.dataPointRowPositions?.[cat]?.[columnMapping.values[0]] || 'center')
               : (settings.labels.dataPointSeriesPositions?.[columnMapping.values[0]] || 'center'))
             : settings.labels.dataPointPosition;
 
