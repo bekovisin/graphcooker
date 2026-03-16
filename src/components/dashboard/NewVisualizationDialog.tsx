@@ -55,6 +55,21 @@ export function NewVisualizationDialog({
       if (res.ok) {
         const data = await res.json();
         setTemplates(data);
+        // Lazy-load thumbnails
+        const ids = data.map((t: Template) => t.id).filter(Boolean);
+        if (ids.length > 0) {
+          fetch(`/api/templates/thumbnails?ids=${ids.join(',')}`)
+            .then((r) => r.json())
+            .then((thumbMap: Record<string, string>) => {
+              setTemplates((prev) =>
+                prev.map((t) => ({
+                  ...t,
+                  thumbnail: thumbMap[String(t.id)] || t.thumbnail,
+                }))
+              );
+            })
+            .catch(() => {});
+        }
       }
     } catch (error) {
       console.error('Failed to fetch templates:', error);

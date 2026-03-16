@@ -23,6 +23,7 @@ import {
 import { FolderCard } from '@/components/dashboard/FolderCard';
 import { EditTemplateDialog } from '@/components/dashboard/EditTemplateDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
+import { LoadingBar } from '@/components/ui/loading-bar';
 import {
   useDashboardStore,
   useTemplateFolderTemplateCounts,
@@ -332,21 +333,9 @@ export default function TemplateFolderPage() {
     );
   };
 
-  // Loading — show skeleton cards
+  // Loading
   if (loading) {
-    return (
-      <div className={gridClass}>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-lg border bg-white overflow-hidden">
-            <div className="aspect-[16/10] bg-gray-100 animate-pulse" />
-            <div className="p-3 space-y-2">
-              <div className="h-3.5 bg-gray-100 rounded animate-pulse w-3/4" />
-              <div className="h-2.5 bg-gray-50 rounded animate-pulse w-1/2" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <LoadingBar />;
   }
 
   return (

@@ -6,9 +6,9 @@ import {
   Trash2,
   FolderOpen,
   BarChart3,
-  Loader2,
 } from 'lucide-react';
 import { useDashboardStore } from '@/store/dashboardStore';
+import { LoadingBar } from '@/components/ui/loading-bar';
 
 export default function TrashPage() {
   // Individual selectors to prevent full-store subscription
@@ -27,11 +27,7 @@ export default function TrashPage() {
 
   // Loading
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-      </div>
-    );
+    return <LoadingBar />;
   }
 
   const totalTrash = trashItems.visualizations.length + trashItems.folders.length;

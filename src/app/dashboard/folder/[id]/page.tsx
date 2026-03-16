@@ -15,6 +15,7 @@ import { VisualizationCard } from '@/components/dashboard/VisualizationCard';
 import { FolderCard } from '@/components/dashboard/FolderCard';
 import { ListViewRow } from '@/components/dashboard/ListViewRow';
 import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizationDialog';
+import { LoadingBar } from '@/components/ui/loading-bar';
 import { useAuthStore } from '@/store/authStore';
 import {
   useDashboardStore,
@@ -183,21 +184,9 @@ export default function FolderPage() {
     </div>
   );
 
-  // Loading — show skeleton cards
+  // Loading
   if (loading) {
-    return (
-      <div className={gridClass}>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-lg border bg-white overflow-hidden">
-            <div className="aspect-[16/10] bg-gray-100 animate-pulse" />
-            <div className="p-3 space-y-2">
-              <div className="h-3.5 bg-gray-100 rounded animate-pulse w-3/4" />
-              <div className="h-2.5 bg-gray-50 rounded animate-pulse w-1/2" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <LoadingBar />;
   }
 
   // Empty folder

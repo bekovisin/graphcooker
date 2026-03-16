@@ -62,7 +62,24 @@ export function TemplatePickerDialog({ open, onOpenChange, updateMode }: Templat
       setLoading(true);
       fetch('/api/templates')
         .then((res) => res.json())
-        .then((data) => setTemplates(data))
+        .then((data) => {
+          setTemplates(data);
+          // Lazy-load thumbnails
+          const ids = data.map((t: Template) => t.id).filter(Boolean);
+          if (ids.length > 0) {
+            fetch(`/api/templates/thumbnails?ids=${ids.join(',')}`)
+              .then((r) => r.json())
+              .then((thumbMap: Record<string, string>) => {
+                setTemplates((prev) =>
+                  prev.map((t) => ({
+                    ...t,
+                    thumbnail: thumbMap[String(t.id)] || t.thumbnail,
+                  }))
+                );
+              })
+              .catch(() => {});
+          }
+        })
         .catch(() => toast.error('Failed to load templates'))
         .finally(() => setLoading(false));
     }
