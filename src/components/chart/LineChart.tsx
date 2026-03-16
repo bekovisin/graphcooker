@@ -1303,20 +1303,27 @@ export const LineChart = React.memo(function LineChart({
                 // Resolve color based on lineDataPointColorMode
                 const colorMode = labelSettings.lineDataPointColorMode ?? 'auto';
                 let labelColor = '#333333';
-                if (colorMode === 'match_data') {
+
+                // Match line color toggle takes precedence over color mode
+                if (labelSettings.lineDataPointMatchLineColor) {
+                  labelColor = s.color;
+                } else if (colorMode === 'match_data') {
                   labelColor = s.color;
                 } else if (colorMode === 'fixed') {
                   labelColor = labelSettings.lineDataPointColorFixed || '#333333';
-                } else if (colorMode === 'custom') {
+                }
+
+                // Custom per-row/per-series overrides always take highest priority
+                if (colorMode === 'custom') {
                   const colorCustomMode = labelSettings.lineDataPointColorCustomMode ?? 'column';
                   if (colorCustomMode === 'row') {
                     const rowName = categories[pi];
                     const rowColors = labelSettings.lineDataPointRowColors?.[rowName];
                     const colName = valueColumns[si];
-                    labelColor = rowColors?.[colName] || labelSettings.lineDataPointColorFixed || '#333333';
+                    if (rowColors?.[colName]) labelColor = rowColors[colName];
                   } else {
                     const colName = valueColumns[si];
-                    labelColor = labelSettings.lineDataPointSeriesColors?.[colName] || labelSettings.lineDataPointColorFixed || '#333333';
+                    if (labelSettings.lineDataPointSeriesColors?.[colName]) labelColor = labelSettings.lineDataPointSeriesColors[colName];
                   }
                 }
 
@@ -1396,7 +1403,11 @@ export const LineChart = React.memo(function LineChart({
             const colName = valueColumns[si];
             llColor = labelSettings.lineLabelSeriesColors?.[colName] || llColor;
           }
-          // Per-series override color takes priority
+          // Match line color toggle overrides the color mode
+          if (labelSettings.lineLabelMatchLineColor) {
+            llColor = s.color;
+          }
+          // Per-series override color takes highest priority
           if (seriesOverride?.color) {
             llColor = seriesOverride.color;
           }

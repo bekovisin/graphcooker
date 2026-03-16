@@ -581,6 +581,14 @@ export function LabelsSection() {
                 </div>
               </div>
 
+              {/* Match line color toggle */}
+              <SettingRow label="Match line color" variant="inline">
+                <Switch
+                  checked={settings.lineLabelMatchLineColor ?? false}
+                  onCheckedChange={(v) => update({ lineLabelMatchLineColor: v })}
+                />
+              </SettingRow>
+
               {/* Color mode */}
               <SettingRow label="Color mode">
                 <Select
@@ -889,6 +897,14 @@ export function LabelsSection() {
                     </div>
                   </div>
                 </div>
+
+                {/* Match line color toggle */}
+                <SettingRow label="Match line color" variant="inline">
+                  <Switch
+                    checked={settings.lineDataPointMatchLineColor ?? false}
+                    onCheckedChange={(v) => update({ lineDataPointMatchLineColor: v })}
+                  />
+                </SettingRow>
 
                 {/* ── Color mode ── */}
                 <SettingRow label="Color mode">

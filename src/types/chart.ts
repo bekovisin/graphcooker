@@ -170,6 +170,7 @@ export interface LabelsSettings {
   lineLabelFontStyle?: FontStyle;
   lineLabelColorMode?: 'auto' | 'fixed' | 'custom';
   lineLabelSeriesColors?: Record<string, string>;
+  lineLabelMatchLineColor?: boolean;
 
   // Line chart — Connector Lines
   connectorLineMode?: ConnectorLineMode;
@@ -192,6 +193,7 @@ export interface LabelsSettings {
   dataPointOutlineSize?: number;
 
   // Line chart — Data Point Label custom colors (per-series or per-row)
+  lineDataPointMatchLineColor?: boolean;
   lineDataPointColorMode?: 'auto' | 'match_data' | 'fixed' | 'custom';
   lineDataPointColorFixed?: string;
   lineDataPointSeriesColors?: Record<string, string>;
