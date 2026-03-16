@@ -134,6 +134,7 @@ export function FolderCard({
         isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : isSelected ? 'ring-2 ring-blue-400 border-blue-300' : 'border-gray-200'
       }`}
       onClick={() => {
+        if (colorPopoverOpen) return;
         if (isEditing) return;
         if (isSelectionMode && onToggleSelect) {
           onToggleSelect(folder.id);
