@@ -4,6 +4,33 @@ import { imageLibrary } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth/helpers';
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const userId = getUserId(request);
+    const { id } = await params;
+    const [image] = await db
+      .select()
+      .from(imageLibrary)
+      .where(eq(imageLibrary.id, parseInt(id)));
+
+    if (!image) {
+      return NextResponse.json({ error: 'Image not found' }, { status: 404 });
+    }
+
+    if (image.userId !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    return NextResponse.json(image);
+  } catch (error) {
+    console.error('Failed to fetch image:', error);
+    return NextResponse.json({ error: 'Failed to fetch image' }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         userId: templates.userId,
         templateName: templates.templateName,
         chartType: templates.chartType,
-        thumbnail: templates.thumbnail,
+        // thumbnail excluded — loaded lazily via /api/templates/thumbnails
         isShared: templates.isShared,
         sharedByUserId: templates.sharedByUserId,
         sharedByName: users.name,

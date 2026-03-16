@@ -20,7 +20,8 @@ interface ImageLibraryPickerProps {
 interface LibraryImage {
   id: number;
   name: string;
-  dataUrl: string;
+  dataUrl?: string;
+  thumbnailUrl?: string | null;
   createdAt: string;
   lastUsedAt: string;
 }
@@ -37,6 +38,7 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 
 const ACCEPT = 'image/png,image/jpeg,image/svg+xml,image/webp';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB client-side default
+const PAGE_SIZE = 10;
 
 /** Downscale large raster images to reduce base64 size while preserving quality */
 function compressImage(dataUrl: string, maxDim = 1024): Promise<string> {
@@ -67,34 +69,77 @@ function compressImage(dataUrl: string, maxDim = 1024): Promise<string> {
   });
 }
 
+/** Generate a small thumbnail for picker preview (150px, 0.5 quality JPEG) */
+function generateThumbnail(dataUrl: string): Promise<string | null> {
+  if (dataUrl.startsWith('data:image/svg')) return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 150;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        const ratio = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { resolve(null); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
 export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibraryPickerProps) {
   const [images, setImages] = useState<LibraryImage[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('recently-used');
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const hasMoreRef = useRef(true);
 
-  // Fetch images and sort preference on open
+  // Fetch first page of images and sort preference on open
   useEffect(() => {
     if (!open) return;
     setSearch('');
     setEditingId(null);
+    setImages([]);
+    hasMoreRef.current = true;
 
     const fetchData = async () => {
       setLoading(true);
       try {
         const [imagesRes, prefRes] = await Promise.all([
-          fetch('/api/image-library'),
+          fetch(`/api/image-library?limit=${PAGE_SIZE}&offset=0`),
           fetch('/api/preferences?key=image_library_sort'),
         ]);
         if (imagesRes.ok) {
           const data = await imagesRes.json();
-          setImages(data);
+          if (data.images) {
+            // Paginated response
+            setImages(data.images);
+            setTotalCount(data.total);
+            hasMoreRef.current = data.images.length < data.total;
+          } else {
+            // Legacy array response (fallback)
+            setImages(data);
+            setTotalCount(data.length);
+            hasMoreRef.current = false;
+          }
         }
         if (prefRes.ok) {
           const pref = await prefRes.json();
@@ -110,6 +155,43 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
     };
     fetchData();
   }, [open]);
+
+  // Load more images (infinite scroll)
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMoreRef.current) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/image-library?limit=${PAGE_SIZE}&offset=${images.length}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.images) {
+          setImages((prev) => [...prev, ...data.images]);
+          setTotalCount(data.total);
+          hasMoreRef.current = images.length + data.images.length < data.total;
+        }
+      }
+    } catch {
+      // Silent fail
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [images.length, loadingMore]);
+
+  // Scroll handler for infinite scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollHeight - scrollTop - clientHeight < 100) {
+        loadMore();
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [loadMore]);
 
   // Persist sort preference
   const handleSortChange = useCallback(async (mode: SortMode) => {
@@ -186,18 +268,22 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
         // Compress raster images to reduce storage size
         const compressedDataUrl = await compressImage(dataUrl);
 
+        // Generate small thumbnail for picker preview
+        const thumbnailUrl = await generateThumbnail(compressedDataUrl);
+
         // Strip extension from filename
         const name = file.name.replace(/\.[^.]+$/, '');
 
         const res = await fetch('/api/image-library', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, dataUrl: compressedDataUrl }),
+          body: JSON.stringify({ name, dataUrl: compressedDataUrl, thumbnailUrl }),
         });
 
         if (res.ok) {
           const created = await res.json();
           setImages((prev) => [created, ...prev]);
+          setTotalCount((prev) => prev + 1);
         } else {
           const err = await res.json();
           toast.error(`${file.name}: ${err.error || 'Upload failed'}`);
@@ -242,10 +328,28 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
     [uploadFiles]
   );
 
-  // Select image
+  // Select image — fetch full dataUrl on demand
   const handleSelect = useCallback(
     async (img: LibraryImage) => {
-      onSelect(img.dataUrl);
+      if (img.dataUrl) {
+        // Already have full data (e.g., newly uploaded)
+        onSelect(img.dataUrl);
+      } else {
+        // Fetch full dataUrl from server
+        try {
+          const res = await fetch(`/api/image-library/${img.id}`);
+          if (res.ok) {
+            const full = await res.json();
+            onSelect(full.dataUrl);
+          } else {
+            toast.error('Failed to load image');
+            return;
+          }
+        } catch {
+          toast.error('Failed to load image');
+          return;
+        }
+      }
       // Update lastUsedAt in background
       try {
         await fetch(`/api/image-library/${img.id}`, {
@@ -301,6 +405,7 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
       const res = await fetch(`/api/image-library/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setImages((prev) => prev.filter((img) => img.id !== id));
+        setTotalCount((prev) => prev - 1);
       } else {
         toast.error('Failed to delete image');
       }
@@ -308,6 +413,11 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
       toast.error('Failed to delete image');
     }
   }, []);
+
+  /** Get the best available preview src for an image */
+  const getPreviewSrc = (img: LibraryImage): string | undefined => {
+    return img.thumbnailUrl || img.dataUrl || undefined;
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -350,6 +460,7 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
 
         {/* Grid / Drop zone */}
         <div
+          ref={scrollContainerRef}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -393,12 +504,16 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
                 >
                   {/* Thumbnail */}
                   <div className="w-full aspect-square bg-white rounded-md border border-gray-100 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={img.dataUrl}
-                      alt={img.name}
-                      className="max-w-full max-h-full object-contain"
-                      draggable={false}
-                    />
+                    {getPreviewSrc(img) ? (
+                      <img
+                        src={getPreviewSrc(img)}
+                        alt={img.name}
+                        className="max-w-full max-h-full object-contain"
+                        draggable={false}
+                      />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-gray-200" />
+                    )}
                   </div>
 
                   {/* Name or rename input */}
@@ -446,6 +561,13 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
                   )}
                 </div>
               ))}
+
+              {/* Loading more indicator */}
+              {loadingMore && (
+                <div className="col-span-4 flex justify-center py-2">
+                  <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -469,11 +591,11 @@ export function ImageLibraryPicker({ open, onOpenChange, onSelect }: ImageLibrar
         />
 
         {/* Image count */}
-        {!loading && images.length > 0 && (
+        {!loading && totalCount > 0 && (
           <div className="text-[10px] text-gray-400 px-1">
-            {filteredImages.length === images.length
-              ? `${images.length} image${images.length !== 1 ? 's' : ''}`
-              : `${filteredImages.length} of ${images.length} image${images.length !== 1 ? 's' : ''}`}
+            {search
+              ? `${filteredImages.length} of ${totalCount} image${totalCount !== 1 ? 's' : ''}`
+              : `${images.length} of ${totalCount} image${totalCount !== 1 ? 's' : ''}`}
           </div>
         )}
       </DialogContent>

@@ -15,10 +15,31 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
-    const [visualization] = await db
-      .select()
-      .from(visualizations)
-      .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt), eq(visualizations.userId, userId)));
+    const { searchParams } = new URL(request.url);
+    const excludeThumbnail = searchParams.get('exclude') === 'thumbnail';
+
+    const [visualization] = excludeThumbnail
+      ? await db
+          .select({
+            id: visualizations.id,
+            userId: visualizations.userId,
+            projectId: visualizations.projectId,
+            name: visualizations.name,
+            chartType: visualizations.chartType,
+            data: visualizations.data,
+            settings: visualizations.settings,
+            columnMapping: visualizations.columnMapping,
+            sharedByUserId: visualizations.sharedByUserId,
+            createdAt: visualizations.createdAt,
+            updatedAt: visualizations.updatedAt,
+            deletedAt: visualizations.deletedAt,
+          })
+          .from(visualizations)
+          .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt), eq(visualizations.userId, userId)))
+      : await db
+          .select()
+          .from(visualizations)
+          .where(and(eq(visualizations.id, id), isNull(visualizations.deletedAt), eq(visualizations.userId, userId)));
 
     if (!visualization) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });
@@ -57,11 +78,12 @@ export async function PUT(
     if (body.thumbnail !== undefined) updateData.thumbnail = body.thumbnail;
     if (body.chartType !== undefined) updateData.chartType = body.chartType;
 
+    // Return only minimal fields to reduce data transfer (caller only checks res.ok)
     const [updated] = await db
       .update(visualizations)
       .set(updateData)
       .where(and(eq(visualizations.id, id), eq(visualizations.userId, userId)))
-      .returning();
+      .returning({ id: visualizations.id, projectId: visualizations.projectId, updatedAt: visualizations.updatedAt });
 
     if (!updated) {
       return NextResponse.json({ error: 'Visualization not found' }, { status: 404 });

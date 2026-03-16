@@ -39,6 +39,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const thumbnailCapturedRef = useRef(false);
+  const lastThumbnailHashRef = useRef<string>('');
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'html' | 'pdf'>('png');
   const [breadcrumbs, setBreadcrumbs] = useState<{ id: number; name: string }[]>([]);
@@ -115,6 +116,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
   // Capture thumbnail from chart container (shared utility)
 
   // Auto-save — reads latest state from store to capture preview state too
+  // Merges thumbnail into single PUT request to reduce data transfer
   const saveVisualization = useCallback(async () => {
     // Read all current state at save-time to avoid stale closures
     const state = useEditorStore.getState();
@@ -138,12 +140,28 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
         _columnOrder: state.columnOrder,
         _columnTypes: Object.keys(state.columnTypes).length > 0 ? state.columnTypes : undefined,
       };
+
+      // Capture thumbnail and include in same request if changed (saves 1 roundtrip)
+      const thumbnail = await captureThumbnail();
+      let thumbChanged = false;
+      if (thumbnail) {
+        // Simple hash: use first 100 + last 100 chars + length as fingerprint
+        const hash = `${thumbnail.length}:${thumbnail.slice(0, 100)}:${thumbnail.slice(-100)}`;
+        if (hash !== lastThumbnailHashRef.current) {
+          lastThumbnailHashRef.current = hash;
+          thumbChanged = true;
+        }
+      }
+
       const body: Record<string, unknown> = {
         name: state.visualizationName,
         data: state.data,
         settings: state.settings,
         columnMapping: mappingWithExtras,
       };
+      if (thumbChanged && thumbnail) {
+        body.thumbnail = thumbnail;
+      }
 
       const res = await fetch(`/api/visualizations/${visualizationId}`, {
         method: 'PUT',
@@ -159,17 +177,6 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     } finally {
       setIsSaving(false);
     }
-
-    // Capture and save thumbnail in background (non-blocking)
-    captureThumbnail().then((thumbnail) => {
-      if (thumbnail) {
-        fetch(`/api/visualizations/${visualizationId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ thumbnail }),
-        }).catch(() => {});
-      }
-    });
   }, [visualizationId, setIsSaving, setIsDirty, setLastSavedAt, captureThumbnail]);
 
   // Debounced auto-save — blocked while loading to prevent saving stale data

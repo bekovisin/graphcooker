@@ -10,23 +10,60 @@ export async function GET(request: NextRequest) {
     const userId = getUserId(request);
     const { searchParams } = new URL(request.url);
     const metadataOnly = searchParams.get('fields') === 'metadata';
+    const limit = parseInt(searchParams.get('limit') || '0') || 0;
+    const offset = parseInt(searchParams.get('offset') || '0') || 0;
 
-    const images = metadataOnly
-      ? await db
-          .select({
-            id: imageLibrary.id,
-            name: imageLibrary.name,
-            createdAt: imageLibrary.createdAt,
-            lastUsedAt: imageLibrary.lastUsedAt,
-          })
-          .from(imageLibrary)
-          .where(eq(imageLibrary.userId, userId))
-          .orderBy(desc(imageLibrary.lastUsedAt))
-      : await db
-          .select()
-          .from(imageLibrary)
-          .where(eq(imageLibrary.userId, userId))
-          .orderBy(desc(imageLibrary.lastUsedAt));
+    if (metadataOnly) {
+      // Metadata only — no image data at all
+      const query = db
+        .select({
+          id: imageLibrary.id,
+          name: imageLibrary.name,
+          createdAt: imageLibrary.createdAt,
+          lastUsedAt: imageLibrary.lastUsedAt,
+        })
+        .from(imageLibrary)
+        .where(eq(imageLibrary.userId, userId))
+        .orderBy(desc(imageLibrary.lastUsedAt));
+
+      const images = limit > 0
+        ? await query.limit(limit).offset(offset)
+        : await query;
+
+      return NextResponse.json(images);
+    }
+
+    if (limit > 0) {
+      // Paginated — return small thumbnails instead of full dataUrl
+      const images = await db
+        .select({
+          id: imageLibrary.id,
+          name: imageLibrary.name,
+          thumbnailUrl: imageLibrary.thumbnailUrl,
+          createdAt: imageLibrary.createdAt,
+          lastUsedAt: imageLibrary.lastUsedAt,
+        })
+        .from(imageLibrary)
+        .where(eq(imageLibrary.userId, userId))
+        .orderBy(desc(imageLibrary.lastUsedAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Count total for pagination
+      const [countResult] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(imageLibrary)
+        .where(eq(imageLibrary.userId, userId));
+
+      return NextResponse.json({ images, total: countResult.total });
+    }
+
+    // Legacy: full fetch (backward compat for RowImagesSection resolve)
+    const images = await db
+      .select()
+      .from(imageLibrary)
+      .where(eq(imageLibrary.userId, userId))
+      .orderBy(desc(imageLibrary.lastUsedAt));
 
     return NextResponse.json(images);
   } catch (error) {
@@ -40,7 +77,7 @@ export async function POST(request: NextRequest) {
     const userId = getUserId(request);
     const role = getUserRole(request);
     const body = await request.json();
-    const { name, dataUrl } = body;
+    const { name, dataUrl, thumbnailUrl } = body;
 
     if (!name || !dataUrl) {
       return NextResponse.json(
@@ -86,6 +123,7 @@ export async function POST(request: NextRequest) {
       .values({
         name,
         dataUrl: finalDataUrl,
+        thumbnailUrl: thumbnailUrl || null,
         userId,
       })
       .returning();

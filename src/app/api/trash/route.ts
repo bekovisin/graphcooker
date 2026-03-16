@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
         id: visualizations.id,
         name: visualizations.name,
         chartType: visualizations.chartType,
-        thumbnail: visualizations.thumbnail,
+        // thumbnail excluded — loaded lazily via /api/visualizations/thumbnails
         deletedAt: visualizations.deletedAt,
         projectId: visualizations.projectId,
         folderId: projects.folderId,

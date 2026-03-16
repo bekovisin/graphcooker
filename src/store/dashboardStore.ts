@@ -251,7 +251,24 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const res = await fetch('/api/visualizations');
       if (res.ok) {
         const data = await res.json();
-        set({ visualizations: data });
+        // Thumbnails excluded from list query — set null placeholder
+        const vizs = data.map((v: VizItem) => ({ ...v, thumbnail: v.thumbnail ?? null }));
+        set({ visualizations: vizs });
+        // Lazy-load thumbnails in background batches of 50
+        const ids = vizs.map((v: VizItem) => v.id);
+        for (let i = 0; i < ids.length; i += 50) {
+          const batch = ids.slice(i, i + 50);
+          fetch(`/api/visualizations/thumbnails?ids=${batch.join(',')}`)
+            .then((r) => (r.ok ? r.json() : {}))
+            .then((thumbs: Record<string, string>) => {
+              set((s) => ({
+                visualizations: s.visualizations.map((v) =>
+                  thumbs[String(v.id)] ? { ...v, thumbnail: thumbs[String(v.id)] } : v
+                ),
+              }));
+            })
+            .catch(() => {});
+        }
       }
     } catch (error) {
       console.error('Failed to fetch visualizations:', error);
@@ -275,7 +292,24 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const res = await fetch('/api/templates');
       if (res.ok) {
         const data = await res.json();
-        set({ templates: data });
+        // Thumbnails excluded from list query — set null placeholder
+        const tpls = data.map((t: TemplateItem) => ({ ...t, thumbnail: t.thumbnail ?? null }));
+        set({ templates: tpls });
+        // Lazy-load thumbnails in background batches of 50
+        const ids = tpls.map((t: TemplateItem) => t.id);
+        for (let i = 0; i < ids.length; i += 50) {
+          const batch = ids.slice(i, i + 50);
+          fetch(`/api/templates/thumbnails?ids=${batch.join(',')}`)
+            .then((r) => (r.ok ? r.json() : {}))
+            .then((thumbs: Record<string, string>) => {
+              set((s) => ({
+                templates: s.templates.map((t) =>
+                  thumbs[String(t.id)] ? { ...t, thumbnail: thumbs[String(t.id)] } : t
+                ),
+              }));
+            })
+            .catch(() => {});
+        }
       }
     } catch (error) {
       console.error('Failed to fetch templates:', error);
@@ -300,6 +334,29 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       if (res.ok) {
         const data = await res.json();
         set({ trashItems: data });
+        // Lazy-load thumbnails for trashed visualizations
+        const vizIds = (data.visualizations || []).map((v: { id: number }) => v.id);
+        if (vizIds.length > 0) {
+          for (let i = 0; i < vizIds.length; i += 50) {
+            const batch = vizIds.slice(i, i + 50);
+            fetch(`/api/visualizations/thumbnails?ids=${batch.join(',')}`)
+              .then((r) => (r.ok ? r.json() : {}))
+              .then((thumbs: Record<string, string>) => {
+                set((s) => {
+                  if (!s.trashItems) return {};
+                  return {
+                    trashItems: {
+                      ...s.trashItems,
+                      visualizations: s.trashItems.visualizations.map((v) =>
+                        thumbs[String(v.id)] ? { ...v, thumbnail: thumbs[String(v.id)] } : v
+                      ),
+                    },
+                  };
+                });
+              })
+              .catch(() => {});
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to fetch trash:', error);
@@ -568,7 +625,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
         for (const viz of toExport) {
           try {
-            const res = await fetch(`/api/visualizations/${viz.id}`);
+            const res = await fetch(`/api/visualizations/${viz.id}?exclude=thumbnail`);
             if (!res.ok) { failed++; continue; }
             const fullViz = await res.json();
             const { defaultChartSettings, defaultData, defaultColumnMapping } = await import('@/lib/chart/config');

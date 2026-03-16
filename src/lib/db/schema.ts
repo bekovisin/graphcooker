@@ -154,6 +154,7 @@ export const imageLibrary = pgTable('image_library', {
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   dataUrl: text('data_url').notNull(),
+  thumbnailUrl: text('thumbnail_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   lastUsedAt: timestamp('last_used_at').defaultNow().notNull(),
