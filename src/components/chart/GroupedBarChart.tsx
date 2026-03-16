@@ -63,6 +63,8 @@ interface GroupedBarChartProps {
   gridTitle?: string;
   /** Hide legend (used in grid mode to show legend only on first panel) */
   hideLegend?: boolean;
+  /** Override series colors by column key (grid split-by-columns mode) */
+  overrideSeriesColors?: Record<string, string>;
 }
 
 function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number): string {
@@ -186,7 +188,7 @@ function generateCustomStepTicks(min: number, max: number, step: number): number
 }
 
 // ─── Component ────────────────────────────────────────────────────────
-export const GroupedBarChart = React.memo(function GroupedBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation, overrideMinVal, overrideMaxVal, gridTitle, hideLegend }: GroupedBarChartProps) {
+export const GroupedBarChart = React.memo(function GroupedBarChart({ data, columnMapping, settings, width, height: heightProp, columnOrder: columnOrderProp, seriesNames: seriesNamesProp, skipAnimation, overrideMinVal, overrideMaxVal, gridTitle, hideLegend, overrideSeriesColors }: GroupedBarChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, category: '', series: '', value: 0, color: '' });
   const [animProgress, setAnimProgress] = useState(skipAnimation || !settings.animations.enabled ? 1 : 0);
@@ -226,7 +228,9 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
     const seriesNames = columnOrderProp
       ? columnOrderProp.filter((col) => valuesSet.has(col))
       : columnMapping.values;
-    const colors = resolveColors(settings.colors, seriesNames, seriesNamesProp);
+    const colors = overrideSeriesColors
+      ? seriesNames.map((col) => overrideSeriesColors[col] || resolveColors(settings.colors, [col])[0])
+      : resolveColors(settings.colors, seriesNames, seriesNamesProp);
 
     let cats = data.map((row) => String(row[columnMapping.labels] || ''));
 
@@ -293,7 +297,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
       maxVal: overrideMaxVal !== undefined ? overrideMaxVal : (userMax !== undefined ? userMax : maxV),
       minVal: overrideMinVal !== undefined ? overrideMinVal : (userMin !== undefined ? userMin : Math.min(0, minV)),
     };
-  }, [data, columnMapping, columnOrderProp, seriesNamesProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max, overrideMinVal, overrideMaxVal]);
+  }, [data, columnMapping, columnOrderProp, seriesNamesProp, settings.colors, settings.chartType.sortMode, settings.chartType.stackSortMode, settings.xAxis.min, settings.xAxis.max, overrideMinVal, overrideMaxVal, overrideSeriesColors]);
 
   // ── Color mode ──
   const colorByRow = settings.colors.colorMode === 'by_row';

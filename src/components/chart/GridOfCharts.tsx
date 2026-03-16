@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { GroupedBarChart } from './GroupedBarChart';
+import { resolveColors } from '@/lib/chart/utils';
 
 interface GridOfChartsProps {
   data: DataRow[];
@@ -103,6 +104,18 @@ export const GridOfCharts = React.memo(function GridOfCharts({
     };
   }, [panels, settings.xAxis.min, settings.xAxis.max]);
 
+  // Pre-resolve colors for split-by-columns mode so each panel uses its correct palette index
+  const overrideSeriesColors = useMemo(() => {
+    if (!splitByColumns) return undefined;
+    const allNames = columnOrder
+      ? columnOrder.filter((col) => valueColumns.includes(col))
+      : valueColumns;
+    const colors = resolveColors(settings.colors, allNames, seriesNames);
+    const map: Record<string, string> = {};
+    allNames.forEach((col, i) => { map[col] = colors[i]; });
+    return map;
+  }, [splitByColumns, valueColumns, columnOrder, seriesNames, settings.colors]);
+
   const numPanels = panels.length;
   const totalGap = Math.max(0, (numPanels - 1) * GRID_GAP);
   const panelWidth = Math.max(100, Math.floor((width - totalGap) / numPanels));
@@ -124,6 +137,7 @@ export const GridOfCharts = React.memo(function GridOfCharts({
             overrideMaxVal={sharedMax}
             gridTitle={panel.title}
             hideLegend={i > 0}
+            overrideSeriesColors={overrideSeriesColors}
           />
         </div>
       ))}
