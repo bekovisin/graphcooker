@@ -35,7 +35,6 @@ import { NewVisualizationDialog } from '@/components/dashboard/NewVisualizationD
 import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizationDialog';
-import { InputDialog } from '@/components/dashboard/InputDialog';
 import { FolderDialog } from '@/components/dashboard/FolderDialog';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -103,7 +102,6 @@ export default function DashboardLayout({
   const createVisualization = useDashboardStore((s) => s.createVisualization);
   const createTemplateFolder = useDashboardStore((s) => s.createTemplateFolder);
   const createFolder = useDashboardStore((s) => s.createFolder);
-  const updateFolderColors = useDashboardStore((s) => s.updateFolderColors);
   const fetchTemplatesAction = useDashboardStore((s) => s.fetchTemplates);
 
   // Ownership filter
