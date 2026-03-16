@@ -125,8 +125,8 @@ export function FolderCard({
         e.dataTransfer.setData('application/x-folder-id', String(folder.id));
         e.dataTransfer.effectAllowed = 'move';
       }}
-      className={`group relative rounded-lg border bg-white transition-all cursor-pointer ${
-        isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : isSelected ? 'ring-2 ring-blue-500 border-blue-300 shadow-md' : 'border-gray-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300'
+      className={`group relative rounded-lg border bg-white overflow-hidden transition-all cursor-pointer hover:shadow-md hover:border-gray-300 ${
+        isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : isSelected ? 'ring-2 ring-blue-400 border-blue-300' : 'border-gray-200'
       }`}
       onClick={() => {
         if (isEditing) return;
