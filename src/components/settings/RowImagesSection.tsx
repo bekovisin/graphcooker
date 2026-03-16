@@ -193,7 +193,16 @@ export function RowImagesSection() {
   useEffect(() => {
     if (libraryImages.length > 0 && settings.customImageOverrides) {
       const resolved = resolveOverrides(settings.customImageOverrides);
-      update({ resolvedImageOverrides: resolved });
+      // Only update if the resolved map actually changed to avoid unnecessary isDirty
+      const prev = settings.resolvedImageOverrides ?? {};
+      const prevKeys = Object.keys(prev);
+      const newKeys = Object.keys(resolved);
+      const same =
+        prevKeys.length === newKeys.length &&
+        newKeys.every((k) => prev[k] === resolved[k]);
+      if (!same) {
+        update({ resolvedImageOverrides: resolved });
+      }
     }
   }, [libraryImages]); // eslint-disable-line react-hooks/exhaustive-deps
 
