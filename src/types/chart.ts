@@ -227,6 +227,7 @@ export interface LabelsSettings {
 
 // Per-series line label override
 export interface LineLabelSeriesOverride {
+  displayName?: string;    // custom label text, use newlines for line breaks
   fontSize?: number;       // px
   fontWeight?: FontWeight;
   fontStyle?: FontStyle;   // 'normal' | 'italic'

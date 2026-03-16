@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -411,6 +412,17 @@ export function LabelsSection() {
                         </button>
                         {expanded && (
                           <div className="px-3 pb-3 space-y-3 border-t border-gray-100">
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">Custom label</label>
+                              <Textarea
+                                value={overrides.displayName ?? ''}
+                                onChange={(e) => updateOverride({ displayName: e.target.value || undefined })}
+                                placeholder={seriesName}
+                                className="text-xs font-mono min-h-[48px] resize-y"
+                                rows={2}
+                              />
+                              <p className="text-[10px] text-gray-400 mt-0.5">Use Enter for line breaks. Leave empty to use series name.</p>
+                            </div>
                             <NumberInput
                               label="Font size (px)"
                               value={overrides.fontSize ?? (settings.lineLabelSize ?? 12)}

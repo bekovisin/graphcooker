@@ -1381,7 +1381,10 @@ export const LineChart = React.memo(function LineChart({
             ? (labelSettings.lineLabelSpaceValue ?? 80)
             : (labelSettings.lineLabelMaxWidth ?? 4) * 12;
 
-          const lines = wrapText(s.name, llMaxWidth, llFontSize, llFontFamily, llFontWeight, llMaxLines);
+          const customDisplayName = seriesOverride?.displayName;
+          const lines = customDisplayName
+            ? customDisplayName.split('\n')
+            : wrapText(s.name, llMaxWidth, llFontSize, llFontFamily, llFontWeight, llMaxLines);
           const totalHeight = lines.length * llLineHeight;
           const labelVOffset = (labelSettings.lineLabelDistanceV ?? 0) * 10;
           const startY = cy - totalHeight / 2 + llFontSize / 2 + labelVOffset;
