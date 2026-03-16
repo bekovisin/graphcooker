@@ -46,6 +46,7 @@ export default function FolderPage() {
   const renameFolder = useDashboardStore((s) => s.renameFolder);
   const duplicateFolder = useDashboardStore((s) => s.duplicateFolder);
   const deleteFolder = useDashboardStore((s) => s.deleteFolder);
+  const updateFolderColors = useDashboardStore((s) => s.updateFolderColors);
   const setShowNewVizDialog = useDashboardStore((s) => s.setShowNewVizDialog);
 
   // Selection from store
@@ -244,6 +245,7 @@ export default function FolderPage() {
               onMove={moveFolderTo}
               onDelete={deleteFolder}
               onShare={handleShareFolder}
+              onUpdateColors={updateFolderColors}
             />
           ))}
           {filteredViz.map(renderVizCard)}

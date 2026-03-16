@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
         parentId: templateFolders.parentId,
         sharedByUserId: templateFolders.sharedByUserId,
         sharedByName: users.name,
+        bgColor: templateFolders.bgColor,
+        textColor: templateFolders.textColor,
+        iconColor: templateFolders.iconColor,
         createdAt: templateFolders.createdAt,
       })
       .from(templateFolders)
@@ -36,7 +39,14 @@ export async function POST(request: NextRequest) {
 
     const [folder] = await db
       .insert(templateFolders)
-      .values({ name, parentId: body.parentId || null, userId })
+      .values({
+        name,
+        parentId: body.parentId || null,
+        userId,
+        bgColor: body.bgColor || null,
+        textColor: body.textColor || null,
+        iconColor: body.iconColor || null,
+      })
       .returning();
 
     return NextResponse.json(folder, { status: 201 });

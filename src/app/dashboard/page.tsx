@@ -43,6 +43,7 @@ export default function AllVisualizationsPage() {
   const renameFolder = useDashboardStore((s) => s.renameFolder);
   const duplicateFolder = useDashboardStore((s) => s.duplicateFolder);
   const deleteFolder = useDashboardStore((s) => s.deleteFolder);
+  const updateFolderColors = useDashboardStore((s) => s.updateFolderColors);
   const createVisualization = useDashboardStore((s) => s.createVisualization);
 
   // Selection from store
@@ -283,6 +284,7 @@ export default function AllVisualizationsPage() {
                 onMove={moveFolderTo}
                 onDelete={deleteFolder}
                 onShare={handleShareFolder}
+                onUpdateColors={updateFolderColors}
               />
             ))}
             {rootViz.map(renderVizCard)}

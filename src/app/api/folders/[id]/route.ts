@@ -20,6 +20,9 @@ export async function PUT(
 
     if (body.name !== undefined) updateData.name = body.name;
     if (body.parentId !== undefined) updateData.parentId = body.parentId;
+    if (body.bgColor !== undefined) updateData.bgColor = body.bgColor;
+    if (body.textColor !== undefined) updateData.textColor = body.textColor;
+    if (body.iconColor !== undefined) updateData.iconColor = body.iconColor;
 
     const [updated] = await db
       .update(folders)

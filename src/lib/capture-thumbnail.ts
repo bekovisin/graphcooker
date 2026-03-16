@@ -30,7 +30,7 @@ export async function captureThumbnail(): Promise<string | null> {
     if (!cloned.getAttribute('viewBox')) {
       cloned.setAttribute('viewBox', `0 0 ${w} ${h}`);
     }
-    const thumbW = 200;
+    const thumbW = 400;
     const thumbH = Math.round((h / w) * thumbW);
     cloned.setAttribute('width', String(thumbW));
     cloned.setAttribute('height', String(thumbH));
@@ -49,7 +49,7 @@ export async function captureThumbnail(): Promise<string | null> {
         ctx.fillRect(0, 0, thumbW, thumbH);
         ctx.drawImage(img, 0, 0, thumbW, thumbH);
         URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL('image/jpeg', 0.5));
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
       };
       img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
       img.src = url;

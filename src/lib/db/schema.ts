@@ -47,6 +47,9 @@ export const folders = pgTable('folders', {
   name: varchar('name', { length: 255 }).notNull(),
   parentId: integer('parent_id'),
   sharedByUserId: integer('shared_by_user_id'),
+  bgColor: varchar('bg_color', { length: 32 }),
+  textColor: varchar('text_color', { length: 32 }),
+  iconColor: varchar('icon_color', { length: 32 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
 });
@@ -121,6 +124,9 @@ export const templateFolders = pgTable('template_folders', {
   name: varchar('name', { length: 255 }).notNull(),
   parentId: integer('parent_id'),
   sharedByUserId: integer('shared_by_user_id'),
+  bgColor: varchar('bg_color', { length: 32 }),
+  textColor: varchar('text_color', { length: 32 }),
+  iconColor: varchar('icon_color', { length: 32 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

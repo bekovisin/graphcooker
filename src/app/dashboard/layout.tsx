@@ -36,6 +36,7 @@ import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizationDialog';
 import { InputDialog } from '@/components/dashboard/InputDialog';
+import { FolderDialog } from '@/components/dashboard/FolderDialog';
 import { useAuthStore } from '@/store/authStore';
 import {
   useDashboardStore,
@@ -102,6 +103,7 @@ export default function DashboardLayout({
   const createVisualization = useDashboardStore((s) => s.createVisualization);
   const createTemplateFolder = useDashboardStore((s) => s.createTemplateFolder);
   const createFolder = useDashboardStore((s) => s.createFolder);
+  const updateFolderColors = useDashboardStore((s) => s.updateFolderColors);
   const fetchTemplatesAction = useDashboardStore((s) => s.fetchTemplates);
 
   // Ownership filter
@@ -722,24 +724,22 @@ export default function DashboardLayout({
         activeFolderId={activeFolderId}
       />
 
-      <InputDialog
+      <FolderDialog
         open={showNewTemplateFolderDialog}
         onOpenChange={setShowNewTemplateFolderDialog}
         title="New template folder"
         description="Create a folder to organize your templates."
-        placeholder="Folder name..."
         confirmLabel="Create"
-        onConfirm={(name) => createTemplateFolder(name)}
+        onConfirm={(name, colors) => createTemplateFolder(name, undefined, colors)}
       />
 
-      <InputDialog
+      <FolderDialog
         open={showNewFolderDialog}
         onOpenChange={setShowNewFolderDialog}
         title="New folder"
         description="Create a folder to organize your visualizations."
-        placeholder="Folder name..."
         confirmLabel="Create"
-        onConfirm={(name) => createFolder(name, activeFolderId)}
+        onConfirm={(name, colors) => createFolder(name, activeFolderId, colors)}
       />
     </div>
   );

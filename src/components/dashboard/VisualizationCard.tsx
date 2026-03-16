@@ -122,10 +122,10 @@ export const VisualizationCard = React.memo(function VisualizationCard({
 
   return (
     <div
-      className={`group relative rounded-lg border bg-white overflow-hidden transition-all cursor-pointer ${
+      className={`group relative rounded-lg border bg-white transition-all cursor-pointer ${
         isSelected
           ? 'ring-2 ring-blue-500 border-blue-300 shadow-md'
-          : 'hover:shadow-md hover:border-gray-300'
+          : 'hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300'
       }`}
       onClick={handleClick}
       draggable={!isSelectionMode && !isEditing}

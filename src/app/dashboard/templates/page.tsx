@@ -46,6 +46,7 @@ export default function TemplatesPage() {
   const applyTemplate = useDashboardStore((s) => s.applyTemplate);
   const applyingTemplateId = useDashboardStore((s) => s.applyingTemplateId);
   const renameTemplateFolder = useDashboardStore((s) => s.renameTemplateFolder);
+  const updateTemplateFolderColors = useDashboardStore((s) => s.updateTemplateFolderColors);
   const deleteTemplateFolder = useDashboardStore((s) => s.deleteTemplateFolder);
   const duplicateTemplateFolder = useDashboardStore((s) => s.duplicateTemplateFolder);
   const moveTemplateFolderTo = useDashboardStore((s) => s.moveTemplateFolderTo);
@@ -465,6 +466,7 @@ export default function TemplatesPage() {
                 onDrop={(templateId) => moveTemplateToFolder(templateId, folder.id)}
                 onDropFolder={(draggedFolderId) => moveTemplateFolderTo(draggedFolderId, folder.id)}
                 onRename={(id, name) => renameTemplateFolder(id, name)}
+                onUpdateColors={updateTemplateFolderColors}
                 onDuplicate={(id) => duplicateTemplateFolder(id)}
                 onMove={(id, targetParentId) => moveTemplateFolderTo(id, targetParentId)}
                 onDelete={(id) => deleteTemplateFolder(id)}

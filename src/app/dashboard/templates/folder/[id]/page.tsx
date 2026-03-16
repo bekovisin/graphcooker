@@ -49,6 +49,7 @@ export default function TemplateFolderPage() {
   const applyingTemplateId = useDashboardStore((s) => s.applyingTemplateId);
   const moveTemplateToFolder = useDashboardStore((s) => s.moveTemplateToFolder);
   const renameTemplateFolder = useDashboardStore((s) => s.renameTemplateFolder);
+  const updateTemplateFolderColors = useDashboardStore((s) => s.updateTemplateFolderColors);
   const deleteTemplateFolder = useDashboardStore((s) => s.deleteTemplateFolder);
   const duplicateTemplateFolder = useDashboardStore((s) => s.duplicateTemplateFolder);
   const moveTemplateFolderTo = useDashboardStore((s) => s.moveTemplateFolderTo);
@@ -393,6 +394,7 @@ export default function TemplateFolderPage() {
               onMove={(id, targetParentId) => moveTemplateFolderTo(id, targetParentId)}
               onDelete={(id) => deleteTemplateFolder(id)}
               onShare={(id) => handleShareFolder(id)}
+              onUpdateColors={updateTemplateFolderColors}
             />
           ))}
           {/* Then templates */}

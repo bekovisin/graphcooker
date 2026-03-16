@@ -22,6 +22,9 @@ export interface FolderItem {
   parentId: number | null;
   sharedByUserId: number | null;
   sharedByName: string | null;
+  bgColor: string | null;
+  textColor: string | null;
+  iconColor: string | null;
   createdAt: string;
 }
 
@@ -56,6 +59,9 @@ export interface TemplateFolderItem {
   parentId: number | null;
   sharedByUserId: number | null;
   sharedByName: string | null;
+  bgColor: string | null;
+  textColor: string | null;
+  iconColor: string | null;
   createdAt: string;
 }
 
@@ -156,8 +162,9 @@ interface DashboardState {
   handleExportSingle: (id: number) => void;
 
   // Actions - Folder CRUD
-  createFolder: (name: string, parentId?: number | null) => Promise<void>;
+  createFolder: (name: string, parentId?: number | null, colors?: { bgColor?: string; textColor?: string; iconColor?: string }) => Promise<void>;
   renameFolder: (id: number, name: string) => Promise<void>;
+  updateFolderColors: (id: number, colors: { bgColor?: string; textColor?: string; iconColor?: string }) => Promise<void>;
   deleteFolder: (id: number) => void;
   duplicateFolder: (id: number) => Promise<void>;
   moveFolderTo: (folderId: number, targetParentId: number | null) => Promise<void>;
@@ -165,8 +172,9 @@ interface DashboardState {
   // Actions - Template CRUD
   deleteTemplate: (id: number) => void;
   applyTemplate: (templateId: number) => Promise<number | null>;
-  createTemplateFolder: (name: string, parentId?: number | null) => Promise<void>;
+  createTemplateFolder: (name: string, parentId?: number | null, colors?: { bgColor?: string; textColor?: string; iconColor?: string }) => Promise<void>;
   renameTemplateFolder: (id: number, name: string) => Promise<void>;
+  updateTemplateFolderColors: (id: number, colors: { bgColor?: string; textColor?: string; iconColor?: string }) => Promise<void>;
   deleteTemplateFolder: (id: number) => void;
   moveTemplateToFolder: (templateId: number, folderId: number | null) => Promise<void>;
   moveTemplateFolderTo: (folderId: number, targetParentId: number | null) => Promise<void>;
@@ -636,12 +644,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   // Folder CRUD
-  createFolder: async (name, parentId) => {
+  createFolder: async (name, parentId, colors) => {
     try {
       const res = await fetch('/api/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, parentId: parentId || null }),
+        body: JSON.stringify({ name, parentId: parentId || null, ...colors }),
       });
       if (res.ok) {
         const folder = await res.json();
@@ -668,6 +676,33 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     } catch (error) {
       console.error('Failed to rename folder:', error);
       toast.error('Failed to rename folder');
+    }
+  },
+
+  updateFolderColors: async (id, colors) => {
+    try {
+      const res = await fetch(`/api/folders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(colors),
+      });
+      if (res.ok) {
+        set((s) => ({
+          folders: s.folders.map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  bgColor: colors.bgColor ?? f.bgColor,
+                  textColor: colors.textColor ?? f.textColor,
+                  iconColor: colors.iconColor ?? f.iconColor,
+                }
+              : f
+          ),
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to update folder colors:', error);
+      toast.error('Failed to update folder colors');
     }
   },
 
@@ -792,12 +827,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     return null;
   },
 
-  createTemplateFolder: async (name, parentId) => {
+  createTemplateFolder: async (name, parentId, colors) => {
     try {
       const res = await fetch('/api/template-folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, parentId: parentId || null }),
+        body: JSON.stringify({ name, parentId: parentId || null, ...colors }),
       });
       if (res.ok) {
         const folder = await res.json();
@@ -822,6 +857,32 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       }
     } catch {
       toast.error('Failed to rename folder');
+    }
+  },
+
+  updateTemplateFolderColors: async (id, colors) => {
+    try {
+      const res = await fetch(`/api/template-folders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(colors),
+      });
+      if (res.ok) {
+        set((s) => ({
+          templateFolders: s.templateFolders.map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  bgColor: colors.bgColor ?? f.bgColor,
+                  textColor: colors.textColor ?? f.textColor,
+                  iconColor: colors.iconColor ?? f.iconColor,
+                }
+              : f
+          ),
+        }));
+      }
+    } catch {
+      toast.error('Failed to update folder colors');
     }
   },
 

@@ -20,6 +20,9 @@ export async function PUT(
     const updates: Record<string, unknown> = {};
     if (body.name !== undefined) updates.name = body.name;
     if (body.parentId !== undefined) updates.parentId = body.parentId;
+    if (body.bgColor !== undefined) updates.bgColor = body.bgColor;
+    if (body.textColor !== undefined) updates.textColor = body.textColor;
+    if (body.iconColor !== undefined) updates.iconColor = body.iconColor;
 
     const [updated] = await db
       .update(templateFolders)

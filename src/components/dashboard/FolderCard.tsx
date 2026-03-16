@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FolderOpen, MoreVertical, Copy, Pencil, FolderInput, Trash2, Check, Share2 } from 'lucide-react';
+import { FolderOpen, MoreVertical, Copy, Pencil, FolderInput, Trash2, Check, Share2, Palette } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getDescendantIds } from '@/lib/folder-utils';
 
 interface FolderItem {
@@ -20,7 +21,28 @@ interface FolderItem {
   parentId: number | null;
   sharedByUserId?: number | null;
   sharedByName?: string | null;
+  bgColor?: string | null;
+  textColor?: string | null;
+  iconColor?: string | null;
 }
+
+const PRESET_BG_COLORS = [
+  '#f9fafb', '#fef3c7', '#fce7f3', '#dbeafe', '#d1fae5',
+  '#ede9fe', '#fee2e2', '#ffedd5', '#e0e7ff', '#cffafe',
+  '#f3e8ff', '#fef9c3',
+];
+
+const PRESET_ICON_COLORS = [
+  '#9ca3af', '#f59e0b', '#ec4899', '#3b82f6', '#10b981',
+  '#8b5cf6', '#ef4444', '#f97316', '#6366f1', '#06b6d4',
+  '#a855f7', '#eab308',
+];
+
+const PRESET_TEXT_COLORS = [
+  '#374151', '#92400e', '#9d174d', '#1e40af', '#065f46',
+  '#5b21b6', '#991b1b', '#9a3412', '#3730a3', '#155e75',
+  '#6b21a8', '#854d0e',
+];
 
 interface FolderCardProps {
   folder: FolderItem;
@@ -39,6 +61,7 @@ interface FolderCardProps {
   onMove?: (id: number, targetFolderId: number | null) => void;
   onDelete?: (id: number) => void;
   onShare?: (id: number) => void;
+  onUpdateColors?: (id: number, colors: { bgColor?: string; textColor?: string; iconColor?: string }) => void;
 }
 
 export function FolderCard({
@@ -58,10 +81,12 @@ export function FolderCard({
   onMove,
   onDelete,
   onShare,
+  onUpdateColors,
 }: FolderCardProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(folder.name);
+  const [colorPopoverOpen, setColorPopoverOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -87,7 +112,11 @@ export function FolderCard({
     return true;
   });
 
-  const hasMenu = onRename || onDuplicate || onMove || onDelete || onShare;
+  const hasMenu = onRename || onDuplicate || onMove || onDelete || onShare || onUpdateColors;
+
+  const bgColor = folder.bgColor || '#f9fafb';
+  const iconColor = isDragOver ? '#60a5fa' : (folder.iconColor || '#9ca3af');
+  const textColor = folder.textColor || '#6b7280';
 
   return (
     <div
@@ -96,8 +125,8 @@ export function FolderCard({
         e.dataTransfer.setData('application/x-folder-id', String(folder.id));
         e.dataTransfer.effectAllowed = 'move';
       }}
-      className={`group relative rounded-lg border bg-white transition-all cursor-pointer hover:shadow-md ${
-        isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : isSelected ? 'ring-2 ring-blue-500 border-blue-300 shadow-md' : 'border-gray-200 hover:border-gray-300'
+      className={`group relative rounded-lg border bg-white transition-all cursor-pointer ${
+        isDragOver ? 'ring-2 ring-blue-400 bg-blue-50 border-blue-300' : isSelected ? 'ring-2 ring-blue-500 border-blue-300 shadow-md' : 'border-gray-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300'
       }`}
       onClick={() => {
         if (isEditing) return;
@@ -155,9 +184,18 @@ export function FolderCard({
       )}
 
       {/* Folder visual */}
-      <div className="aspect-[16/10] flex flex-col items-center justify-center bg-gray-50 rounded-t-lg border-b border-gray-100">
-        <FolderOpen className={`${cardSize === 'small' ? 'w-7 h-7' : cardSize === 'medium' ? 'w-9 h-9' : 'w-12 h-12'} ${isDragOver ? 'text-blue-400' : 'text-gray-300'} transition-colors`} />
-        <span className={`text-gray-400 mt-1 ${cardSize === 'small' ? 'text-[9px]' : cardSize === 'medium' ? 'text-[10px]' : 'text-xs'}`}>
+      <div
+        className="aspect-[16/10] flex flex-col items-center justify-center rounded-t-lg border-b border-gray-100 overflow-hidden"
+        style={{ backgroundColor: bgColor }}
+      >
+        <FolderOpen
+          className={`${cardSize === 'small' ? 'w-7 h-7' : cardSize === 'medium' ? 'w-9 h-9' : 'w-12 h-12'} transition-colors`}
+          style={{ color: iconColor }}
+        />
+        <span
+          className={`mt-1 ${cardSize === 'small' ? 'text-[9px]' : cardSize === 'medium' ? 'text-[10px]' : 'text-xs'}`}
+          style={{ color: textColor }}
+        >
           {vizCount > 0 && `${vizCount} ${vizCount === 1 ? 'item' : 'items'}`}
           {vizCount > 0 && subFolderCount > 0 && ', '}
           {subFolderCount > 0 && `${subFolderCount} ${subFolderCount === 1 ? 'folder' : 'folders'}`}
@@ -209,6 +247,17 @@ export function FolderCard({
                       <DropdownMenuItem onClick={() => { setEditName(folder.name); setIsEditing(true); }}>
                         <Pencil className="w-3.5 h-3.5 mr-2" />
                         Rename
+                      </DropdownMenuItem>
+                    )}
+                    {onUpdateColors && (
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setColorPopoverOpen(true);
+                        }}
+                      >
+                        <Palette className="w-3.5 h-3.5 mr-2" />
+                        Change Color
                       </DropdownMenuItem>
                     )}
                     {onDuplicate && (
@@ -269,6 +318,69 @@ export function FolderCard({
           </div>
         )}
       </div>
+
+      {/* Color picker popover */}
+      {onUpdateColors && (
+        <Popover open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
+          <PopoverTrigger asChild>
+            <span className="hidden" />
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-64 p-3"
+            side="right"
+            align="start"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Background</label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {PRESET_BG_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
+                        bgColor === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
+                      }`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => onUpdateColors(folder.id, { bgColor: c })}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Icon</label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {PRESET_ICON_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
+                        (folder.iconColor || '#9ca3af') === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
+                      }`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => onUpdateColors(folder.id, { iconColor: c })}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block">Text</label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {PRESET_TEXT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      className={`w-7 h-7 rounded-md border-2 transition-all hover:scale-110 ${
+                        (folder.textColor || '#374151') === c ? 'border-blue-500 ring-1 ring-blue-300' : 'border-gray-200'
+                      }`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => onUpdateColors(folder.id, { textColor: c })}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 }
