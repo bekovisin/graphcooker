@@ -194,9 +194,14 @@ export function DashboardSidebar() {
   };
 
   // Build folder tree
-  const rootFolders = folders.filter((f) => f.parentId === null);
-  const childFolders = (parentId: number) => folders.filter((f) => f.parentId === parentId);
-  const vizInFolder = (folderId: number) => visualizations.filter((v) => v.folderId === folderId);
+  const nameSort = (a: { name: string }, b: { name: string }) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+  const rootFolders = folders.filter((f) => f.parentId === null).sort(nameSort);
+  const childFolders = (parentId: number) => folders.filter((f) => f.parentId === parentId).sort(nameSort);
+  const vizInFolder = (folderId: number) =>
+    visualizations
+      .filter((v) => v.folderId === folderId)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
 
   const renderFolder = (folder: FolderItem, depth: number = 0) => {
     const children = childFolders(folder.id);
