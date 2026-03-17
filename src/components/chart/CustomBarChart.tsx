@@ -38,10 +38,10 @@ interface CustomBarChartProps {
 function formatNumber(value: number, nf: ChartSettings['numberFormatting'], decimalOverride?: number): string {
   const decimals = decimalOverride !== undefined ? decimalOverride : nf.decimalPlaces;
   const factor = Math.pow(10, decimals);
-  // Round or truncate based on setting
+  // Round or use exact value based on setting
   const adjusted = nf.roundDecimal !== false
     ? Math.round(value * factor) / factor
-    : Math.trunc(value * factor) / factor;
+    : value;
   let str = adjusted.toFixed(decimals);
   // Strip trailing zeros if showTrailingZeros is off
   if (!nf.showTrailingZeros && str.includes('.')) {

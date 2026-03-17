@@ -81,7 +81,7 @@ export function formatNumber(
   const factor = Math.pow(10, decimals);
   const adjusted = nf.roundDecimal !== false
     ? Math.round(value * factor) / factor
-    : Math.trunc(value * factor) / factor;
+    : value;
   let str = adjusted.toFixed(decimals);
   if (!nf.showTrailingZeros && str.includes('.')) {
     str = str.replace(/0+$/, '').replace(/\.$/, '');
