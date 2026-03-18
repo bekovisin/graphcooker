@@ -127,6 +127,20 @@ export function BarsSection() {
         suffix="px"
       />
 
+      {/* Empty row custom padding */}
+      <SettingRow label="Custom padding" variant="inline">
+        <Switch
+          checked={settings.emptyRowCustomPadding ?? false}
+          onCheckedChange={(checked) => update({ emptyRowCustomPadding: checked })}
+        />
+      </SettingRow>
+      {settings.emptyRowCustomPadding && (
+        <div className="grid grid-cols-2 gap-2">
+          <NumberInput label="Padding H" value={settings.emptyRowPaddingH ?? 0} onChange={(v) => update({ emptyRowPaddingH: v })} min={-999} max={999} step={1} />
+          <NumberInput label="Padding V" value={settings.emptyRowPaddingV ?? 0} onChange={(v) => update({ emptyRowPaddingV: v })} min={-999} max={999} step={1} />
+        </div>
+      )}
+
       {/* Bottom bar padding */}
       <SliderWithInput
         label="Bottom bar padding"

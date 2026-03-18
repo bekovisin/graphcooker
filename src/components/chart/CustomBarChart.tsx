@@ -430,6 +430,9 @@ export const CustomBarChart = React.memo(function CustomBarChart({ data, columnM
   // Bar sizing: when heightProp is provided, compute bar height to fill the space
   const spacingMain = settings.bars.spacingMain;
   const emptyRowSpacing = settings.bars.emptyRowSpacing;
+  const emptyRowPaddingH = settings.bars.emptyRowCustomPadding ? (settings.bars.emptyRowPaddingH ?? 0) : 0;
+  const emptyRowPaddingV = settings.bars.emptyRowCustomPadding ? (settings.bars.emptyRowPaddingV ?? 0) : 0;
+  const emptyRowTotalHeight = emptyRowSpacing + emptyRowPaddingV * 2;
   const bottomBarPadding = settings.bars.bottomBarPadding;
   // Above-bars label row height: per-category to avoid blank space under single-line labels
   const labelRowHeights = useMemo(() => {
@@ -468,7 +471,7 @@ export const CustomBarChart = React.memo(function CustomBarChart({ data, columnM
   const barHeight = (() => {
     if (heightProp && categories.length > 0 && nonEmptyCount > 0) {
       const nonBarSpace = padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight) + bottomBarPadding;
-      const availableForBars = heightProp - nonBarSpace - emptyCount * emptyRowSpacing - totalLabelRowHeight;
+      const availableForBars = heightProp - nonBarSpace - emptyCount * emptyRowTotalHeight - totalLabelRowHeight;
       const perCategory = availableForBars / nonEmptyCount;
       return Math.max(4, perCategory - spacingMain);
     }
@@ -481,13 +484,13 @@ export const CustomBarChart = React.memo(function CustomBarChart({ data, columnM
     let cumY = 0;
     for (let ci = 0; ci < categories.length; ci++) {
       offsets.push(cumY);
-      cumY += isEmptyCategory[ci] ? emptyRowSpacing : (barHeight + spacingMain + labelRowHeights[ci]);
+      cumY += isEmptyCategory[ci] ? emptyRowTotalHeight : (barHeight + spacingMain + labelRowHeights[ci]);
     }
     return offsets;
-  }, [categories.length, isEmptyCategory, emptyRowSpacing, barHeight, spacingMain, labelRowHeights]);
+  }, [categories.length, isEmptyCategory, emptyRowTotalHeight, barHeight, spacingMain, labelRowHeights]);
 
   const totalBarsHeight = catYOffsets.length > 0
-    ? catYOffsets[catYOffsets.length - 1] + (isEmptyCategory[categories.length - 1] ? emptyRowSpacing : (barHeight + spacingMain + labelRowHeights[categories.length - 1])) + bottomBarPadding
+    ? catYOffsets[catYOffsets.length - 1] + (isEmptyCategory[categories.length - 1] ? emptyRowTotalHeight : (barHeight + spacingMain + labelRowHeights[categories.length - 1])) + bottomBarPadding
     : bottomBarPadding;
 
   const computedChartHeight = totalBarsHeight + padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);
@@ -632,7 +635,7 @@ export const CustomBarChart = React.memo(function CustomBarChart({ data, columnM
         {/* ── Empty row separator lines ── */}
         {settings.bars.emptyRowLine.show && categories.map((_, ci) => {
           if (!isEmptyCategory[ci]) return null;
-          const lineY = chartTop + catYOffsets[ci] + emptyRowSpacing / 2;
+          const lineY = chartTop + catYOffsets[ci] + emptyRowTotalHeight / 2;
           const lineStyle = settings.bars.emptyRowLine.style;
           const lineDash = lineStyle === 'dashed'
             ? `${settings.bars.emptyRowLine.dashLength} ${settings.bars.emptyRowLine.dashLength}`
@@ -642,9 +645,9 @@ export const CustomBarChart = React.memo(function CustomBarChart({ data, columnM
           return (
             <line
               key={`empty-line-${ci}`}
-              x1={padding.left}
+              x1={padding.left + emptyRowPaddingH}
               y1={lineY}
-              x2={padding.left + plotWidth}
+              x2={padding.left + plotWidth - emptyRowPaddingH}
               y2={lineY}
               stroke={settings.bars.emptyRowLine.color}
               strokeWidth={settings.bars.emptyRowLine.width}

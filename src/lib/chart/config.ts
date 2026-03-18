@@ -29,6 +29,9 @@ export const defaultChartSettings: ChartSettings = {
     spacingMain: 12,
     spacingInStack: 0,
     emptyRowSpacing: 24,
+    emptyRowCustomPadding: false,
+    emptyRowPaddingH: 0,
+    emptyRowPaddingV: 0,
     bottomBarPadding: 0,
     emptyRowLine: {
       show: false,

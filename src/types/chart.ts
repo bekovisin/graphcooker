@@ -59,6 +59,9 @@ export interface BarsSettings {
   spacingMain: number;
   spacingInStack: number;
   emptyRowSpacing: number;
+  emptyRowCustomPadding?: boolean;
+  emptyRowPaddingH?: number;
+  emptyRowPaddingV?: number;
   bottomBarPadding: number;
   emptyRowLine: EmptyRowLineSettings;
   outline: boolean;
