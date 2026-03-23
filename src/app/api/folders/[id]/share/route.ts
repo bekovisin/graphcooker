@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { folders, projects, visualizations, users } from '@/lib/db/schema';
-import { eq, and, isNull, inArray } from 'drizzle-orm';
+import { folders, projects, users } from '@/lib/db/schema';
+import { eq, and, isNull, inArray, sql } from 'drizzle-orm';
 import { getUserId } from '@/lib/auth/helpers';
 import { sendShareNotification } from '@/lib/email/send';
 
@@ -61,12 +61,6 @@ export async function POST(
       .select()
       .from(projects)
       .where(and(eq(projects.userId, userId), isNull(projects.deletedAt)));
-
-    // Only fetch IDs + projectId for filtering (full data is too large for bulk fetch)
-    const allVizRefs = await db
-      .select({ id: visualizations.id, projectId: visualizations.projectId })
-      .from(visualizations)
-      .where(and(eq(visualizations.userId, userId), isNull(visualizations.deletedAt)));
 
     // Build descendant folder IDs
     const collectDescendantFolderIds = (parentId: number): number[] => {
@@ -131,6 +125,7 @@ export async function POST(
 
       const oldToNewProjectId = new Map<number, number>();
 
+      // Batch insert projects (need IDs back for viz mapping)
       for (const srcProject of projectsInFolders) {
         const newFolderId = srcProject.folderId !== null
           ? oldToNewFolderId.get(srcProject.folderId) ?? null
@@ -148,37 +143,25 @@ export async function POST(
         oldToNewProjectId.set(srcProject.id, newProject.id);
       }
 
-      // ── Layer 3: Copy visualizations (fetch full data one-by-one to avoid response size limit) ──
-      const vizProjectIds = projectsInFolders.map((p) => p.id);
-      const vizRefsToCopy = allVizRefs.filter(
-        (v) => vizProjectIds.includes(v.projectId)
-      );
+      // ── Layer 3: Copy visualizations via INSERT...SELECT (data stays in DB, no app transfer) ──
+      let vizCopyCount = 0;
+      const vizCopyPromises = projectsInFolders.map((srcProject) => {
+        const newProjectId = oldToNewProjectId.get(srcProject.id);
+        if (!newProjectId) return Promise.resolve(0);
 
-      for (const vizRef of vizRefsToCopy) {
-        const newProjectId = oldToNewProjectId.get(vizRef.projectId);
-        if (!newProjectId) continue;
+        return db.execute(sql`
+          INSERT INTO visualizations (project_id, name, chart_type, data, settings, column_mapping, thumbnail, user_id, shared_by_user_id)
+          SELECT ${newProjectId}, name, chart_type, data, settings, column_mapping, thumbnail, ${targetUser.id}, ${userId}
+          FROM visualizations
+          WHERE project_id = ${srcProject.id} AND user_id = ${userId} AND deleted_at IS NULL
+        `).then((r) => Number(r.rowCount ?? 0));
+      });
 
-        const [srcViz] = await db
-          .select()
-          .from(visualizations)
-          .where(eq(visualizations.id, vizRef.id));
-        if (!srcViz) continue;
-
-        await db.insert(visualizations).values({
-          projectId: newProjectId,
-          name: srcViz.name,
-          chartType: srcViz.chartType,
-          data: srcViz.data,
-          settings: srcViz.settings,
-          columnMapping: srcViz.columnMapping,
-          thumbnail: srcViz.thumbnail,
-          userId: targetUser.id,
-          sharedByUserId: userId,
-        });
-      }
+      const vizCounts = await Promise.all(vizCopyPromises);
+      vizCopyCount = vizCounts.reduce((a, b) => a + b, 0);
 
       // Send notification email (fire and forget)
-      const totalItems = folderIdsToCopy.length + vizRefsToCopy.length;
+      const totalItems = folderIdsToCopy.length + vizCopyCount;
       sendShareNotification(
         targetUser.email,
         targetUser.name,
