@@ -62,8 +62,9 @@ export async function POST(
       .from(projects)
       .where(and(eq(projects.userId, userId), isNull(projects.deletedAt)));
 
-    const allVisualizations = await db
-      .select()
+    // Only fetch IDs + projectId for filtering (full data is too large for bulk fetch)
+    const allVizRefs = await db
+      .select({ id: visualizations.id, projectId: visualizations.projectId })
       .from(visualizations)
       .where(and(eq(visualizations.userId, userId), isNull(visualizations.deletedAt)));
 
@@ -147,15 +148,21 @@ export async function POST(
         oldToNewProjectId.set(srcProject.id, newProject.id);
       }
 
-      // ── Layer 3: Copy visualizations ──
+      // ── Layer 3: Copy visualizations (fetch full data one-by-one to avoid response size limit) ──
       const vizProjectIds = projectsInFolders.map((p) => p.id);
-      const vizsInProjects = allVisualizations.filter(
+      const vizRefsToCopy = allVizRefs.filter(
         (v) => vizProjectIds.includes(v.projectId)
       );
 
-      for (const srcViz of vizsInProjects) {
-        const newProjectId = oldToNewProjectId.get(srcViz.projectId);
+      for (const vizRef of vizRefsToCopy) {
+        const newProjectId = oldToNewProjectId.get(vizRef.projectId);
         if (!newProjectId) continue;
+
+        const [srcViz] = await db
+          .select()
+          .from(visualizations)
+          .where(eq(visualizations.id, vizRef.id));
+        if (!srcViz) continue;
 
         await db.insert(visualizations).values({
           projectId: newProjectId,
@@ -171,7 +178,7 @@ export async function POST(
       }
 
       // Send notification email (fire and forget)
-      const totalItems = folderIdsToCopy.length + vizsInProjects.length;
+      const totalItems = folderIdsToCopy.length + vizRefsToCopy.length;
       sendShareNotification(
         targetUser.email,
         targetUser.name,
