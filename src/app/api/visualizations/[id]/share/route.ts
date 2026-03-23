@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { visualizations, projects, users } from '@/lib/db/schema';
 import { eq, and, isNull, inArray } from 'drizzle-orm';
 import { getUserId, getUserRole } from '@/lib/auth/helpers';
-import { sendShareNotification } from '@/lib/email/send';
+
 
 export async function POST(
   request: NextRequest,
@@ -55,13 +55,6 @@ export async function POST(
       return NextResponse.json({ error: 'You can only share your own visualizations' }, { status: 403 });
     }
 
-    // Get sender info for notification email
-    const [sender] = await db
-      .select({ name: users.name })
-      .from(users)
-      .where(eq(users.id, userId));
-
-    // Get target user details for notification emails
     const targetUsers = await db
       .select({ id: users.id, email: users.email, name: users.name })
       .from(users)
@@ -93,14 +86,7 @@ export async function POST(
         sharedByUserId: userId,
       });
 
-      // Send notification email (fire and forget)
-      sendShareNotification(
-        targetUser.email,
-        targetUser.name,
-        sender?.name || 'A user',
-        'visualizations',
-        1
-      ).catch(() => {});
+      // No email for individual visualization shares
     }
 
     return NextResponse.json({ shared: true });
