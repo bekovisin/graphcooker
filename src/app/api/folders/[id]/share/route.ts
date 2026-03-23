@@ -182,7 +182,11 @@ export async function POST(
     }
 
     return NextResponse.json({ shared: true });
-  } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  } catch (error) {
+    console.error('Folder share error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Share failed' },
+      { status: 500 }
+    );
   }
 }

@@ -111,20 +111,28 @@ export function ShareVisualizationDialog({
 
       // Share individual visualizations
       for (const vizId of vizIds) {
-        await fetch(`/api/visualizations/${vizId}/share`, {
+        const res = await fetch(`/api/visualizations/${vizId}/share`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to share visualization');
+        }
       }
 
       // Share folders (deep copy with projects + vizs)
       for (const fId of folderIds) {
-        await fetch(`/api/folders/${fId}/share`, {
+        const res = await fetch(`/api/folders/${fId}/share`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to share folder');
+        }
       }
 
       const totalItems = vizIds.length + folderIds.length;

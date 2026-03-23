@@ -553,7 +553,25 @@ export default function DashboardLayout({
                               size="sm"
                               className="gap-1 text-xs h-7"
                               onClick={() => {
-                                setShareVizIds(Array.from(effectiveVizIds));
+                                // Exclude vizs already covered by selected folders (folder share API copies them recursively)
+                                const coveredFolderIds = new Set<number>();
+                                selectedFolderIds.forEach((id) => coveredFolderIds.add(id));
+                                const q: number[] = [];
+                                selectedFolderIds.forEach((id) => q.push(id));
+                                while (q.length > 0) {
+                                  const cur = q.shift()!;
+                                  for (const f of folders) {
+                                    if (f.parentId === cur && !coveredFolderIds.has(f.id)) {
+                                      coveredFolderIds.add(f.id);
+                                      q.push(f.id);
+                                    }
+                                  }
+                                }
+                                const standaloneVizIds = Array.from(effectiveVizIds).filter((vizId) => {
+                                  const viz = visualizations.find((v) => v.id === vizId);
+                                  return !viz || viz.folderId === null || !coveredFolderIds.has(viz.folderId);
+                                });
+                                setShareVizIds(standaloneVizIds);
                                 setShareVizFolderIds(Array.from(selectedFolderIds));
                                 setShowShareViz(true);
                               }}
