@@ -102,6 +102,17 @@ export const colorThemes = pgTable('color_themes', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const designVersions = pgTable('design_versions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id'),
+  name: varchar('name', { length: 255 }).notNull(),
+  settings: jsonb('settings').notNull().default({}),
+  chartType: varchar('chart_type', { length: 50 }),
+  isBuiltIn: boolean('is_built_in').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const templates = pgTable('templates', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull(),

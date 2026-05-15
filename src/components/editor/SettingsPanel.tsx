@@ -34,9 +34,11 @@ import { InfoColumnSection } from '@/components/settings/InfoColumnSection';
 import { RowImagesSection } from '@/components/settings/RowImagesSection';
 import { ElectionBarSection } from '@/components/settings/ElectionBarSection';
 import { LineInfoAnnotationSection } from '@/components/settings/LineInfoAnnotationSection';
+import { DesignVersionSection } from '@/components/settings/DesignVersionSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
   { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
   { id: 'colors', title: 'Colors', Component: ColorsSection },
   { id: 'bars', title: 'Bars', Component: BarsSection },
@@ -58,6 +60,7 @@ const barSections = [
 
 const barCustom2Sections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
   { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
   { id: 'colors', title: 'Colors', Component: ColorsSection },
   { id: 'bars', title: 'Bars', Component: BarsSection },
@@ -84,6 +87,7 @@ const barCustom2Sections = [
 
 const electionSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
   { id: 'colors', title: 'Colors', Component: ColorsSection },
   { id: 'election-bar', title: 'Election bar', Component: ElectionBarSection },
   { id: 'legend', title: 'Legend', Component: LegendSection },
@@ -97,6 +101,7 @@ const electionSections = [
 
 const lineSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
   { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
   { id: 'colors', title: 'Colors', Component: ColorsSection },
   { id: 'line-dots-areas', title: 'Lines, dots and areas', Component: LineDotsAreasSection },
