@@ -178,6 +178,7 @@ export function InfoColumnSection() {
   const [borderLeftOpen, setBorderLeftOpen] = useState(false);
   const [borderRightOpen, setBorderRightOpen] = useState(false);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [showPerRowBgDialog, setShowPerRowBgDialog] = useState(false);
 
   const rowLabels = useMemo(() => {
     if (!data.length || !labelsColumn) return [];
@@ -474,20 +475,6 @@ export function InfoColumnSection() {
                           placeholder={String(settings.padding)}
                         />
                       </div>
-                      <div>
-                        <label className="text-[10px] text-gray-400 block mb-0.5">Background</label>
-                        <ColorPicker
-                          value={settings.background?.perRowColors?.[label] || settings.background?.color || '#f3f4f6'}
-                          onChange={(color) =>
-                            update({
-                              background: {
-                                ...settings.background,
-                                perRowColors: { ...settings.background.perRowColors, [label]: color },
-                              },
-                            })
-                          }
-                        />
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -555,6 +542,80 @@ export function InfoColumnSection() {
                   <p className="text-[10px] text-gray-400">
                     Top and bottom padding control the background height; left and right control its width.
                   </p>
+
+                  {/* Per-row background overrides button */}
+                  {rowLabels.length > 0 && (
+                    <button
+                      onClick={() => setShowPerRowBgDialog(true)}
+                      className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-gray-600 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                    >
+                      <Settings2 className="w-3.5 h-3.5" />
+                      Per-row background overrides
+                    </button>
+                  )}
+
+                  {/* Per-row background dialog */}
+                  <Dialog open={showPerRowBgDialog} onOpenChange={setShowPerRowBgDialog}>
+                    <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="text-sm">Per-row background</DialogTitle>
+                        <DialogDescription className="text-xs text-gray-500">
+                          Set a different background color for specific rows. Leave as default to use the shared color.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-2 mt-2">
+                        {rowLabels.map((label, i) => {
+                          const override = settings.background.perRowColors?.[label];
+                          return (
+                            <div
+                              key={label || i}
+                              className="flex items-center justify-between gap-2 p-2 rounded-md border border-gray-100"
+                            >
+                              <Label className="text-xs font-medium truncate">
+                                {label || `Row ${i + 1}`}
+                              </Label>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <ColorPicker
+                                  value={override || settings.background.color}
+                                  onChange={(color) =>
+                                    update({
+                                      background: {
+                                        ...settings.background,
+                                        perRowColors: {
+                                          ...settings.background.perRowColors,
+                                          [label]: color,
+                                        },
+                                      },
+                                    })
+                                  }
+                                />
+                                {override && (
+                                  <button
+                                    onClick={() => {
+                                      const next = { ...settings.background.perRowColors };
+                                      delete next[label];
+                                      update({
+                                        background: { ...settings.background, perRowColors: next },
+                                      });
+                                    }}
+                                    className="text-[10px] text-gray-400 hover:text-red-500"
+                                    title="Reset to default color"
+                                  >
+                                    Reset
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {rowLabels.length === 0 && (
+                          <p className="text-xs text-gray-400 text-center py-4">
+                            No data rows. Add data to configure per-row backgrounds.
+                          </p>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </>
               )}
             </>
