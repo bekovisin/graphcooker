@@ -233,7 +233,11 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
     const hPad = info.customPadding
       ? (info.paddingHorizontal ?? 8) * 2
       : info.padding * 2;
-    return maxW + iconSpace + hPad;
+    // Reserve space for the info background's horizontal padding so it never clips
+    const bgPad = info.background?.show
+      ? (info.background.paddingLeft ?? 0) + (info.background.paddingRight ?? 0)
+      : 0;
+    return maxW + iconSpace + hPad + bgPad;
   }, [info, infoValues, categories, nf]);
 
   // ── Row images space ──
@@ -1150,8 +1154,54 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                 iconY += iconPadV;
                 const iconBaseX = infoAnchor === 'start' ? infoX + iconPadH : infoX - iconSize - iconPadH;
 
+                // ── Info background (pill behind icon + text) ──
+                const bg = info.background;
+                let bgRect: React.ReactNode = null;
+                if (bg?.show) {
+                  const textWidth = measureTextWidth(infoText, rowFs, rowFf, rowFw);
+                  // Horizontal extent of the icon + text content
+                  let contentLeft: number;
+                  let contentRight: number;
+                  if (infoAnchor === 'start') {
+                    contentLeft = infoX + iconPadH;
+                    contentRight = infoX + iconSpace + iconPadH + textWidth;
+                  } else {
+                    contentRight = infoX - iconPadH;
+                    contentLeft = infoX - iconSpace - iconPadH - textWidth;
+                  }
+                  const bgPadL = bg.paddingLeft ?? 0;
+                  const bgPadR = bg.paddingRight ?? 0;
+                  const bgPadT = bg.paddingTop ?? 0;
+                  const bgPadB = bg.paddingBottom ?? 0;
+                  const bgX = contentLeft - bgPadL;
+                  const bgW = Math.max(0, contentRight - contentLeft + bgPadL + bgPadR);
+                  // Vertical: build a tight box around the text, then expand by top/bottom padding
+                  let textCenterY: number;
+                  if (vAlign === 'top') textCenterY = infoTextY + rowFs / 2;
+                  else if (vAlign === 'bottom') textCenterY = infoTextY - rowFs / 2;
+                  else textCenterY = infoTextY;
+                  const bgY = textCenterY - rowFs / 2 - bgPadT;
+                  const bgH = Math.max(0, rowFs + bgPadT + bgPadB);
+                  const bgColor = bg.perRowColors?.[cat] ?? bg.color;
+                  bgRect = (
+                    <rect
+                      x={bgX}
+                      y={bgY}
+                      width={bgW}
+                      height={bgH}
+                      rx={bg.borderRadius ?? 0}
+                      ry={bg.borderRadius ?? 0}
+                      fill={bgColor}
+                      style={{ pointerEvents: 'none' }}
+                    />
+                  );
+                }
+
                 return (
                   <>
+                    {/* Info background */}
+                    {bgRect}
+
                     {/* Info icon */}
                     {info.icon.show && (
                       <g transform={`translate(${iconBaseX}, ${iconY})`}>

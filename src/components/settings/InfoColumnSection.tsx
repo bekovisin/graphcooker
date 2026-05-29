@@ -126,6 +126,44 @@ function TwoWayPadding({
   );
 }
 
+function FourWayPadding({
+  top, right, bottom, left,
+  onTopChange, onRightChange, onBottomChange, onLeftChange,
+}: {
+  top: number; right: number; bottom: number; left: number;
+  onTopChange: (v: number) => void;
+  onRightChange: (v: number) => void;
+  onBottomChange: (v: number) => void;
+  onLeftChange: (v: number) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <span className="text-xs text-gray-500 font-medium">Padding (px)</span>
+      <div className="grid grid-cols-4 gap-1.5">
+        {([
+          ['Top', top, onTopChange],
+          ['Right', right, onRightChange],
+          ['Bottom', bottom, onBottomChange],
+          ['Left', left, onLeftChange],
+        ] as const).map(([lbl, val, cb]) => (
+          <div key={lbl}>
+            <label className="text-[10px] text-gray-400 mb-0.5 block">{lbl}</label>
+            <Input
+              type="number"
+              value={val}
+              onChange={(e) => cb(parseFloat(e.target.value) || 0)}
+              className="h-7 text-xs w-full"
+              min={-50}
+              max={200}
+              step={1}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function InfoColumnSection() {
   const settings = useEditorStore((s) => s.settings.infoColumn);
   const updateSettings = useEditorStore((s) => s.updateSettings);
@@ -139,6 +177,7 @@ export function InfoColumnSection() {
   const [perRowIconPickerLabel, setPerRowIconPickerLabel] = useState<string | null>(null);
   const [borderLeftOpen, setBorderLeftOpen] = useState(false);
   const [borderRightOpen, setBorderRightOpen] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
 
   const rowLabels = useMemo(() => {
     if (!data.length || !labelsColumn) return [];
@@ -435,6 +474,20 @@ export function InfoColumnSection() {
                           placeholder={String(settings.padding)}
                         />
                       </div>
+                      <div>
+                        <label className="text-[10px] text-gray-400 block mb-0.5">Background</label>
+                        <ColorPicker
+                          value={settings.background?.perRowColors?.[label] || settings.background?.color || '#f3f4f6'}
+                          onChange={(color) =>
+                            update({
+                              background: {
+                                ...settings.background,
+                                perRowColors: { ...settings.background.perRowColors, [label]: color },
+                              },
+                            })
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -446,6 +499,66 @@ export function InfoColumnSection() {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* ── Background sub-section ── */}
+          <SubHeader
+            collapsible
+            open={backgroundOpen}
+            onToggle={() => setBackgroundOpen(!backgroundOpen)}
+          >
+            Background
+          </SubHeader>
+          {backgroundOpen && (
+            <>
+              <SettingRow label="Show background" variant="inline">
+                <Switch
+                  checked={settings.background?.show ?? false}
+                  onCheckedChange={(checked) =>
+                    update({ background: { ...settings.background, show: checked } })
+                  }
+                />
+              </SettingRow>
+
+              {settings.background?.show && (
+                <>
+                  <SettingRow label="Color">
+                    <ColorPicker
+                      value={settings.background.color}
+                      onChange={(color) =>
+                        update({ background: { ...settings.background, color } })
+                      }
+                    />
+                  </SettingRow>
+
+                  <NumberInput
+                    label="Corner radius"
+                    value={settings.background.borderRadius}
+                    onChange={(v) =>
+                      update({ background: { ...settings.background, borderRadius: v } })
+                    }
+                    min={0}
+                    max={100}
+                    step={1}
+                    suffix="px"
+                  />
+
+                  <FourWayPadding
+                    top={settings.background.paddingTop}
+                    right={settings.background.paddingRight}
+                    bottom={settings.background.paddingBottom}
+                    left={settings.background.paddingLeft}
+                    onTopChange={(v) => update({ background: { ...settings.background, paddingTop: v } })}
+                    onRightChange={(v) => update({ background: { ...settings.background, paddingRight: v } })}
+                    onBottomChange={(v) => update({ background: { ...settings.background, paddingBottom: v } })}
+                    onLeftChange={(v) => update({ background: { ...settings.background, paddingLeft: v } })}
+                  />
+                  <p className="text-[10px] text-gray-400">
+                    Top and bottom padding control the background height; left and right control its width.
+                  </p>
+                </>
+              )}
+            </>
+          )}
 
           {/* ── Icon sub-section ── */}
           <SubHeader collapsible open={iconOpen} onToggle={() => setIconOpen(!iconOpen)}>

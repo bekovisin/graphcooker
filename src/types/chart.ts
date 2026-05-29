@@ -675,6 +675,17 @@ export interface InfoBorderSettings {
   manualLengthBottom?: number;
 }
 
+export interface InfoBackgroundSettings {
+  show: boolean;
+  color: string;
+  paddingTop: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  paddingRight: number;
+  borderRadius: number;
+  perRowColors: Record<string, string>;
+}
+
 export interface RowImagesSettings {
   show: boolean;
   imagePosition: 'left' | 'right';
@@ -722,6 +733,7 @@ export interface InfoColumnSettings {
   icon: InfoIconSettings;
   borderLeft: InfoBorderSettings;
   borderRight: InfoBorderSettings;
+  background: InfoBackgroundSettings;
 }
 
 // ===== LINE INFO ANNOTATION SETTINGS =====

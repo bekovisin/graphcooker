@@ -454,6 +454,16 @@ export const defaultChartSettings: ChartSettings = {
     },
     borderLeft: { show: false, color: '#e0e0e0', width: 1, style: 'solid' as const, padding: 0 },
     borderRight: { show: false, color: '#e0e0e0', width: 1, style: 'solid' as const, padding: 0 },
+    background: {
+      show: false,
+      color: '#f3f4f6',
+      paddingTop: 4,
+      paddingBottom: 4,
+      paddingLeft: 8,
+      paddingRight: 8,
+      borderRadius: 6,
+      perRowColors: {},
+    },
   },
   barBackground: {
     show: false,
