@@ -7,11 +7,19 @@ import { Input } from '@/components/ui/input';
 
 export function LayoutSection() {
   const settings = useEditorStore((s) => s.settings.layout);
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const updateSettings = useEditorStore((s) => s.updateSettings);
 
   const update = (updates: Partial<typeof settings>) => {
     updateSettings('layout', updates);
   };
+
+  const outerPaddingFields = [
+    { key: 'outerPaddingTop' as const, label: 'Top' },
+    { key: 'outerPaddingRight' as const, label: 'Right' },
+    { key: 'outerPaddingBottom' as const, label: 'Bottom' },
+    { key: 'outerPaddingLeft' as const, label: 'Left' },
+  ];
 
   return (
     <AccordionSection id="layout" title="Layout">
@@ -65,6 +73,31 @@ export function LayoutSection() {
           </div>
         </div>
       </div>
+
+      {/* Whole-chart padding — bar_chart_custom_2 only. Moves the entire chart and grows the canvas. */}
+      {chartType === 'bar_chart_custom_2' && (
+        <div className="space-y-1.5">
+          <span className="text-xs text-gray-500 font-medium">Whole-chart padding (px)</span>
+          <div className="grid grid-cols-4 gap-1.5">
+            {outerPaddingFields.map(({ key, label }) => (
+              <div key={key}>
+                <label className="text-[10px] text-gray-400 mb-0.5 block">{label}</label>
+                <Input
+                  type="number"
+                  value={settings[key] ?? 0}
+                  onChange={(e) => update({ [key]: parseInt(e.target.value) || 0 })}
+                  className="h-7 text-xs w-full"
+                  min={0}
+                  max={500}
+                />
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-gray-400">
+            Shifts the entire chart and expands the canvas on each side — nothing is clipped.
+          </p>
+        </div>
+      )}
 
       {/* Background color + Opacity (%) + Max width (px) — single row */}
       <div className="flex items-end gap-1.5">

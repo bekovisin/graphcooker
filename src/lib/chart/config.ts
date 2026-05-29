@@ -329,6 +329,10 @@ export const defaultChartSettings: ChartSettings = {
     paddingLeft: 0,
     backgroundColor: '#ffffff',
     backgroundOpacity: 100,
+    outerPaddingTop: 0,
+    outerPaddingRight: 0,
+    outerPaddingBottom: 0,
+    outerPaddingLeft: 0,
   },
   question: {
     text: '',

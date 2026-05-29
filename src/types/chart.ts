@@ -510,6 +510,12 @@ export interface LayoutSettings {
   paddingLeft: number;
   backgroundColor: string;
   backgroundOpacity: number;
+  // Whole-chart outer padding (bar_chart_custom_2): shifts the entire chart and
+  // expands the canvas so nothing is clipped. Distinct from the plot-margin padding above.
+  outerPaddingTop?: number;
+  outerPaddingRight?: number;
+  outerPaddingBottom?: number;
+  outerPaddingLeft?: number;
 }
 
 // Header

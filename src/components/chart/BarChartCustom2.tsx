@@ -487,19 +487,33 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
   const yAxisTitle = settings.yAxis.titleType === 'custom' ? settings.yAxis.titleText : '';
   const xAxisTitle = settings.xAxis.titleType === 'custom' ? settings.xAxis.titleText : '';
 
+  // ── Whole-chart outer padding ──
+  // Shifts the entire chart as one group and expands the canvas so nothing clips.
+  const outerPad = {
+    top: settings.layout.outerPaddingTop ?? 0,
+    right: settings.layout.outerPaddingRight ?? 0,
+    bottom: settings.layout.outerPaddingBottom ?? 0,
+    left: settings.layout.outerPaddingLeft ?? 0,
+  };
+  const fullWidth = width + outerPad.left + outerPad.right;
+  const fullHeight = svgHeight + outerPad.top + outerPad.bottom;
+  const outerTransform = outerPad.left || outerPad.top ? `translate(${outerPad.left}, ${outerPad.top})` : undefined;
+
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <svg
         ref={svgRef}
-        width={width}
-        height={svgHeight}
-        viewBox={`0 0 ${width} ${svgHeight}`}
+        width={fullWidth}
+        height={fullHeight}
+        viewBox={`0 0 ${fullWidth} ${fullHeight}`}
         xmlns="http://www.w3.org/2000/svg"
         style={{ display: 'block' }}
       >
-        {/* Layout background */}
-        <rect x="0" y="0" width={width} height={svgHeight} fill={bgColor === 'transparent' ? 'none' : bgColor} fillOpacity={bgOpacity} />
+        {/* Layout background — fills the full canvas including the outer padding */}
+        <rect x="0" y="0" width={fullWidth} height={fullHeight} fill={bgColor === 'transparent' ? 'none' : bgColor} fillOpacity={bgOpacity} />
 
+        {/* All chart content is shifted as one group by the whole-chart outer padding */}
+        <g transform={outerTransform}>
         {/* Plot background */}
         {settings.plotBackground.backgroundColor && settings.plotBackground.backgroundColor !== 'transparent' && (
           <rect
@@ -1311,6 +1325,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
             </g>
           );
         })}
+        </g>
       </svg>
 
       {/* Tooltip */}
