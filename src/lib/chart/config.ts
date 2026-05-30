@@ -694,8 +694,10 @@ export const defaultChartSettings: ChartSettings = {
     // Per-series overrides
     perColHeaderFontSizes: {},
     perColWidths: {},
+    perColHeaderPadding: {},
     perRowLabelFontSizes: {},
     perRowHeights: {},
+    perRowLabelPadding: {},
     // Borders
     borderShow: true,
     borderColor: '#e2e8f0',
@@ -705,6 +707,8 @@ export const defaultChartSettings: ChartSettings = {
     showTotals: true,
     totalsMode: 'column' as const,
     totalLabel: 'Total',
+    totalFontSize: 12,
+    totalColor: '#1e293b',
     // Outer
     cornerRadius: 12,
   },

@@ -181,6 +181,16 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
   const dotGap = 8;
   const dotSpace = hm.showRowDots ? dotSize + dotGap : 0;
   const cellLineH = hm.cellFontSize * 1.3;
+  const totalLineH = hm.totalFontSize * 1.3;
+  // Per-series horizontal padding inside the header / label boxes (override → fit tighter text)
+  const colHeaderPad = (ci: number) => {
+    const ov = hm.perColHeaderPadding?.[valueCols[ci]];
+    return ov != null ? ov : pad.x;
+  };
+  const rowLabelPad = (ri: number) => {
+    const ov = hm.perRowLabelPadding?.[rows[ri].label];
+    return ov != null ? ov : pad.x;
+  };
 
   const labelColW = useMemo(() => {
     if (mLabelColW > 0) return mLabelColW;
@@ -233,9 +243,9 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
   const cornerDisplay = hm.headerUppercase ? upperTr(cornerText) : cornerText;
   const cornerLines = wrap(cornerDisplay, labelColW - pad.x * 2, hm.headerFontSize, hm.headerFontFamily, hm.headerFontWeight);
   const headerDisplays = headers.map((h) => (hm.headerUppercase ? upperTr(h) : h));
-  const headerLines = headerDisplays.map((h, ci) => wrap(h, colW(ci) - pad.x * 2, colHeaderFS(ci), hm.headerFontFamily, hm.headerFontWeight));
+  const headerLines = headerDisplays.map((h, ci) => wrap(h, colW(ci) - colHeaderPad(ci) * 2, colHeaderFS(ci), hm.headerFontFamily, hm.headerFontWeight));
   const totalHeaderDisplay = hm.headerUppercase ? upperTr(hm.totalLabel) : hm.totalLabel;
-  const totalHeaderLines = hasColTotal ? wrap(totalHeaderDisplay, colW(headers.length) - pad.x * 2, hm.headerFontSize, hm.headerFontFamily, hm.headerFontWeight) : [];
+  const totalHeaderLines = hasColTotal ? wrap(totalHeaderDisplay, colW(headers.length) - pad.x * 2, hm.totalFontSize, hm.headerFontFamily, hm.headerFontWeight) : [];
 
   // Header height
   const cornerLineH = hm.headerFontSize * 1.3;
@@ -243,15 +253,15 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
   headerLines.forEach((lines, ci) => {
     headerContentH = Math.max(headerContentH, lines.length * colHeaderFS(ci) * 1.3);
   });
-  if (hasColTotal) headerContentH = Math.max(headerContentH, totalHeaderLines.length * cornerLineH);
+  if (hasColTotal) headerContentH = Math.max(headerContentH, totalHeaderLines.length * totalLineH);
   const headerH = mHeaderH > 0 ? mHeaderH : headerContentH + pad.y * 2;
 
   // Per-row label + cell lines
-  const labelLinesByRow = rows.map((r, ri) => wrap(r.label, labelColW - dotSpace - pad.x * 2, rowLabelFS(ri), hm.labelFontFamily, hm.labelFontWeight));
+  const labelLinesByRow = rows.map((r, ri) => wrap(r.label, labelColW - dotSpace - rowLabelPad(ri) * 2, rowLabelFS(ri), hm.labelFontFamily, hm.labelFontWeight));
   const cellTextByRow = rows.map((r) => r.values.map((v) => fmt(v)));
   const cellLinesByRow = cellTextByRow.map((vals) => vals.map((t, ci) => wrap(t, colW(ci) - pad.x * 2, hm.cellFontSize, hm.cellFontFamily, hm.cellFontWeight)));
   const totalCellLines = rows.map((_, ri) =>
-    hasColTotal ? wrap(totals[ri] == null ? DASH : fmtVal(totals[ri] as number), colW(headers.length) - pad.x * 2, hm.cellFontSize, hm.cellFontFamily, hm.cellFontWeight) : [],
+    hasColTotal ? wrap(totals[ri] == null ? DASH : fmtVal(totals[ri] as number), colW(headers.length) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight) : [],
   );
 
   // Per-row heights (overrides + auto-fit-content + custom)
@@ -264,24 +274,24 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     cellLinesByRow[ri].forEach((lines) => {
       cH = Math.max(cH, lines.length * cellLineH);
     });
-    if (hasColTotal) cH = Math.max(cH, totalCellLines[ri].length * cellLineH);
+    if (hasColTotal) cH = Math.max(cH, totalCellLines[ri].length * totalLineH);
     return Math.max(lblH, cH) + pad.y * 2;
   });
 
   // Totals row
-  const trLabelLines = hasRowTotal ? wrap(hm.totalLabel, labelColW - dotSpace - pad.x * 2, hm.labelFontSize, hm.labelFontFamily, hm.labelFontWeight) : [];
-  const colSumLines = colSums.map((cs, ci) => wrap(cs == null ? DASH : fmtVal(cs), colW(ci) - pad.x * 2, hm.cellFontSize, hm.cellFontFamily, hm.cellFontWeight));
-  const grandLines = hasColTotal ? wrap(grandTotal == null ? DASH : fmtVal(grandTotal), colW(headers.length) - pad.x * 2, hm.cellFontSize, hm.cellFontFamily, hm.cellFontWeight) : [];
+  const trLabelLines = hasRowTotal ? wrap(hm.totalLabel, labelColW - dotSpace - pad.x * 2, hm.totalFontSize, hm.labelFontFamily, hm.labelFontWeight) : [];
+  const colSumLines = colSums.map((cs, ci) => wrap(cs == null ? DASH : fmtVal(cs), colW(ci) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight));
+  const grandLines = hasColTotal ? wrap(grandTotal == null ? DASH : fmtVal(grandTotal), colW(headers.length) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight) : [];
   let trHeight = 0;
   if (hasRowTotal) {
     if (mRowH > 0) {
       trHeight = mRowH;
     } else {
-      let h = trLabelLines.length * hm.labelFontSize * 1.3;
+      let h = trLabelLines.length * totalLineH;
       colSumLines.forEach((lines) => {
-        h = Math.max(h, lines.length * cellLineH);
+        h = Math.max(h, lines.length * totalLineH);
       });
-      if (hasColTotal) h = Math.max(h, grandLines.length * cellLineH);
+      if (hasColTotal) h = Math.max(h, grandLines.length * totalLineH);
       trHeight = h + pad.y * 2;
     }
   }
@@ -304,8 +314,8 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
   const borderStroke = hm.borderShow ? hm.borderColor : 'none';
   const dashArray = hm.borderStyle === 'dashed' ? `${hm.borderWidth * 3} ${hm.borderWidth * 2}` : undefined;
 
-  const textX = (boxX: number, boxW: number, align: HeatmapAlign) =>
-    align === 'left' ? boxX + pad.x : align === 'right' ? boxX + boxW - pad.x : boxX + boxW / 2;
+  const textX = (boxX: number, boxW: number, align: HeatmapAlign, padding: number = pad.x) =>
+    align === 'left' ? boxX + padding : align === 'right' ? boxX + boxW - padding : boxX + boxW / 2;
 
   const renderLines = (
     lines: string[],
@@ -335,11 +345,19 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     fontWeight: fontWeightToCSS(hm.labelFontWeight),
     fill: hm.labelColor,
   };
-  const cellStyle = (isDash: boolean, bold?: boolean): React.CSSProperties => ({
+  const cellStyle = (isDash: boolean): React.CSSProperties => ({
     fontFamily: hm.cellFontFamily,
     fontSize: hm.cellFontSize,
-    fontWeight: bold ? 700 : fontWeightToCSS(hm.cellFontWeight),
+    fontWeight: fontWeightToCSS(hm.cellFontWeight),
     fill: isDash ? hm.dashColor : hm.cellColor,
+    fontVariantNumeric: 'tabular-nums',
+  });
+  // Total section uses its own colour + font size (bold)
+  const totalTextStyle = (isDash: boolean): React.CSSProperties => ({
+    fontFamily: hm.cellFontFamily,
+    fontSize: hm.totalFontSize,
+    fontWeight: 700,
+    fill: isDash ? hm.dashColor : hm.totalColor,
     fontVariantNumeric: 'tabular-nums',
   });
 
@@ -386,17 +404,18 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
           {/* ── Header texts ── */}
           {renderLines(cornerLines, textX(0, labelColW, hm.labelAlign), headerH / 2, cornerLineH, anchorFor(hm.labelAlign), { ...headerStyleBase, fontSize: hm.headerFontSize }, 'corner')}
           {headerLines.map((lines, ci) =>
-            renderLines(lines, textX(colX(ci), colW(ci), hm.headerAlign), headerH / 2, colHeaderFS(ci) * 1.3, anchorFor(hm.headerAlign), { ...headerStyleBase, fontSize: colHeaderFS(ci) }, `hdr-${ci}`),
+            renderLines(lines, textX(colX(ci), colW(ci), hm.headerAlign, colHeaderPad(ci)), headerH / 2, colHeaderFS(ci) * 1.3, anchorFor(hm.headerAlign), { ...headerStyleBase, fontSize: colHeaderFS(ci) }, `hdr-${ci}`),
           )}
           {hasColTotal &&
-            renderLines(totalHeaderLines, textX(colX(headers.length), colW(headers.length), hm.headerAlign), headerH / 2, cornerLineH, anchorFor(hm.headerAlign), { ...headerStyleBase, fontSize: hm.headerFontSize, fontWeight: 700 }, 'thdr')}
+            renderLines(totalHeaderLines, textX(colX(headers.length), colW(headers.length), hm.headerAlign), headerH / 2, totalLineH, anchorFor(hm.headerAlign), { ...headerStyleBase, fontSize: hm.totalFontSize, fill: hm.totalColor, fontWeight: 700 }, 'thdr')}
 
           {/* ── Body rows ── */}
           {rows.map((r, ri) => {
             const cy = rowY(ri) + rowH(ri) / 2;
-            const labelStartX = pad.x + dotSpace;
+            const lp = rowLabelPad(ri);
+            const labelStartX = lp + dotSpace;
             const labelAnchorX =
-              hm.labelAlign === 'left' ? labelStartX : hm.labelAlign === 'right' ? labelColW - pad.x : (labelStartX + labelColW - pad.x) / 2;
+              hm.labelAlign === 'left' ? labelStartX : hm.labelAlign === 'right' ? labelColW - lp : (labelStartX + labelColW - lp) / 2;
             const labelStyle = { ...labelStyleBase, fontSize: rowLabelFS(ri) };
             return (
               <g key={`row-${ri}`}>
@@ -406,7 +425,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
                   renderLines(cellLinesByRow[ri][ci], textX(colX(ci), colW(ci), hm.valueAlign), cy, cellLineH, anchorFor(hm.valueAlign), cellStyle(cellTextByRow[ri][ci] === DASH), `v-${ri}-${ci}`),
                 )}
                 {hasColTotal &&
-                  renderLines(totalCellLines[ri], textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, cellLineH, anchorFor(hm.valueAlign), cellStyle(totals[ri] == null, true), `tc-${ri}`)}
+                  renderLines(totalCellLines[ri], textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(totals[ri] == null), `tc-${ri}`)}
               </g>
             );
           })}
@@ -420,12 +439,12 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
               hm.labelAlign === 'left' ? labelStartX : hm.labelAlign === 'right' ? labelColW - pad.x : (labelStartX + labelColW - pad.x) / 2;
             return (
               <g key="totals-row">
-                {renderLines(trLabelLines, labelAnchorX, cy, hm.labelFontSize * 1.3, anchorFor(hm.labelAlign), { ...labelStyleBase, fontSize: hm.labelFontSize, fontWeight: 700 }, 'trow-lbl')}
+                {renderLines(trLabelLines, labelAnchorX, cy, totalLineH, anchorFor(hm.labelAlign), { ...labelStyleBase, fontSize: hm.totalFontSize, fill: hm.totalColor, fontWeight: 700 }, 'trow-lbl')}
                 {colSumLines.map((lines, ci) =>
-                  renderLines(lines, textX(colX(ci), colW(ci), hm.valueAlign), cy, cellLineH, anchorFor(hm.valueAlign), cellStyle(colSums[ci] == null, true), `trow-c-${ci}`),
+                  renderLines(lines, textX(colX(ci), colW(ci), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(colSums[ci] == null), `trow-c-${ci}`),
                 )}
                 {hasColTotal &&
-                  renderLines(grandLines, textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, cellLineH, anchorFor(hm.valueAlign), cellStyle(grandTotal == null, true), 'trow-grand')}
+                  renderLines(grandLines, textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(grandTotal == null), 'trow-grand')}
               </g>
             );
           })()}

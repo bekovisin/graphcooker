@@ -1015,8 +1015,10 @@ export interface HeatmapSettings {
   // Per-series overrides (0/absent = use the defaults above)
   perColHeaderFontSizes: Record<string, number>; // keyed by value column name
   perColWidths: Record<string, number>; // keyed by value column name
+  perColHeaderPadding: Record<string, number>; // horizontal padding inside the column header box
   perRowLabelFontSizes: Record<string, number>; // keyed by row label
   perRowHeights: Record<string, number>; // keyed by row label
+  perRowLabelPadding: Record<string, number>; // horizontal padding inside the row label box
 
   // Borders
   borderShow: boolean;
@@ -1028,6 +1030,8 @@ export interface HeatmapSettings {
   showTotals: boolean;
   totalsMode: HeatmapTotalsMode; // column / row / both
   totalLabel: string;
+  totalFontSize: number;
+  totalColor: string;
 
   // Outer
   cornerRadius: number;

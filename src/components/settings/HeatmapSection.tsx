@@ -172,8 +172,14 @@ export function HeatmapSection() {
     return out;
   }, [data, columnMapping.labels]);
 
+  const densityPadX = settings.density === 'compact' ? 10 : settings.density === 'comfortable' ? 16 : 12;
+
   /** Set or clear a numeric per-series override. */
-  const setOverride = (mapKey: 'perColHeaderFontSizes' | 'perColWidths' | 'perRowLabelFontSizes' | 'perRowHeights', key: string, raw: string) => {
+  const setOverride = (
+    mapKey: 'perColHeaderFontSizes' | 'perColWidths' | 'perColHeaderPadding' | 'perRowLabelFontSizes' | 'perRowHeights' | 'perRowLabelPadding',
+    key: string,
+    raw: string,
+  ) => {
     const next = { ...settings[mapKey] };
     if (raw === '') {
       delete next[key];
@@ -351,9 +357,10 @@ export function HeatmapSection() {
           <div className="space-y-2 mt-2">
             {columns.map((col) => (
               <div key={col.key} className="flex items-center gap-2 p-2 rounded-md border border-gray-100">
-                <Label className="text-xs font-medium min-w-[80px] truncate">{col.label}</Label>
-                <div className="flex-1 grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-1">
+                <Label className="text-xs font-medium min-w-[72px] truncate">{col.label}</Label>
+                <div className="flex-1 grid grid-cols-3 gap-1.5">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-0.5">Font</label>
                     <Input
                       type="number"
                       value={settings.perColHeaderFontSizes[col.key] ?? ''}
@@ -363,9 +370,9 @@ export function HeatmapSection() {
                       min={6}
                       max={48}
                     />
-                    <span className="text-[10px] text-gray-400 shrink-0">font</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-0.5">Width</label>
                     <Input
                       type="number"
                       value={settings.perColWidths[col.key] ?? ''}
@@ -375,7 +382,18 @@ export function HeatmapSection() {
                       min={0}
                       max={600}
                     />
-                    <span className="text-[10px] text-gray-400 shrink-0">px&nbsp;w</span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-0.5">Padding</label>
+                    <Input
+                      type="number"
+                      value={settings.perColHeaderPadding[col.key] ?? ''}
+                      onChange={(e) => setOverride('perColHeaderPadding', col.key, e.target.value)}
+                      placeholder={String(densityPadX)}
+                      className="h-7 text-xs"
+                      min={0}
+                      max={100}
+                    />
                   </div>
                 </div>
               </div>
@@ -429,9 +447,10 @@ export function HeatmapSection() {
           <div className="space-y-2 mt-2">
             {rowLabels.map((label) => (
               <div key={label} className="flex items-center gap-2 p-2 rounded-md border border-gray-100">
-                <Label className="text-xs font-medium min-w-[80px] truncate">{label}</Label>
-                <div className="flex-1 grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-1">
+                <Label className="text-xs font-medium min-w-[72px] truncate">{label}</Label>
+                <div className="flex-1 grid grid-cols-3 gap-1.5">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-0.5">Font</label>
                     <Input
                       type="number"
                       value={settings.perRowLabelFontSizes[label] ?? ''}
@@ -441,9 +460,9 @@ export function HeatmapSection() {
                       min={6}
                       max={48}
                     />
-                    <span className="text-[10px] text-gray-400 shrink-0">font</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-0.5">Height</label>
                     <Input
                       type="number"
                       value={settings.perRowHeights[label] ?? ''}
@@ -453,7 +472,18 @@ export function HeatmapSection() {
                       min={0}
                       max={400}
                     />
-                    <span className="text-[10px] text-gray-400 shrink-0">px&nbsp;h</span>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-gray-400 block mb-0.5">Padding</label>
+                    <Input
+                      type="number"
+                      value={settings.perRowLabelPadding[label] ?? ''}
+                      onChange={(e) => setOverride('perRowLabelPadding', label, e.target.value)}
+                      placeholder={String(densityPadX)}
+                      className="h-7 text-xs"
+                      min={0}
+                      max={100}
+                    />
                   </div>
                 </div>
               </div>
@@ -536,6 +566,13 @@ export function HeatmapSection() {
           <SettingRow label="Total label">
             <Input value={settings.totalLabel} onChange={(e) => update({ totalLabel: e.target.value })} className="h-8 text-xs" />
           </SettingRow>
+          <div className="grid grid-cols-[1fr_auto] gap-1.5 items-end">
+            <NumberInput label="Total font size" value={settings.totalFontSize} onChange={(v) => update({ totalFontSize: v })} min={6} max={48} step={1} suffix="px" />
+            <div>
+              <span className="text-xs text-gray-600 font-medium block mb-1">Color</span>
+              <ColorPicker value={settings.totalColor} onChange={(c) => update({ totalColor: c })} />
+            </div>
+          </div>
         </>
       )}
 
