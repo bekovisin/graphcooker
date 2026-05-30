@@ -14,7 +14,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import type { HeatmapSettings, HeatmapColorMode, HeatmapDensity, HeatmapAlign, HeatmapSizingMode, FontWeight } from '@/types/chart';
+import type { HeatmapSettings, HeatmapColorMode, HeatmapDensity, HeatmapAlign, FontWeight } from '@/types/chart';
 
 const fontFamilyOptions = [
   'Inter, sans-serif',
@@ -99,6 +99,34 @@ function AlignSelect({ value, onChange }: { value: HeatmapAlign; onChange: (v: H
         ))}
       </SelectContent>
     </Select>
+  );
+}
+
+function TabMenu<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+}) {
+  return (
+    <div className="flex rounded-md border border-gray-300 overflow-hidden w-full">
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${
+            value === opt.value
+              ? 'bg-blue-500 text-white font-medium'
+              : 'bg-white text-gray-600 hover:bg-gray-50'
+          } ${i > 0 ? 'border-l border-gray-300' : ''}`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -281,15 +309,14 @@ export function HeatmapSection() {
       {/* ── Sizing ── */}
       <SubHeader>Sizing</SubHeader>
       <SettingRow label="Mode">
-        <Select value={settings.sizingMode} onValueChange={(v) => update({ sizingMode: v as HeatmapSizingMode })}>
-          <SelectTrigger className="h-8 text-xs w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto" className="text-xs">Auto (fit to content)</SelectItem>
-            <SelectItem value="custom" className="text-xs">Custom (manual sizes)</SelectItem>
-          </SelectContent>
-        </Select>
+        <TabMenu
+          value={settings.sizingMode}
+          onChange={(v) => update({ sizingMode: v })}
+          options={[
+            { value: 'auto', label: 'Auto' },
+            { value: 'custom', label: 'Custom' },
+          ]}
+        />
       </SettingRow>
       <SettingRow label="Wrap text to fit box" variant="inline">
         <Switch checked={settings.wrapText} onCheckedChange={(c) => update({ wrapText: c })} />
