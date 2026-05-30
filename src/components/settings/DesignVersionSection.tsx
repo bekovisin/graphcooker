@@ -5,7 +5,8 @@ import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { ChevronDown, Search, Save, Check, X } from 'lucide-react';
+import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
+import { ChevronDown, Search, Save, Check, X, Pencil, Trash2 } from 'lucide-react';
 import type { ChartSettings } from '@/types/chart';
 
 interface SavedDesignVersion {
@@ -31,6 +32,10 @@ export function DesignVersionSection() {
   const [savingName, setSavingName] = useState(false);
   const [newName, setNewName] = useState('');
   const [filterByChartType, setFilterByChartType] = useState(true);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'delete' | 'overwrite';
+    version: SavedDesignVersion;
+  } | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const newNameInputRef = useRef<HTMLInputElement>(null);
 
@@ -286,25 +291,33 @@ export function DesignVersionSection() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setRenamingId(version.id);
-                                setRenameValue(version.name);
+                                setConfirmAction({ type: 'overwrite', version });
                               }}
-                              className="text-[10px] text-blue-500 hover:text-blue-700 px-1"
-                              title="Rename"
+                              className="p-1 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Save current design over this version"
                             >
-                              Rename
+                              <Save className="w-3 h-3" />
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm(`Delete "${version.name}"?`)) {
-                                  handleDeleteVersion(version.id);
-                                }
+                                setRenamingId(version.id);
+                                setRenameValue(version.name);
                               }}
-                              className="text-[10px] text-red-500 hover:text-red-700 px-1"
+                              className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                              title="Rename"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmAction({ type: 'delete', version });
+                              }}
+                              className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                               title="Delete"
                             >
-                              Delete
+                              <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
                         )}
@@ -376,16 +389,38 @@ export function DesignVersionSection() {
       {/* Overwrite active version */}
       {activeVersion && !activeVersion.isBuiltIn && (
         <button
-          onClick={() => {
-            if (confirm(`Overwrite "${activeVersion.name}" with current design?`)) {
-              handleOverwriteCurrent(activeVersion.id);
-            }
-          }}
-          className="text-[10px] text-blue-500 hover:text-blue-700 w-full text-left"
+          onClick={() => setConfirmAction({ type: 'overwrite', version: activeVersion })}
+          className="flex items-center justify-center gap-1.5 w-full h-8 rounded-md border border-input bg-background text-xs text-gray-600 hover:bg-accent transition-colors"
+          title={`Overwrite "${activeVersion.name}" with current design`}
         >
-          Overwrite &quot;{activeVersion.name}&quot; with current design
+          <Save className="w-3.5 h-3.5" />
+          <span className="truncate">Overwrite &quot;{activeVersion.name}&quot;</span>
         </button>
       )}
+
+      {/* Delete / Overwrite confirmation */}
+      <ConfirmDialog
+        open={confirmAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null);
+        }}
+        title={confirmAction?.type === 'delete' ? 'Delete design version' : 'Overwrite design version'}
+        description={
+          confirmAction?.type === 'delete'
+            ? `"${confirmAction?.version.name ?? ''}" will be permanently deleted. This action cannot be undone.`
+            : `"${confirmAction?.version.name ?? ''}" will be replaced with the chart's current design. This action cannot be undone.`
+        }
+        confirmLabel={confirmAction?.type === 'delete' ? 'Delete' : 'Overwrite'}
+        variant={confirmAction?.type === 'delete' ? 'danger' : 'warning'}
+        onConfirm={async () => {
+          if (!confirmAction) return;
+          if (confirmAction.type === 'delete') {
+            await handleDeleteVersion(confirmAction.version.id);
+          } else {
+            await handleOverwriteCurrent(confirmAction.version.id);
+          }
+        }}
+      />
     </AccordionSection>
   );
 }
