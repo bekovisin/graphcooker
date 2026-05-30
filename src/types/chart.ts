@@ -392,6 +392,7 @@ export interface YAxisSettings {
   labelPaddingV?: number;
   perRowLabelLetterSpacings?: Record<string, number>;
   perRowLabelPadding?: Record<string, { h: number; v: number }>;
+  perRowLabelFontSizes?: Record<string, number>;
 }
 
 // Plot Background

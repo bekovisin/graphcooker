@@ -196,11 +196,12 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
     if (settings.yAxis.spaceMode === 'fixed') return settings.yAxis.spaceModeValue;
     let maxW = 0;
     for (const cat of categories) {
-      const w = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+      const fs = settings.yAxis.perRowLabelFontSizes?.[cat] ?? yTickStyle.fontSize;
+      const w = measureTextWidth(cat, fs, yTickStyle.fontFamily, yTickStyle.fontWeight);
       if (w > maxW) maxW = w;
     }
     return maxW + 10 + yAxisLabelMargin;
-  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, yTickStyle, yAxisLabelMargin]);
+  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.perRowLabelFontSizes, yTickStyle, yAxisLabelMargin]);
 
   // ── Info column width ──
   const infoColumnWidth = useMemo(() => {
@@ -365,20 +366,22 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
   // so fixed-height mode can account for label space
   const labelRowHeights = useMemo(() => {
     if (!isAboveBars) return categories.map(() => 0);
-    const baseHeight = yTickStyle.fontSize + 8;
-    if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) {
-      return categories.map(() => baseHeight);
-    }
-    const maxW = settings.yAxis.spaceModeValue;
+    const perRowFs = settings.yAxis.perRowLabelFontSizes;
     return categories.map((cat) => {
-      const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+      const fs = perRowFs?.[cat] ?? yTickStyle.fontSize;
+      const baseHeight = fs + 8;
+      if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) {
+        return baseHeight;
+      }
+      const maxW = settings.yAxis.spaceModeValue;
+      const fullW = measureTextWidth(cat, fs, yTickStyle.fontFamily, yTickStyle.fontWeight);
       if (fullW > maxW && cat.includes(' ')) {
-        const lines = wrapText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
-        return lines.length > 1 ? yTickStyle.fontSize * 1.2 * lines.length + 4 : baseHeight;
+        const lines = wrapText(cat, maxW, fs, yTickStyle.fontFamily, yTickStyle.fontWeight);
+        return lines.length > 1 ? fs * 1.2 * lines.length + 4 : baseHeight;
       }
       return baseHeight;
     });
-  }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, categories]);
+  }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.perRowLabelFontSizes, categories]);
 
   const barHeight = (() => {
     if (heightProp && categories.length > 0) {
@@ -720,8 +723,9 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                   ? padding.left + xScale(0)
                   : padding.left;
                 const abPad = settings.labels;
+                const rowFs = settings.yAxis.perRowLabelFontSizes?.[cat] ?? yTickStyle.fontSize;
                 const aboveX = aboveLabelX + (abPad.aboveBarPaddingLeft || 0) - (abPad.aboveBarPaddingRight || 0);
-                const aboveY = catY + yTickStyle.fontSize + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0) + groupOffset;
+                const aboveY = catY + rowFs + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0) + groupOffset;
 
                 const yLsDefault = settings.yAxis.labelLetterSpacing ?? 0;
                 const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
@@ -730,10 +734,10 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                 // Handle text wrapping if spaceMode is fixed
                 if (settings.yAxis.spaceMode === 'fixed' && settings.yAxis.spaceModeValue > 0) {
                   const maxW = settings.yAxis.spaceModeValue;
-                  const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                  const fullW = measureTextWidth(cat, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
                   if (fullW > maxW && cat.includes(' ')) {
-                    const lines = wrapText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
-                    const lineH = yTickStyle.fontSize * 1.2;
+                    const lines = wrapText(cat, maxW, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                    const lineH = rowFs * 1.2;
                     return lines.map((line, li) => (
                       <text
                         key={`above-${ci}-${li}`}
@@ -741,7 +745,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                         y={aboveY + li * lineH}
                         textAnchor="start"
                         style={{
-                          fontSize: yTickStyle.fontSize,
+                          fontSize: rowFs,
                           fontFamily: yTickStyle.fontFamily,
                           fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                           fill: yTickStyle.color,
@@ -753,7 +757,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                     ));
                   }
                   const display = settings.yAxis.fixedEllipsis
-                    ? truncateText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight)
+                    ? truncateText(cat, maxW, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight)
                     : cat;
                   return (
                     <text
@@ -761,7 +765,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                       y={aboveY}
                       textAnchor="start"
                       style={{
-                        fontSize: yTickStyle.fontSize,
+                        fontSize: rowFs,
                         fontFamily: yTickStyle.fontFamily,
                         fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                         fill: yTickStyle.color,
@@ -779,7 +783,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                     y={aboveY}
                     textAnchor="start"
                     style={{
-                      fontSize: yTickStyle.fontSize,
+                      fontSize: rowFs,
                       fontFamily: yTickStyle.fontFamily,
                       fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                       fill: yTickStyle.color,
@@ -795,6 +799,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
               {!yAxisHidden && (() => {
                 // Compute label position based on labelTextAlign setting
                 const align = settings.yAxis.labelTextAlign ?? 'end';
+                const rowFs = settings.yAxis.perRowLabelFontSizes?.[cat] ?? yTickStyle.fontSize;
                 const yLsDefault = settings.yAxis.labelLetterSpacing ?? 0;
                 const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
                 const yLsStyle = yLs !== 0 ? `${yLs}px` : undefined;
@@ -823,18 +828,18 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                 // Wrap or truncate
                 if (settings.yAxis.spaceMode === 'fixed' && settings.yAxis.spaceModeValue > 0) {
                   const maxW = settings.yAxis.spaceModeValue;
-                  const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                  const fullW = measureTextWidth(cat, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
                   if (fullW > maxW && cat.includes(' ')) {
-                    const lines = wrapText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                    const lines = wrapText(cat, maxW, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
                     const maxLines = settings.yAxis.fixedMaxLines > 0 ? settings.yAxis.fixedMaxLines : lines.length;
                     const displayLines = lines.slice(0, maxLines);
                     if (settings.yAxis.fixedEllipsis && lines.length > maxLines) {
                       const last = displayLines[displayLines.length - 1];
-                      displayLines[displayLines.length - 1] = truncateText(last + '...', maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
+                      displayLines[displayLines.length - 1] = truncateText(last + '...', maxW, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
                     }
-                    const lineH = yTickStyle.fontSize * 1.2;
+                    const lineH = rowFs * 1.2;
                     const totalH = displayLines.length * lineH;
-                    const startY = renderBarY + barHeight / 2 - totalH / 2 + yTickStyle.fontSize * 0.35;
+                    const startY = renderBarY + barHeight / 2 - totalH / 2 + rowFs * 0.35;
                     return displayLines.map((line, li) => (
                       <text
                         key={`ylabel-${ci}-${li}`}
@@ -842,7 +847,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                         y={startY + li * lineH + yPadV}
                         textAnchor={anchor}
                         style={{
-                          fontSize: yTickStyle.fontSize,
+                          fontSize: rowFs,
                           fontFamily: yTickStyle.fontFamily,
                           fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                           fill: yTickStyle.color,
@@ -853,7 +858,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                       </text>
                     ));
                   }
-                  const display = settings.yAxis.fixedEllipsis ? truncateText(cat, maxW, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight) : cat;
+                  const display = settings.yAxis.fixedEllipsis ? truncateText(cat, maxW, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight) : cat;
                   return (
                     <text
                       x={labelX + yPadH}
@@ -861,7 +866,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                       dy="0.35em"
                       textAnchor={anchor}
                       style={{
-                        fontSize: yTickStyle.fontSize,
+                        fontSize: rowFs,
                         fontFamily: yTickStyle.fontFamily,
                         fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                         fill: yTickStyle.color,
@@ -880,7 +885,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                     dy="0.35em"
                     textAnchor={anchor}
                     style={{
-                      fontSize: yTickStyle.fontSize,
+                      fontSize: rowFs,
                       fontFamily: yTickStyle.fontFamily,
                       fontWeight: fontWeightToCSS(yTickStyle.fontWeight),
                       fill: yTickStyle.color,

@@ -175,6 +175,7 @@ export function YAxisSection() {
   const isLineChart = chartType === 'line_chart';
   const [showYLsModal, setShowYLsModal] = useState(false);
   const [showYPadModal, setShowYPadModal] = useState(false);
+  const [showYFsModal, setShowYFsModal] = useState(false);
 
   const categoryNames = useMemo(() => {
     if (!labelsColumn || !data.length) return [];
@@ -837,6 +838,59 @@ export function YAxisSection() {
                       className="h-7 text-xs flex-1"
                       step="0.1"
                       placeholder={String(settings.labelLetterSpacing ?? 0)}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">px</span>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+          {categoryNames.length > 0 && (
+            <button
+              onClick={() => setShowYFsModal(true)}
+              className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-gray-600 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              Per-row font size
+            </button>
+          )}
+          <Dialog open={showYFsModal} onOpenChange={setShowYFsModal}>
+            <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="text-sm">Per-row Y-axis font size</DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
+                  Override the default label font size for specific rows. Leave empty to use the default.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 mt-2">
+                {categoryNames.map((label) => (
+                  <div key={label} className="flex items-center gap-2 p-2 rounded-md border border-gray-100">
+                    <span className="text-xs font-medium min-w-[60px] truncate">{label}</span>
+                    <Input
+                      type="number"
+                      value={settings.perRowLabelFontSizes?.[label] ?? ''}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === '') {
+                          const next = { ...settings.perRowLabelFontSizes };
+                          delete next[label];
+                          update({ perRowLabelFontSizes: next });
+                          return;
+                        }
+                        const v = parseInt(raw);
+                        if (!isNaN(v)) {
+                          update({
+                            perRowLabelFontSizes: {
+                              ...settings.perRowLabelFontSizes,
+                              [label]: v,
+                            },
+                          });
+                        }
+                      }}
+                      className="h-7 text-xs flex-1"
+                      min={6}
+                      max={48}
+                      placeholder={String(settings.tickStyling.fontSize)}
                     />
                     <span className="text-[10px] text-gray-400 shrink-0">px</span>
                   </div>
