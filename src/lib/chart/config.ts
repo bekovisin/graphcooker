@@ -698,6 +698,7 @@ export const defaultChartSettings: ChartSettings = {
     borderStyle: 'solid' as const,
     // Totals
     showTotals: true,
+    totalsMode: 'column' as const,
     totalLabel: 'Total',
     // Outer
     cornerRadius: 12,

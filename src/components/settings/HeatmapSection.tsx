@@ -362,13 +362,26 @@ export function HeatmapSection() {
 
       {/* ── Totals ── */}
       <SubHeader>Totals</SubHeader>
-      <SettingRow label="Show totals column" variant="inline">
+      <SettingRow label="Show totals" variant="inline">
         <Switch checked={settings.showTotals} onCheckedChange={(c) => update({ showTotals: c })} />
       </SettingRow>
       {settings.showTotals && (
-        <SettingRow label="Total label">
-          <Input value={settings.totalLabel} onChange={(e) => update({ totalLabel: e.target.value })} className="h-8 text-xs" />
-        </SettingRow>
+        <>
+          <SettingRow label="Totals in">
+            <TabMenu
+              value={settings.totalsMode}
+              onChange={(v) => update({ totalsMode: v })}
+              options={[
+                { value: 'column', label: 'Column' },
+                { value: 'row', label: 'Row' },
+                { value: 'both', label: 'Both' },
+              ]}
+            />
+          </SettingRow>
+          <SettingRow label="Total label">
+            <Input value={settings.totalLabel} onChange={(e) => update({ totalLabel: e.target.value })} className="h-8 text-xs" />
+          </SettingRow>
+        </>
       )}
 
       {/* ── Outer ── */}

@@ -957,6 +957,7 @@ export type HeatmapColorMode = 'single' | 'diverging';
 export type HeatmapDensity = 'compact' | 'normal' | 'comfortable';
 export type HeatmapAlign = 'left' | 'center' | 'right';
 export type HeatmapSizingMode = 'auto' | 'custom';
+export type HeatmapTotalsMode = 'column' | 'row' | 'both';
 
 export interface HeatmapSettings {
   // Coloring
@@ -1017,8 +1018,9 @@ export interface HeatmapSettings {
   borderWidth: number;
   borderStyle: 'solid' | 'dashed';
 
-  // Totals column
+  // Totals
   showTotals: boolean;
+  totalsMode: HeatmapTotalsMode; // column / row / both
   totalLabel: string;
 
   // Outer

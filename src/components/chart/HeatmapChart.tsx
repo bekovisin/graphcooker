@@ -87,14 +87,33 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     const nameMap = { ...(columnMapping.seriesNames || {}), ...(seriesNames || {}) };
     const headers = valueCols.map((c) => nameMap[c] ?? c);
 
+    // Row totals (sum of each row) and column totals (sum of each column)
     const totals = rows.map((r) => {
       const nums = r.values.filter((v): v is number => v != null);
       return nums.length ? nums.reduce((a, b) => a + b, 0) : null;
     });
+    const colSums = headers.map((_, ci) => {
+      let sum = 0;
+      let any = false;
+      for (const r of rows) {
+        const v = r.values[ci];
+        if (v != null) {
+          sum += v;
+          any = true;
+        }
+      }
+      return any ? sum : null;
+    });
+    const validRowTotals = totals.filter((t): t is number => t != null);
+    const grandTotal = validRowTotals.length ? validRowTotals.reduce((a, b) => a + b, 0) : null;
 
     const all: number[] = [];
     for (const r of rows) for (const v of r.values) if (v != null) all.push(v);
-    if (hm.includeTotalInScale && hm.showTotals) for (const t of totals) if (t != null) all.push(t);
+    if (hm.includeTotalInScale && hm.showTotals) {
+      for (const t of totals) if (t != null) all.push(t);
+      for (const t of colSums) if (t != null) all.push(t);
+      if (grandTotal != null) all.push(grandTotal);
+    }
     const stats =
       all.length === 0
         ? null
@@ -107,11 +126,13 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     const rowColors = resolveColors(settings.colors, rows.map((r) => r.label), nameMap);
     const labelHeader = nameMap[labelCol] ?? labelCol ?? '';
 
-    return { valueCols, rows, headers, totals, stats, rowColors, labelHeader };
+    return { valueCols, rows, headers, totals, colSums, grandTotal, stats, rowColors, labelHeader };
   }, [data, columnMapping, seriesNames, settings.colors, hm.includeTotalInScale, hm.showTotals]);
 
-  const { rows, headers, totals, stats, rowColors, labelHeader } = model;
+  const { rows, headers, totals, colSums, grandTotal, stats, rowColors, labelHeader } = model;
   const cornerText = hm.cornerLabel && hm.cornerLabel.trim() ? hm.cornerLabel : labelHeader;
+  const hasColTotal = hm.showTotals && (hm.totalsMode === 'column' || hm.totalsMode === 'both');
+  const hasRowTotal = hm.showTotals && (hm.totalsMode === 'row' || hm.totalsMode === 'both');
 
   // Heatmap background for a value
   const heatBg = (v: number | null): string | null => {
@@ -169,7 +190,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     return Math.min(Math.max(total, 80), Math.max(120, width * 0.4));
   }, [mLabelColW, cornerText, hm.headerFontSize, hm.headerFontFamily, hm.headerFontWeight, hm.labelFontSize, hm.labelFontFamily, hm.labelFontWeight, rows, dotSpace, pad.x, width]);
 
-  const dataCols = headers.length + (hm.showTotals ? 1 : 0);
+  const dataCols = headers.length + (hasColTotal ? 1 : 0);
   const autoDataColW = dataCols > 0 ? (width - labelColW) / dataCols : 0;
   const dataColW = mDataColW > 0 ? mDataColW : autoDataColW;
   const svgW = mDataColW > 0 ? labelColW + dataCols * dataColW : width;
@@ -203,7 +224,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
   const headerContentLines = Math.max(
     cornerLines.length,
     ...headerLines.map((l) => l.length),
-    hm.showTotals ? totalHeaderLines.length : 1,
+    hasColTotal ? totalHeaderLines.length : 1,
   );
   const headerH = mHeaderH > 0 ? mHeaderH : headerContentLines * headerLineH + pad.y * 2;
 
@@ -220,11 +241,27 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     cellLinesByRow[ri].forEach((lines) => {
       cH = Math.max(cH, lines.length * cellLineH);
     });
-    if (hm.showTotals) cH = Math.max(cH, totalCellLines[ri].length * cellLineH);
+    if (hasColTotal) cH = Math.max(cH, totalCellLines[ri].length * cellLineH);
     rowContentH = Math.max(rowContentH, lblH, cH);
   });
+
+  // Totals row content (when row totals are shown)
+  const trLabelLines = hasRowTotal ? wrap(hm.totalLabel, labelColW - dotSpace - pad.x * 2, hm.labelFontSize, hm.labelFontFamily, hm.labelFontWeight) : [];
+  const colSumText = colSums.map((cs) => (cs == null ? DASH : fmtVal(cs)));
+  const colSumLines = colSumText.map((t) => wrap(t, dataColW - pad.x * 2, hm.cellFontSize, hm.cellFontFamily, hm.cellFontWeight));
+  const grandText = grandTotal == null ? DASH : fmtVal(grandTotal);
+  const grandLines = wrap(grandText, dataColW - pad.x * 2, hm.cellFontSize, hm.cellFontFamily, hm.cellFontWeight);
+  if (hasRowTotal) {
+    rowContentH = Math.max(rowContentH, trLabelLines.length * labelLineH);
+    colSumLines.forEach((lines) => {
+      rowContentH = Math.max(rowContentH, lines.length * cellLineH);
+    });
+    if (hasColTotal) rowContentH = Math.max(rowContentH, grandLines.length * cellLineH);
+  }
+
   const rowH = mRowH > 0 ? mRowH : rowContentH + pad.y * 2;
-  const svgH = headerH + rows.length * rowH;
+  const totalGridRows = rows.length + (hasRowTotal ? 1 : 0);
+  const svgH = headerH + totalGridRows * rowH;
 
   const clipId = 'hm-clip';
   const borderStroke = hm.borderShow ? hm.borderColor : 'none';
@@ -266,6 +303,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     fontWeight: fontWeightToCSS(hm.labelFontWeight),
     fill: hm.labelColor,
   };
+  const labelStyleBold: React.CSSProperties = { ...labelStyle, fontWeight: 700 };
   const cellStyle = (isDash: boolean): React.CSSProperties => ({
     fontFamily: hm.cellFontFamily,
     fontSize: hm.cellFontSize,
@@ -314,7 +352,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
           {/* Grid lines */}
           {hm.borderShow && (
             <g stroke={hm.borderColor} strokeWidth={hm.borderWidth} strokeDasharray={dashArray}>
-              {Array.from({ length: rows.length + 1 }).map((_, i) => {
+              {Array.from({ length: totalGridRows + 1 }).map((_, i) => {
                 const y = headerH + i * rowH;
                 return <line key={`h-${i}`} x1={0} y1={y} x2={svgW} y2={y} />;
               })}
@@ -330,7 +368,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
           {headerLines.map((lines, ci) =>
             renderLines(lines, textX(colX(ci), dataColW, hm.headerAlign), headerH / 2, headerLineH, anchorFor(hm.headerAlign), headerStyle, `hdr-${ci}`),
           )}
-          {hm.showTotals &&
+          {hasColTotal &&
             renderLines(totalHeaderLines, textX(colX(headers.length), dataColW, hm.headerAlign), headerH / 2, headerLineH, anchorFor(hm.headerAlign), headerStyleBold, 'thdr')}
 
           {/* ── Body rows ── */}
@@ -357,7 +395,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
                     `v-${ri}-${ci}`,
                   );
                 })}
-                {hm.showTotals &&
+                {hasColTotal &&
                   renderLines(
                     totalCellLines[ri],
                     textX(colX(headers.length), dataColW, hm.valueAlign),
@@ -370,6 +408,42 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
               </g>
             );
           })}
+
+          {/* ── Totals row (column sums) ── */}
+          {hasRowTotal && (() => {
+            const tri = rows.length;
+            const cy = headerH + tri * rowH + rowH / 2;
+            const labelStartX = pad.x + dotSpace;
+            const labelAnchorX =
+              hm.labelAlign === 'left' ? labelStartX : hm.labelAlign === 'right' ? labelColW - pad.x : (labelStartX + labelColW - pad.x) / 2;
+            return (
+              <g key="totals-row">
+                {/* no dot on the totals row */}
+                {renderLines(trLabelLines, labelAnchorX, cy, labelLineH, anchorFor(hm.labelAlign), labelStyleBold, 'trow-lbl')}
+                {colSumLines.map((lines, ci) =>
+                  renderLines(
+                    lines,
+                    textX(colX(ci), dataColW, hm.valueAlign),
+                    cy,
+                    cellLineH,
+                    anchorFor(hm.valueAlign),
+                    totalStyle(colSums[ci] == null),
+                    `trow-c-${ci}`,
+                  ),
+                )}
+                {hasColTotal &&
+                  renderLines(
+                    grandLines,
+                    textX(colX(headers.length), dataColW, hm.valueAlign),
+                    cy,
+                    cellLineH,
+                    anchorFor(hm.valueAlign),
+                    totalStyle(grandTotal == null),
+                    'trow-grand',
+                  )}
+              </g>
+            );
+          })()}
         </g>
 
         {/* Outer rounded border */}
