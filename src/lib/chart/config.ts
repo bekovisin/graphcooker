@@ -683,7 +683,10 @@ export const defaultChartSettings: ChartSettings = {
     labelFontWeight: '500' as const,
     labelColor: '#1e293b',
     labelAlign: 'left' as const,
-    // Manual box dimensions (0 = auto)
+    // Sizing
+    sizingMode: 'auto' as const,
+    wrapText: true,
+    // Manual box dimensions (used in custom mode; 0 = auto)
     labelColWidth: 0,
     dataColWidth: 0,
     headerHeight: 0,

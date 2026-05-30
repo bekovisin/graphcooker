@@ -14,7 +14,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
-import type { HeatmapSettings, HeatmapColorMode, HeatmapDensity, HeatmapAlign, FontWeight } from '@/types/chart';
+import type { HeatmapSettings, HeatmapColorMode, HeatmapDensity, HeatmapAlign, HeatmapSizingMode, FontWeight } from '@/types/chart';
 
 const fontFamilyOptions = [
   'Inter, sans-serif',
@@ -278,17 +278,35 @@ export function HeatmapSection() {
         </div>
         <ColorPicker value={settings.labelColor} onChange={(c) => update({ labelColor: c })} />
       </div>
-      {/* ── Box dimensions ── */}
-      <SubHeader>Box dimensions</SubHeader>
-      <div className="grid grid-cols-2 gap-2">
-        <NumberInput label="Top label height" value={settings.headerHeight} onChange={(v) => update({ headerHeight: Math.max(0, v) })} min={0} max={200} step={1} suffix="px" />
-        <NumberInput label="Row height" value={settings.rowHeight} onChange={(v) => update({ rowHeight: Math.max(0, v) })} min={0} max={200} step={1} suffix="px" />
-        <NumberInput label="Left label width" value={settings.labelColWidth} onChange={(v) => update({ labelColWidth: Math.max(0, v) })} min={0} max={800} step={5} suffix="px" />
-        <NumberInput label="Data box width" value={settings.dataColWidth} onChange={(v) => update({ dataColWidth: Math.max(0, v) })} min={0} max={400} step={5} suffix="px" />
-      </div>
-      <p className="text-[10px] text-gray-400">
-        0 = automatic. Sets the top-label height, left-label width, and data-box width/height (row height) separately.
-      </p>
+      {/* ── Sizing ── */}
+      <SubHeader>Sizing</SubHeader>
+      <SettingRow label="Mode">
+        <Select value={settings.sizingMode} onValueChange={(v) => update({ sizingMode: v as HeatmapSizingMode })}>
+          <SelectTrigger className="h-8 text-xs w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto" className="text-xs">Auto (fit to content)</SelectItem>
+            <SelectItem value="custom" className="text-xs">Custom (manual sizes)</SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
+      <SettingRow label="Wrap text to fit box" variant="inline">
+        <Switch checked={settings.wrapText} onCheckedChange={(c) => update({ wrapText: c })} />
+      </SettingRow>
+      {settings.sizingMode === 'custom' && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <NumberInput label="Top label height" value={settings.headerHeight} onChange={(v) => update({ headerHeight: Math.max(0, v) })} min={0} max={400} step={1} suffix="px" />
+            <NumberInput label="Row height" value={settings.rowHeight} onChange={(v) => update({ rowHeight: Math.max(0, v) })} min={0} max={400} step={1} suffix="px" />
+            <NumberInput label="Left label width" value={settings.labelColWidth} onChange={(v) => update({ labelColWidth: Math.max(0, v) })} min={0} max={800} step={5} suffix="px" />
+            <NumberInput label="Data box width" value={settings.dataColWidth} onChange={(v) => update({ dataColWidth: Math.max(0, v) })} min={0} max={600} step={5} suffix="px" />
+          </div>
+          <p className="text-[10px] text-gray-400">
+            0 = auto for that box. The top label (header row), left label column, and data boxes are each sized separately — width and height.
+          </p>
+        </>
+      )}
 
       {/* ── Borders ── */}
       <SubHeader>Borders</SubHeader>

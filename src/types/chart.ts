@@ -956,6 +956,7 @@ export interface ElectionBarSettings {
 export type HeatmapColorMode = 'single' | 'diverging';
 export type HeatmapDensity = 'compact' | 'normal' | 'comfortable';
 export type HeatmapAlign = 'left' | 'center' | 'right';
+export type HeatmapSizingMode = 'auto' | 'custom';
 
 export interface HeatmapSettings {
   // Coloring
@@ -1001,7 +1002,10 @@ export interface HeatmapSettings {
   labelColor: string;
   labelAlign: HeatmapAlign;
 
-  // Manual box dimensions (0 = auto)
+  // Sizing
+  sizingMode: HeatmapSizingMode; // auto = fit to content; custom = use manual sizes below
+  wrapText: boolean; // wrap box text to a second line when it doesn't fit
+  // Manual box dimensions (used in custom mode; 0 = auto for that dimension)
   labelColWidth: number; // left label box width
   dataColWidth: number; // data box width
   headerHeight: number; // top label box height
