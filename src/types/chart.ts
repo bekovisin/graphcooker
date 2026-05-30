@@ -975,6 +975,8 @@ export interface HeatmapSettings {
   valueAlign: HeatmapAlign;
   density: HeatmapDensity;
   zeroAsDash: boolean;
+  showPercent: boolean;
+  percentPosition: 'left' | 'right';
   striped: boolean;
   stripedColor: string;
 
@@ -987,15 +989,23 @@ export interface HeatmapSettings {
   headerUppercase: boolean;
   headerLetterSpacing: number;
   headerAlign: HeatmapAlign;
+  cornerLabel: string; // top-left header cell; empty = use the label column name
 
   // Row labels (left column)
   showRowDots: boolean;
+  dotSize: number;
+  dotRadius: number;
   labelFontFamily: string;
   labelFontSize: number;
   labelFontWeight: FontWeight;
   labelColor: string;
   labelAlign: HeatmapAlign;
-  labelColWidth: number; // 0 = auto-fit to longest label
+
+  // Manual box dimensions (0 = auto)
+  labelColWidth: number; // left label box width
+  dataColWidth: number; // data box width
+  headerHeight: number; // top label box height
+  rowHeight: number; // data / left label box height
 
   // Borders
   borderShow: boolean;

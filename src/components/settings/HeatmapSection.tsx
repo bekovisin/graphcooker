@@ -187,6 +187,22 @@ export function HeatmapSection() {
       <SettingRow label="Zero as dash" variant="inline">
         <Switch checked={settings.zeroAsDash} onCheckedChange={(c) => update({ zeroAsDash: c })} />
       </SettingRow>
+      <SettingRow label="Show as percentage" variant="inline">
+        <Switch checked={settings.showPercent} onCheckedChange={(c) => update({ showPercent: c })} />
+      </SettingRow>
+      {settings.showPercent && (
+        <SettingRow label="Percent position">
+          <Select value={settings.percentPosition} onValueChange={(v) => update({ percentPosition: v as 'left' | 'right' })}>
+            <SelectTrigger className="h-8 text-xs w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="left" className="text-xs">Left (%12.3)</SelectItem>
+              <SelectItem value="right" className="text-xs">Right (12.3%)</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+      )}
       <SettingRow label="Striped rows" variant="inline">
         <Switch checked={settings.striped} onCheckedChange={(c) => update({ striped: c })} />
       </SettingRow>
@@ -228,12 +244,26 @@ export function HeatmapSection() {
       <SettingRow label="Uppercase" variant="inline">
         <Switch checked={settings.headerUppercase} onCheckedChange={(c) => update({ headerUppercase: c })} />
       </SettingRow>
+      <SettingRow label="Corner label">
+        <Input
+          value={settings.cornerLabel}
+          onChange={(e) => update({ cornerLabel: e.target.value })}
+          placeholder="(label column name)"
+          className="h-8 text-xs"
+        />
+      </SettingRow>
 
       {/* ── Row labels ── */}
       <SubHeader>Row labels</SubHeader>
       <SettingRow label="Show color dots" variant="inline">
         <Switch checked={settings.showRowDots} onCheckedChange={(c) => update({ showRowDots: c })} />
       </SettingRow>
+      {settings.showRowDots && (
+        <div className="grid grid-cols-2 gap-2">
+          <NumberInput label="Dot size" value={settings.dotSize} onChange={(v) => update({ dotSize: Math.max(0, v) })} min={0} max={40} step={1} suffix="px" />
+          <NumberInput label="Dot radius" value={settings.dotRadius} onChange={(v) => update({ dotRadius: Math.max(0, v) })} min={0} max={20} step={1} suffix="px" />
+        </div>
+      )}
       <SettingRow label="Alignment">
         <AlignSelect value={settings.labelAlign} onChange={(v) => update({ labelAlign: v })} />
       </SettingRow>
@@ -248,15 +278,17 @@ export function HeatmapSection() {
         </div>
         <ColorPicker value={settings.labelColor} onChange={(c) => update({ labelColor: c })} />
       </div>
-      <NumberInput
-        label="Label column width (0 = auto)"
-        value={settings.labelColWidth}
-        onChange={(v) => update({ labelColWidth: Math.max(0, v) })}
-        min={0}
-        max={600}
-        step={5}
-        suffix="px"
-      />
+      {/* ── Box dimensions ── */}
+      <SubHeader>Box dimensions</SubHeader>
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput label="Top label height" value={settings.headerHeight} onChange={(v) => update({ headerHeight: Math.max(0, v) })} min={0} max={200} step={1} suffix="px" />
+        <NumberInput label="Row height" value={settings.rowHeight} onChange={(v) => update({ rowHeight: Math.max(0, v) })} min={0} max={200} step={1} suffix="px" />
+        <NumberInput label="Left label width" value={settings.labelColWidth} onChange={(v) => update({ labelColWidth: Math.max(0, v) })} min={0} max={800} step={5} suffix="px" />
+        <NumberInput label="Data box width" value={settings.dataColWidth} onChange={(v) => update({ dataColWidth: Math.max(0, v) })} min={0} max={400} step={5} suffix="px" />
+      </div>
+      <p className="text-[10px] text-gray-400">
+        0 = automatic. Sets the top-label height, left-label width, and data-box width/height (row height) separately.
+      </p>
 
       {/* ── Borders ── */}
       <SubHeader>Borders</SubHeader>

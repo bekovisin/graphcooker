@@ -660,6 +660,8 @@ export const defaultChartSettings: ChartSettings = {
     valueAlign: 'center' as const,
     density: 'normal' as const,
     zeroAsDash: true,
+    showPercent: false,
+    percentPosition: 'left' as const,
     striped: false,
     stripedColor: '#f8fafc',
     // Column header row
@@ -671,14 +673,21 @@ export const defaultChartSettings: ChartSettings = {
     headerUppercase: true,
     headerLetterSpacing: 0.4,
     headerAlign: 'center' as const,
+    cornerLabel: '',
     // Row labels
     showRowDots: true,
+    dotSize: 8,
+    dotRadius: 2,
     labelFontFamily: 'Inter, sans-serif',
     labelFontSize: 12,
     labelFontWeight: '500' as const,
     labelColor: '#1e293b',
     labelAlign: 'left' as const,
+    // Manual box dimensions (0 = auto)
     labelColWidth: 0,
+    dataColWidth: 0,
+    headerHeight: 0,
+    rowHeight: 0,
     // Borders
     borderShow: true,
     borderColor: '#e2e8f0',

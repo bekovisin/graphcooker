@@ -18,6 +18,9 @@ interface HeatmapChartProps {
 
 const DASH = '–';
 
+/** Turkish-aware uppercase (i → İ, ı → I) so labels like "İYİ Parti" render correctly. */
+const upperTr = (t: string): string => t.toLocaleUpperCase('tr-TR');
+
 /** Parse a cell value into a number (handles "32,72%", "1.234,5", numbers). */
 function toNum(v: unknown): number | null {
   if (v == null || v === '') return null;
@@ -132,33 +135,44 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     return null;
   };
 
+  const fmtVal = (v: number): string => {
+    if (hm.showPercent) {
+      const base = formatNumber(v, nf, undefined, undefined, undefined, '', '');
+      return hm.percentPosition === 'left' ? `%${base}` : `${base}%`;
+    }
+    return formatNumber(v, nf);
+  };
+
   const fmt = (v: number | null): string => {
     if (v == null) return DASH;
     if (hm.zeroAsDash && Math.abs(v) < 1e-9) return DASH;
-    return formatNumber(v, nf);
+    return fmtVal(v);
   };
 
   // ── Geometry ──
   const pad = densityPad(hm.density);
-  const dotSize = 8;
+  const dotSize = hm.dotSize;
   const dotGap = 8;
   const dotSpace = hm.showRowDots ? dotSize + dotGap : 0;
-  const rowH = Math.max(hm.cellFontSize, hm.labelFontSize) + pad.y * 2;
-  const headerH = hm.headerFontSize + pad.y * 2;
+  const rowH = hm.rowHeight > 0 ? hm.rowHeight : Math.max(hm.cellFontSize, hm.labelFontSize) + pad.y * 2;
+  const headerH = hm.headerHeight > 0 ? hm.headerHeight : hm.headerFontSize + pad.y * 2;
 
   const labelColW = useMemo(() => {
     if (hm.labelColWidth > 0) return hm.labelColWidth;
-    let maxW = measureTextWidth(labelHeader.toUpperCase(), hm.headerFontSize, hm.headerFontFamily, hm.headerFontWeight);
+    const cornerText = hm.cornerLabel && hm.cornerLabel.trim() ? hm.cornerLabel : labelHeader;
+    let maxW = measureTextWidth(upperTr(cornerText), hm.headerFontSize, hm.headerFontFamily, hm.headerFontWeight);
     for (const r of rows) {
       const w = measureTextWidth(r.label, hm.labelFontSize, hm.labelFontFamily, hm.labelFontWeight);
       if (w > maxW) maxW = w;
     }
     const total = maxW + dotSpace + pad.x * 2;
     return Math.min(Math.max(total, 80), Math.max(120, width * 0.4));
-  }, [hm.labelColWidth, hm.headerFontSize, hm.headerFontFamily, hm.headerFontWeight, hm.labelFontSize, hm.labelFontFamily, hm.labelFontWeight, labelHeader, rows, dotSpace, pad.x, width]);
+  }, [hm.labelColWidth, hm.cornerLabel, hm.headerFontSize, hm.headerFontFamily, hm.headerFontWeight, hm.labelFontSize, hm.labelFontFamily, hm.labelFontWeight, labelHeader, rows, dotSpace, pad.x, width]);
 
   const dataCols = headers.length + (hm.showTotals ? 1 : 0);
-  const dataColW = dataCols > 0 ? (width - labelColW) / dataCols : 0;
+  const autoDataColW = dataCols > 0 ? (width - labelColW) / dataCols : 0;
+  const dataColW = hm.dataColWidth > 0 ? hm.dataColWidth : autoDataColW;
+  const svgW = hm.dataColWidth > 0 ? labelColW + dataCols * dataColW : width;
   const svgH = headerH + rows.length * rowH;
   const radius = hm.cornerRadius;
 
@@ -182,24 +196,26 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
   const textX = (boxX: number, boxW: number, align: HeatmapAlign) =>
     align === 'left' ? boxX + pad.x : align === 'right' ? boxX + boxW - pad.x : boxX + boxW / 2;
 
+  const cornerText = hm.cornerLabel && hm.cornerLabel.trim() ? hm.cornerLabel : labelHeader;
+
   return (
     <div style={{ position: 'relative', width: '100%' }}>
-      <svg width={width} height={svgH} viewBox={`0 0 ${width} ${svgH}`} xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+      <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`} xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
         <defs>
           <clipPath id={clipId}>
-            <rect x={0} y={0} width={width} height={svgH} rx={radius} ry={radius} />
+            <rect x={0} y={0} width={svgW} height={svgH} rx={radius} ry={radius} />
           </clipPath>
         </defs>
 
         <g clipPath={`url(#${clipId})`}>
           {/* Header row background (rounded top corners) */}
-          <path d={roundedRectPath(0, 0, width, headerH, radius, radius, 0, 0)} fill={hm.headerBg} />
+          <path d={roundedRectPath(0, 0, svgW, headerH, radius, radius, 0, 0)} fill={hm.headerBg} />
 
           {/* Striped row backgrounds */}
           {hm.striped &&
             rows.map((_, ri) =>
               ri % 2 === 1 ? (
-                <rect key={`stripe-${ri}`} x={0} y={headerH + ri * rowH} width={width} height={rowH} fill={hm.stripedColor} />
+                <rect key={`stripe-${ri}`} x={0} y={headerH + ri * rowH} width={svgW} height={rowH} fill={hm.stripedColor} />
               ) : null,
             )}
 
@@ -227,7 +243,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
               {/* horizontal: under header + between rows */}
               {Array.from({ length: rows.length + 1 }).map((_, i) => {
                 const y = headerH + i * rowH;
-                return <line key={`h-${i}`} x1={0} y1={y} x2={width} y2={y} />;
+                return <line key={`h-${i}`} x1={0} y1={y} x2={svgW} y2={y} />;
               })}
               {/* vertical: after label col + between data cols */}
               {Array.from({ length: dataCols + 1 }).map((_, i) => {
@@ -250,10 +266,9 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
               fontWeight: fontWeightToCSS(hm.headerFontWeight),
               fill: hm.headerColor,
               letterSpacing: hm.headerLetterSpacing ? `${hm.headerLetterSpacing}px` : undefined,
-              textTransform: hm.headerUppercase ? 'uppercase' : undefined,
             }}
           >
-            {hm.headerUppercase ? labelHeader.toUpperCase() : labelHeader}
+            {hm.headerUppercase ? upperTr(cornerText) : cornerText}
           </text>
           {/* Value column headers */}
           {headers.map((h, ci) => (
@@ -271,7 +286,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
                 letterSpacing: hm.headerLetterSpacing ? `${hm.headerLetterSpacing}px` : undefined,
               }}
             >
-              {hm.headerUppercase ? h.toUpperCase() : h}
+              {hm.headerUppercase ? upperTr(h) : h}
             </text>
           ))}
           {/* Totals header */}
@@ -289,7 +304,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
                 letterSpacing: hm.headerLetterSpacing ? `${hm.headerLetterSpacing}px` : undefined,
               }}
             >
-              {hm.headerUppercase ? hm.totalLabel.toUpperCase() : hm.totalLabel}
+              {hm.headerUppercase ? upperTr(hm.totalLabel) : hm.totalLabel}
             </text>
           )}
 
@@ -303,7 +318,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
               <g key={`row-${ri}`}>
                 {/* Row dot */}
                 {hm.showRowDots && (
-                  <rect x={pad.x} y={cy - dotSize / 2} width={dotSize} height={dotSize} rx={2} ry={2} fill={rowColors[ri]} />
+                  <rect x={pad.x} y={cy - dotSize / 2} width={dotSize} height={dotSize} rx={hm.dotRadius} ry={hm.dotRadius} fill={rowColors[ri]} />
                 )}
                 {/* Row label */}
                 <text
@@ -358,7 +373,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
                       fontVariantNumeric: 'tabular-nums',
                     }}
                   >
-                    {totals[ri] == null ? DASH : formatNumber(totals[ri] as number, nf)}
+                    {totals[ri] == null ? DASH : fmtVal(totals[ri] as number)}
                   </text>
                 )}
               </g>
@@ -369,7 +384,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
         {/* Outer rounded border */}
         {hm.borderShow && (
           <path
-            d={roundedRectPath(hm.borderWidth / 2, hm.borderWidth / 2, width - hm.borderWidth, svgH - hm.borderWidth, radius, radius, radius, radius)}
+            d={roundedRectPath(hm.borderWidth / 2, hm.borderWidth / 2, svgW - hm.borderWidth, svgH - hm.borderWidth, radius, radius, radius, radius)}
             fill="none"
             stroke={borderStroke}
             strokeWidth={hm.borderWidth}
