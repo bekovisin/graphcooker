@@ -691,6 +691,11 @@ export const defaultChartSettings: ChartSettings = {
     dataColWidth: 0,
     headerHeight: 0,
     rowHeight: 0,
+    // Per-series overrides
+    perColHeaderFontSizes: {},
+    perColWidths: {},
+    perRowLabelFontSizes: {},
+    perRowHeights: {},
     // Borders
     borderShow: true,
     borderColor: '#e2e8f0',

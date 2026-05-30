@@ -1012,6 +1012,12 @@ export interface HeatmapSettings {
   headerHeight: number; // top label box height
   rowHeight: number; // data / left label box height
 
+  // Per-series overrides (0/absent = use the defaults above)
+  perColHeaderFontSizes: Record<string, number>; // keyed by value column name
+  perColWidths: Record<string, number>; // keyed by value column name
+  perRowLabelFontSizes: Record<string, number>; // keyed by row label
+  perRowHeights: Record<string, number>; // keyed by row label
+
   // Borders
   borderShow: boolean;
   borderColor: string;

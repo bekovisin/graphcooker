@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useEditorStore } from '@/store/editorStore';
 import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
@@ -7,6 +8,7 @@ import { ColorPicker } from '@/components/shared/ColorPicker';
 import { SettingRow } from '@/components/shared/SettingRow';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectTrigger,
@@ -14,6 +16,14 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Settings2 } from 'lucide-react';
 import type { HeatmapSettings, HeatmapColorMode, HeatmapDensity, HeatmapAlign, FontWeight } from '@/types/chart';
 
 const fontFamilyOptions = [
@@ -133,8 +143,49 @@ function TabMenu<T extends string>({
 export function HeatmapSection() {
   const settings = useEditorStore((s) => s.settings.heatmap);
   const updateSettings = useEditorStore((s) => s.updateSettings);
+  const data = useEditorStore((s) => s.data);
+  const columnMapping = useEditorStore((s) => s.columnMapping);
+  const seriesNames = useEditorStore((s) => s.seriesNames);
 
   const update = (updates: Partial<HeatmapSettings>) => updateSettings('heatmap', updates);
+
+  const [showPerColDialog, setShowPerColDialog] = useState(false);
+  const [showPerRowDialog, setShowPerRowDialog] = useState(false);
+
+  const columns = useMemo(() => {
+    const nameMap = { ...(columnMapping.seriesNames || {}), ...(seriesNames || {}) };
+    return (columnMapping.values || []).filter(Boolean).map((c) => ({ key: c, label: nameMap[c] ?? c }));
+  }, [columnMapping.values, columnMapping.seriesNames, seriesNames]);
+
+  const rowLabels = useMemo(() => {
+    const labelCol = columnMapping.labels;
+    if (!labelCol || !data.length) return [];
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const row of data) {
+      const name = String(row[labelCol] ?? '');
+      if (name && !seen.has(name)) {
+        seen.add(name);
+        out.push(name);
+      }
+    }
+    return out;
+  }, [data, columnMapping.labels]);
+
+  /** Set or clear a numeric per-series override. */
+  const setOverride = (mapKey: 'perColHeaderFontSizes' | 'perColWidths' | 'perRowLabelFontSizes' | 'perRowHeights', key: string, raw: string) => {
+    const next = { ...settings[mapKey] };
+    if (raw === '') {
+      delete next[key];
+      update({ [mapKey]: next });
+      return;
+    }
+    const v = parseInt(raw);
+    if (!Number.isNaN(v)) {
+      next[key] = Math.max(0, v);
+      update({ [mapKey]: next });
+    }
+  };
 
   return (
     <AccordionSection id="heatmap" title="Heatmap">
@@ -280,6 +331,58 @@ export function HeatmapSection() {
           className="h-8 text-xs"
         />
       </SettingRow>
+      {columns.length > 0 && (
+        <button
+          onClick={() => setShowPerColDialog(true)}
+          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-gray-600 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+          Per-column header size &amp; width
+        </button>
+      )}
+      <Dialog open={showPerColDialog} onOpenChange={setShowPerColDialog}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Per-column overrides</DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              Set the header font size and column width for specific columns. Leave empty for the defaults.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 mt-2">
+            {columns.map((col) => (
+              <div key={col.key} className="flex items-center gap-2 p-2 rounded-md border border-gray-100">
+                <Label className="text-xs font-medium min-w-[80px] truncate">{col.label}</Label>
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={settings.perColHeaderFontSizes[col.key] ?? ''}
+                      onChange={(e) => setOverride('perColHeaderFontSizes', col.key, e.target.value)}
+                      placeholder={String(settings.headerFontSize)}
+                      className="h-7 text-xs"
+                      min={6}
+                      max={48}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">font</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={settings.perColWidths[col.key] ?? ''}
+                      onChange={(e) => setOverride('perColWidths', col.key, e.target.value)}
+                      placeholder="auto"
+                      className="h-7 text-xs"
+                      min={0}
+                      max={600}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">px&nbsp;w</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Row labels ── */}
       <SubHeader>Row labels</SubHeader>
@@ -306,6 +409,58 @@ export function HeatmapSection() {
         </div>
         <ColorPicker value={settings.labelColor} onChange={(c) => update({ labelColor: c })} />
       </div>
+      {rowLabels.length > 0 && (
+        <button
+          onClick={() => setShowPerRowDialog(true)}
+          className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs text-gray-600 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+        >
+          <Settings2 className="w-3.5 h-3.5" />
+          Per-row label size &amp; height
+        </button>
+      )}
+      <Dialog open={showPerRowDialog} onOpenChange={setShowPerRowDialog}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Per-row overrides</DialogTitle>
+            <DialogDescription className="text-xs text-gray-500">
+              Set the label font size and row height for specific rows. Leave empty for the defaults.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 mt-2">
+            {rowLabels.map((label) => (
+              <div key={label} className="flex items-center gap-2 p-2 rounded-md border border-gray-100">
+                <Label className="text-xs font-medium min-w-[80px] truncate">{label}</Label>
+                <div className="flex-1 grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={settings.perRowLabelFontSizes[label] ?? ''}
+                      onChange={(e) => setOverride('perRowLabelFontSizes', label, e.target.value)}
+                      placeholder={String(settings.labelFontSize)}
+                      className="h-7 text-xs"
+                      min={6}
+                      max={48}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">font</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      value={settings.perRowHeights[label] ?? ''}
+                      onChange={(e) => setOverride('perRowHeights', label, e.target.value)}
+                      placeholder="auto"
+                      className="h-7 text-xs"
+                      min={0}
+                      max={400}
+                    />
+                    <span className="text-[10px] text-gray-400 shrink-0">px&nbsp;h</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* ── Sizing ── */}
       <SubHeader>Sizing</SubHeader>
       <SettingRow label="Mode">
