@@ -829,7 +829,9 @@ export async function renderChartOffscreen(
         ? (await import('@/components/chart/BarChartCustom2')).BarChartCustom2
         : chartType === 'bar_stacked_2'
           ? (await import('@/components/chart/BarChartElection')).BarChartElection
-          : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
+          : chartType === 'heatmap'
+            ? (await import('@/components/chart/HeatmapChart')).HeatmapChart
+            : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
 
   // When auto height, don't pass a fixed height — let the chart compute its own
   const chartHeightProp = isAutoHeight ? undefined : (chartHeight > 0 ? chartHeight : undefined);

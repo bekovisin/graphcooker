@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2';
+export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2' | 'heatmap';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';
@@ -952,6 +952,65 @@ export interface ElectionBarSettings {
   };
 }
 
+// ===== HEATMAP SETTINGS =====
+export type HeatmapColorMode = 'single' | 'diverging';
+export type HeatmapDensity = 'compact' | 'normal' | 'comfortable';
+export type HeatmapAlign = 'left' | 'center' | 'right';
+
+export interface HeatmapSettings {
+  // Coloring
+  colorMode: HeatmapColorMode;
+  baseColor: string;
+  positiveColor: string;
+  negativeColor: string;
+  intensity: number;
+  includeTotalInScale: boolean;
+
+  // Cells
+  cellFontFamily: string;
+  cellFontSize: number;
+  cellFontWeight: FontWeight;
+  cellColor: string;
+  dashColor: string;
+  valueAlign: HeatmapAlign;
+  density: HeatmapDensity;
+  zeroAsDash: boolean;
+  striped: boolean;
+  stripedColor: string;
+
+  // Column header row
+  headerBg: string;
+  headerFontFamily: string;
+  headerFontSize: number;
+  headerFontWeight: FontWeight;
+  headerColor: string;
+  headerUppercase: boolean;
+  headerLetterSpacing: number;
+  headerAlign: HeatmapAlign;
+
+  // Row labels (left column)
+  showRowDots: boolean;
+  labelFontFamily: string;
+  labelFontSize: number;
+  labelFontWeight: FontWeight;
+  labelColor: string;
+  labelAlign: HeatmapAlign;
+  labelColWidth: number; // 0 = auto-fit to longest label
+
+  // Borders
+  borderShow: boolean;
+  borderColor: string;
+  borderWidth: number;
+  borderStyle: 'solid' | 'dashed';
+
+  // Totals column
+  showTotals: boolean;
+  totalLabel: string;
+
+  // Outer
+  cornerRadius: number;
+}
+
 // ===== MASTER SETTINGS OBJECT =====
 export interface ChartSettings {
   chartType: ChartTypeSettings;
@@ -981,6 +1040,7 @@ export interface ChartSettings {
   rowImages: RowImagesSettings;
   electionBar: ElectionBarSettings;
   lineInfoAnnotation: LineInfoAnnotationSettings;
+  heatmap: HeatmapSettings;
 }
 
 // ===== PREVIEW STATE (persisted in columnMapping) =====

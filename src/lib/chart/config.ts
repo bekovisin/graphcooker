@@ -643,6 +643,53 @@ export const defaultChartSettings: ChartSettings = {
     },
     perRowOverrides: {},
   },
+  heatmap: {
+    // Coloring
+    colorMode: 'single' as const,
+    baseColor: '#3b82f6',
+    positiveColor: '#16a34a',
+    negativeColor: '#dc2626',
+    intensity: 0.65,
+    includeTotalInScale: false,
+    // Cells
+    cellFontFamily: 'Inter, sans-serif',
+    cellFontSize: 12,
+    cellFontWeight: '500' as const,
+    cellColor: '#1e293b',
+    dashColor: '#4b5563',
+    valueAlign: 'center' as const,
+    density: 'normal' as const,
+    zeroAsDash: true,
+    striped: false,
+    stripedColor: '#f8fafc',
+    // Column header row
+    headerBg: '#f1f5f9',
+    headerFontFamily: 'Inter, sans-serif',
+    headerFontSize: 11,
+    headerFontWeight: '600' as const,
+    headerColor: '#0f172a',
+    headerUppercase: true,
+    headerLetterSpacing: 0.4,
+    headerAlign: 'center' as const,
+    // Row labels
+    showRowDots: true,
+    labelFontFamily: 'Inter, sans-serif',
+    labelFontSize: 12,
+    labelFontWeight: '500' as const,
+    labelColor: '#1e293b',
+    labelAlign: 'left' as const,
+    labelColWidth: 0,
+    // Borders
+    borderShow: true,
+    borderColor: '#e2e8f0',
+    borderWidth: 1,
+    borderStyle: 'solid' as const,
+    // Totals
+    showTotals: true,
+    totalLabel: 'Total',
+    // Outer
+    cornerRadius: 12,
+  },
 };
 
 export const defaultData = [

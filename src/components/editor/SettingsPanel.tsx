@@ -35,6 +35,7 @@ import { RowImagesSection } from '@/components/settings/RowImagesSection';
 import { ElectionBarSection } from '@/components/settings/ElectionBarSection';
 import { LineInfoAnnotationSection } from '@/components/settings/LineInfoAnnotationSection';
 import { DesignVersionSection } from '@/components/settings/DesignVersionSection';
+import { HeatmapSection } from '@/components/settings/HeatmapSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
@@ -122,6 +123,20 @@ const lineSections = [
   { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
 ];
 
+const heatmapSections = [
+  { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
+  { id: 'heatmap', title: 'Heatmap', Component: HeatmapSection },
+  { id: 'colors', title: 'Colors', Component: ColorsSection },
+  { id: 'number-formatting', title: 'Number formatting', Component: NumberFormattingSection },
+  { id: 'layout', title: 'Layout', Component: LayoutSection },
+  { id: 'question', title: 'Question', Component: QuestionSection },
+  { id: 'header', title: 'Header', Component: HeaderSection },
+  { id: 'footer', title: 'Footer', Component: FooterSection },
+  { id: 'animations', title: 'Animations', Component: AnimationsSection },
+  { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
+];
+
 export function SettingsPanel() {
   const { settingsSearchQuery } = useEditorStore();
   const chartType = useEditorStore((s) => s.settings.chartType.chartType);
@@ -134,7 +149,9 @@ export function SettingsPanel() {
       ? barCustom2Sections
       : chartType === 'bar_stacked_2'
         ? electionSections
-        : barSections;
+        : chartType === 'heatmap'
+          ? heatmapSections
+          : barSections;
   const activePreset = presets.find((p) => p.id === activePresetId);
 
   // Filter by search query first
