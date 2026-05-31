@@ -579,6 +579,12 @@ export function HeatmapSection() {
           {settings.showPercent && (
             <NumberInput label="Total % sign size" value={settings.totalPercentFontSize} onChange={(v) => update({ totalPercentFontSize: v })} min={4} max={48} step={1} suffix="px" />
           )}
+          <SettingRow label="Custom decimals" variant="inline">
+            <Switch checked={settings.totalCustomDecimals} onCheckedChange={(c) => update({ totalCustomDecimals: c })} />
+          </SettingRow>
+          {settings.totalCustomDecimals && (
+            <NumberInput label="Total decimal places" value={settings.totalDecimalPlaces} onChange={(v) => update({ totalDecimalPlaces: v })} min={0} max={6} step={1} />
+          )}
         </>
       )}
 

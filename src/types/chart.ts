@@ -1034,6 +1034,8 @@ export interface HeatmapSettings {
   totalFontSize: number;
   totalColor: string;
   totalPercentFontSize: number; // size of the % sign in total cells
+  totalCustomDecimals: boolean; // when on, total cells use totalDecimalPlaces instead of number-formatting decimals
+  totalDecimalPlaces: number; // decimal places for total cells (when totalCustomDecimals is on)
 
   // Outer
   cornerRadius: number;

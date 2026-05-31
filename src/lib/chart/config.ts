@@ -711,6 +711,8 @@ export const defaultChartSettings: ChartSettings = {
     totalFontSize: 12,
     totalColor: '#1e293b',
     totalPercentFontSize: 12,
+    totalCustomDecimals: false,
+    totalDecimalPlaces: 0,
     // Outer
     cornerRadius: 12,
   },

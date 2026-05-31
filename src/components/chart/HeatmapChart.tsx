@@ -146,14 +146,17 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     return null;
   };
 
-  // Number without the % sign (the % is rendered as its own sized tspan)
-  const fmtNum = (v: number): string => formatNumber(v, nf, undefined, undefined, undefined, '', '');
-  const fmtVal = (v: number): string => {
+  // Decimal places used for total cells (overrides number-formatting decimals when enabled)
+  const totalDec: number | undefined = hm.totalCustomDecimals ? hm.totalDecimalPlaces : undefined;
+
+  // Number without the % sign (the % is rendered as its own sized tspan); `decimals` overrides nf.decimalPlaces
+  const fmtNum = (v: number, decimals?: number): string => formatNumber(v, nf, decimals, undefined, undefined, '', '');
+  const fmtVal = (v: number, decimals?: number): string => {
     if (hm.showPercent) {
-      const base = fmtNum(v);
+      const base = fmtNum(v, decimals);
       return hm.percentPosition === 'left' ? `%${base}` : `${base}%`;
     }
-    return formatNumber(v, nf);
+    return formatNumber(v, nf, decimals);
   };
   const fmt = (v: number | null): string => {
     if (v == null) return DASH;
@@ -264,7 +267,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
   const cellTextByRow = rows.map((r) => r.values.map((v) => fmt(v)));
   const cellLinesByRow = cellTextByRow.map((vals) => vals.map((t, ci) => wrap(t, colW(ci) - pad.x * 2, hm.cellFontSize, hm.cellFontFamily, hm.cellFontWeight)));
   const totalCellLines = rows.map((_, ri) =>
-    hasColTotal ? wrap(totals[ri] == null ? DASH : fmtVal(totals[ri] as number), colW(headers.length) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight) : [],
+    hasColTotal ? wrap(totals[ri] == null ? DASH : fmtVal(totals[ri] as number, totalDec), colW(headers.length) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight) : [],
   );
 
   // Per-row heights (overrides + auto-fit-content + custom)
@@ -283,8 +286,8 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
 
   // Totals row
   const trLabelLines = hasRowTotal ? wrap(hm.totalLabel, labelColW - dotSpace - pad.x * 2, hm.totalFontSize, hm.labelFontFamily, hm.labelFontWeight) : [];
-  const colSumLines = colSums.map((cs, ci) => wrap(cs == null ? DASH : fmtVal(cs), colW(ci) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight));
-  const grandLines = hasColTotal ? wrap(grandTotal == null ? DASH : fmtVal(grandTotal), colW(headers.length) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight) : [];
+  const colSumLines = colSums.map((cs, ci) => wrap(cs == null ? DASH : fmtVal(cs, totalDec), colW(ci) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight));
+  const grandLines = hasColTotal ? wrap(grandTotal == null ? DASH : fmtVal(grandTotal, totalDec), colW(headers.length) - pad.x * 2, hm.totalFontSize, hm.cellFontFamily, hm.cellFontWeight) : [];
   let trHeight = 0;
   if (hasRowTotal) {
     if (mRowH > 0) {
@@ -348,9 +351,10 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
     style: React.CSSProperties,
     percentFS: number,
     keyP: string,
+    decimals?: number,
   ): React.ReactNode[] => {
     if (hm.showPercent && v != null && !isDashVal(v)) {
-      const numStr = fmtNum(v);
+      const numStr = fmtNum(v, decimals);
       const pct = <tspan style={{ fontSize: percentFS }}>%</tspan>;
       return [
         <text key={keyP} x={cx} y={cyc} dy="0.35em" textAnchor={anchor} style={style}>
@@ -462,7 +466,7 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
                   renderValueLines(v, cellLinesByRow[ri][ci], textX(colX(ci), colW(ci), hm.valueAlign), cy, cellLineH, anchorFor(hm.valueAlign), cellStyle(cellTextByRow[ri][ci] === DASH), hm.percentFontSize, `v-${ri}-${ci}`),
                 )}
                 {hasColTotal &&
-                  renderValueLines(totals[ri], totalCellLines[ri], textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(totals[ri] == null), hm.totalPercentFontSize, `tc-${ri}`)}
+                  renderValueLines(totals[ri], totalCellLines[ri], textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(totals[ri] == null), hm.totalPercentFontSize, `tc-${ri}`, totalDec)}
               </g>
             );
           })}
@@ -478,10 +482,10 @@ export function HeatmapChart({ data, columnMapping, settings, width, seriesNames
               <g key="totals-row">
                 {renderLines(trLabelLines, labelAnchorX, cy, totalLineH, anchorFor(hm.labelAlign), { ...labelStyleBase, fontSize: hm.totalFontSize, fill: hm.totalColor, fontWeight: 700 }, 'trow-lbl')}
                 {colSumLines.map((lines, ci) =>
-                  renderValueLines(colSums[ci], lines, textX(colX(ci), colW(ci), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(colSums[ci] == null), hm.totalPercentFontSize, `trow-c-${ci}`),
+                  renderValueLines(colSums[ci], lines, textX(colX(ci), colW(ci), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(colSums[ci] == null), hm.totalPercentFontSize, `trow-c-${ci}`, totalDec),
                 )}
                 {hasColTotal &&
-                  renderValueLines(grandTotal, grandLines, textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(grandTotal == null), hm.totalPercentFontSize, 'trow-grand')}
+                  renderValueLines(grandTotal, grandLines, textX(colX(headers.length), colW(headers.length), hm.valueAlign), cy, totalLineH, anchorFor(hm.valueAlign), totalTextStyle(grandTotal == null), hm.totalPercentFontSize, 'trow-grand', totalDec)}
               </g>
             );
           })()}
