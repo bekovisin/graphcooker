@@ -979,6 +979,7 @@ export interface HeatmapSettings {
   zeroAsDash: boolean;
   showPercent: boolean;
   percentPosition: 'left' | 'right';
+  percentFontSize: number; // size of the % sign in data cells
   striped: boolean;
   stripedColor: string;
 
@@ -1032,6 +1033,7 @@ export interface HeatmapSettings {
   totalLabel: string;
   totalFontSize: number;
   totalColor: string;
+  totalPercentFontSize: number; // size of the % sign in total cells
 
   // Outer
   cornerRadius: number;

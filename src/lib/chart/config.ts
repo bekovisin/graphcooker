@@ -662,6 +662,7 @@ export const defaultChartSettings: ChartSettings = {
     zeroAsDash: true,
     showPercent: false,
     percentPosition: 'left' as const,
+    percentFontSize: 12,
     striped: false,
     stripedColor: '#f8fafc',
     // Column header row
@@ -709,6 +710,7 @@ export const defaultChartSettings: ChartSettings = {
     totalLabel: 'Total',
     totalFontSize: 12,
     totalColor: '#1e293b',
+    totalPercentFontSize: 12,
     // Outer
     cornerRadius: 12,
   },

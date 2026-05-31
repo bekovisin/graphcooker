@@ -288,6 +288,9 @@ export function HeatmapSection() {
           </Select>
         </SettingRow>
       )}
+      {settings.showPercent && (
+        <NumberInput label="% sign size" value={settings.percentFontSize} onChange={(v) => update({ percentFontSize: v })} min={4} max={48} step={1} suffix="px" />
+      )}
       <SettingRow label="Striped rows" variant="inline">
         <Switch checked={settings.striped} onCheckedChange={(c) => update({ striped: c })} />
       </SettingRow>
@@ -573,6 +576,9 @@ export function HeatmapSection() {
               <ColorPicker value={settings.totalColor} onChange={(c) => update({ totalColor: c })} />
             </div>
           </div>
+          {settings.showPercent && (
+            <NumberInput label="Total % sign size" value={settings.totalPercentFontSize} onChange={(v) => update({ totalPercentFontSize: v })} min={4} max={48} step={1} suffix="px" />
+          )}
         </>
       )}
 
