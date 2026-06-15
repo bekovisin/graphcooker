@@ -6,7 +6,7 @@ import { AccordionSection } from '@/components/settings/AccordionSection';
 import { NumberInput } from '@/components/shared/NumberInput';
 import { SettingRow } from '@/components/shared/SettingRow';
 import { Switch } from '@/components/ui/switch';
-import type { DivergingBarSettings, DivergingScaleMode, DivergingLabelPosition } from '@/types/chart';
+import type { DivergingBarSettings, DivergingScaleMode } from '@/types/chart';
 
 function SubHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -88,21 +88,7 @@ export function DivergingBarSection() {
         </div>
       )}
       <p className="text-[10px] text-gray-400 px-1">Series on each side stack outward from the center. Default: first series left, the rest right.</p>
-
-      {/* ── Data labels ── */}
-      <SubHeader>Data labels</SubHeader>
-      <SettingRow label="Label position">
-        <TabMenu
-          value={settings.labelPosition}
-          onChange={(v) => update({ labelPosition: v as DivergingLabelPosition })}
-          options={[
-            { value: 'center', label: 'Center' },
-            { value: 'inner', label: 'Inner' },
-            { value: 'outer', label: 'Outer' },
-          ]}
-        />
-      </SettingRow>
-      <p className="text-[10px] text-gray-400 px-1 -mt-1">Center = middle of each bar. Inner = both meet at the center baseline. Outer = at the opposite outer corners.</p>
+      <p className="text-[10px] text-gray-400 px-1">Tip: in-bar label placement lives in <b>Labels → Position</b>; legend centering in <b>Legend → Center over plot</b>.</p>
 
       {/* ── Axis scale ── */}
       <SubHeader>Axis scale</SubHeader>
@@ -126,13 +112,6 @@ export function DivergingBarSection() {
         <Switch checked={settings.absoluteValues} onCheckedChange={(c) => update({ absoluteValues: c })} />
       </SettingRow>
       <p className="text-[10px] text-gray-400 px-1 -mt-1">Show bar labels as positive numbers even when the data is negative-signed.</p>
-
-      {/* ── Legend ── */}
-      <SubHeader>Legend</SubHeader>
-      <SettingRow label="Center over plot" variant="inline">
-        <Switch checked={settings.legendCenterOnPlot} onCheckedChange={(c) => update({ legendCenterOnPlot: c })} />
-      </SettingRow>
-      <p className="text-[10px] text-gray-400 px-1 -mt-1">Centers the legend over the graph area only (ignores the left category labels), overriding the Legend section&apos;s alignment.</p>
     </AccordionSection>
   );
 }

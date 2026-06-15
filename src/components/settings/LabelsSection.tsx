@@ -41,6 +41,7 @@ import type {
   LineDataPointPosition,
   LineLabelSeriesOverride,
   GridTitleSeriesOverride,
+  DivergingLabelPosition,
 } from '@/types/chart';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -224,6 +225,7 @@ function CustomPrefixSubSection() {
 export function LabelsSection() {
   const settings = useEditorStore((s) => s.settings.labels);
   const chartType = useEditorStore((s) => s.settings.chartType.chartType);
+  const divergingBar = useEditorStore((s) => s.settings.divergingBar);
   const seriesNames = useEditorStore((s) => s.columnMapping.values || []);
   const storeSeriesNames = useEditorStore((s) => s.seriesNames);
   const data = useEditorStore((s) => s.data);
@@ -1507,21 +1509,38 @@ export function LabelsSection() {
             />
           </SettingRow>
 
-          {/* Position - tab menu */}
-          <SettingRow label="Position">
-            <TabMenu
-              value={settings.dataPointPosition}
-              onChange={(v) => update({ dataPointPosition: v as DataPointLabelPosition | 'custom' })}
-              options={[
-                { value: 'left', label: 'L' },
-                { value: 'center', label: 'C' },
-                { value: 'right', label: 'R' },
-                { value: 'outside_right', label: 'Out' },
-                ...(chartType === 'bar_chart_custom_2' ? [{ value: 'fixed' as const, label: 'Fix' }] : []),
-                { value: 'custom', label: 'Cst' },
-              ]}
-            />
-          </SettingRow>
+          {/* Position - tab menu (diverging chart has its own center/inner/outer placement) */}
+          {chartType === 'bar_diverging' ? (
+            <SettingRow label="Position">
+              <TabMenu
+                value={divergingBar.labelPosition ?? 'center'}
+                onChange={(v) => updateSettings('divergingBar', { labelPosition: v as DivergingLabelPosition })}
+                options={[
+                  { value: 'center', label: 'Center' },
+                  { value: 'inner', label: 'Inner' },
+                  { value: 'outer', label: 'Outer' },
+                ]}
+              />
+            </SettingRow>
+          ) : (
+            <SettingRow label="Position">
+              <TabMenu
+                value={settings.dataPointPosition}
+                onChange={(v) => update({ dataPointPosition: v as DataPointLabelPosition | 'custom' })}
+                options={[
+                  { value: 'left', label: 'L' },
+                  { value: 'center', label: 'C' },
+                  { value: 'right', label: 'R' },
+                  { value: 'outside_right', label: 'Out' },
+                  ...(chartType === 'bar_chart_custom_2' ? [{ value: 'fixed' as const, label: 'Fix' }] : []),
+                  { value: 'custom', label: 'Cst' },
+                ]}
+              />
+            </SettingRow>
+          )}
+          {chartType === 'bar_diverging' && (
+            <p className="text-[10px] text-gray-400 px-1 -mt-1">Center = middle of each bar. Inner = both meet at the center baseline. Outer = at the opposite outer corners.</p>
+          )}
 
           {/* Fixed label alignment */}
           {settings.dataPointPosition === 'fixed' && (

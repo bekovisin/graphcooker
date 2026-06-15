@@ -64,6 +64,8 @@ const fontFamilyOptions = [
 export function LegendSection() {
   const settings = useEditorStore((s) => s.settings.legend);
   const updateSettings = useEditorStore((s) => s.updateSettings);
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
+  const divergingBar = useEditorStore((s) => s.settings.divergingBar);
 
   const update = (updates: Partial<typeof settings>) => {
     updateSettings('legend', updates);
@@ -107,6 +109,19 @@ export function LegendSection() {
               ]}
             />
           </SettingRow>
+
+          {/* Diverging chart: center the legend over the graph/plot area only */}
+          {chartType === 'bar_diverging' && (
+            <>
+              <SettingRow label="Center over plot" variant="inline">
+                <Switch
+                  checked={divergingBar.legendCenterOnPlot ?? false}
+                  onCheckedChange={(v) => updateSettings('divergingBar', { legendCenterOnPlot: v })}
+                />
+              </SettingRow>
+              <p className="text-[10px] text-gray-400 px-1 -mt-1">Centers the legend over the graph area only (ignores the left category labels), overriding the alignment above.</p>
+            </>
+          )}
 
           {/* Font family (full width) */}
           <SettingRow label="Font family">
