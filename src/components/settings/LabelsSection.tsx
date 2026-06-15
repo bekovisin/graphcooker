@@ -1941,9 +1941,20 @@ export function LabelsSection() {
               </SettingRow>
               {(settings.dataPointAutoWhitePref ?? true) ? (
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-gray-600 shrink-0">White preference</span>
-                    <span className="text-xs text-gray-400">{settings.dataPointAutoWhiteStrength ?? 60}</span>
+                    <Input
+                      type="number"
+                      value={settings.dataPointAutoWhiteStrength ?? 60}
+                      onChange={(e) => {
+                        const num = parseInt(e.target.value);
+                        if (!isNaN(num)) update({ dataPointAutoWhiteStrength: Math.max(0, Math.min(100, num)) });
+                      }}
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="h-7 text-xs w-16"
+                    />
                   </div>
                   <Slider
                     value={[settings.dataPointAutoWhiteStrength ?? 60]}
