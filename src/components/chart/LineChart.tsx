@@ -425,7 +425,9 @@ export const LineChart = React.memo(function LineChart({
 
   const yAxisWidth = useMemo(() => {
     if (!yAxisVisible) return 0;
+    // Space mode: 'auto' = One line (auto-fit); 'ratio' = Auto (label column is a % of width); 'fixed' = fixed px column.
     if (yAxisSettings.spaceMode === 'fixed') return yAxisSettings.spaceModeValue;
+    if (yAxisSettings.spaceMode === 'ratio') return Math.max(1, Math.round(width * (100 - (yAxisSettings.spaceModeRatio ?? 50)) / 100));
     let maxW = 0;
     for (const v of yTickValues) {
       const txt = formatNumber(v, nf, yAxisDecimals);
@@ -433,7 +435,7 @@ export const LineChart = React.memo(function LineChart({
       if (w > maxW) maxW = w;
     }
     return maxW + 12;
-  }, [yAxisVisible, yAxisSettings.spaceMode, yAxisSettings.spaceModeValue, yTickValues, nf, yAxisDecimals, yTickFontMemo]);
+  }, [yAxisVisible, yAxisSettings.spaceMode, yAxisSettings.spaceModeValue, yAxisSettings.spaceModeRatio, width, yTickValues, nf, yAxisDecimals, yTickFontMemo]);
 
   // X axis
   const xAxisHidden = xAxisSettings.position === 'hidden';

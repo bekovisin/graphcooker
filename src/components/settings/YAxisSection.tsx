@@ -384,7 +384,8 @@ export function YAxisSection() {
                 value={settings.spaceMode}
                 onChange={(v) => update({ spaceMode: v as YAxisSpaceMode })}
                 options={[
-                  { value: 'auto', label: 'Auto' },
+                  { value: 'auto', label: 'One line' },
+                  { value: 'ratio', label: 'Auto' },
                   { value: 'fixed', label: 'Fixed' },
                 ]}
               />
@@ -401,8 +402,24 @@ export function YAxisSection() {
                 />
               </div>
             )}
+            {settings.spaceMode === 'ratio' && (
+              <div className="w-[72px] shrink-0 relative">
+                <Input
+                  type="number"
+                  value={settings.spaceModeRatio ?? 50}
+                  onChange={(e) => update({ spaceModeRatio: Math.min(95, Math.max(5, parseInt(e.target.value) || 0)) })}
+                  className="h-8 text-xs w-full pr-5"
+                  min={5}
+                  max={95}
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">%</span>
+              </div>
+            )}
           </div>
         </SettingRow>
+        {settings.spaceMode === 'ratio' && (
+          <p className="text-[10px] text-gray-400 -mt-1 pl-1">Graph uses up to {settings.spaceModeRatio ?? 50}% of width; labels take the rest and wrap.</p>
+        )}
 
         {/* TICKS TO SHOW */}
         <SubHeader>Ticks to show</SubHeader>
@@ -713,7 +730,7 @@ export function YAxisSection() {
         </div>
       </div>
 
-      {/* Space mode (2-tab) + Label width — single row */}
+      {/* Space mode (3-tab) + Label width / ratio — single row */}
       <SettingRow label="Space mode">
         <div className="flex items-center gap-2 w-full">
           <div className="flex-1">
@@ -721,7 +738,8 @@ export function YAxisSection() {
               value={settings.spaceMode}
               onChange={(v) => update({ spaceMode: v as YAxisSpaceMode })}
               options={[
-                { value: 'auto', label: 'Auto' },
+                { value: 'auto', label: 'One line' },
+                { value: 'ratio', label: 'Auto' },
                 { value: 'fixed', label: 'Fixed' },
               ]}
             />
@@ -738,8 +756,24 @@ export function YAxisSection() {
               />
             </div>
           )}
+          {settings.spaceMode === 'ratio' && (
+            <div className="w-[72px] shrink-0 relative">
+              <Input
+                type="number"
+                value={settings.spaceModeRatio ?? 50}
+                onChange={(e) => update({ spaceModeRatio: Math.min(95, Math.max(5, parseInt(e.target.value) || 0)) })}
+                className="h-8 text-xs w-full pr-5"
+                min={5}
+                max={95}
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none">%</span>
+            </div>
+          )}
         </div>
       </SettingRow>
+      {settings.spaceMode === 'ratio' && (
+        <p className="text-[10px] text-gray-400 -mt-1 pl-1">Graph uses up to {settings.spaceModeRatio ?? 50}% of width; labels take the rest and wrap.</p>
+      )}
 
       {/* Fixed mode: max lines + ellipsis */}
       {settings.spaceMode === 'fixed' && (

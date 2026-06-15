@@ -190,10 +190,15 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
   const info = settings.infoColumn;
 
   // ── Y-axis label width ──
+  // Space mode: 'auto' = One line (auto-fit, no wrap); 'ratio' = Auto (label column is a % of width, labels wrap); 'fixed' = fixed px column.
   const yAxisLabelMargin = settings.yAxis.labelMargin ?? 0;
+  const yRatioLabelW = Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
+  const yLabelWraps = settings.yAxis.spaceMode === 'fixed' || settings.yAxis.spaceMode === 'ratio';
+  const yLabelWrapW = settings.yAxis.spaceMode === 'ratio' ? yRatioLabelW : settings.yAxis.spaceModeValue;
   const yAxisLabelWidth = useMemo(() => {
     if (yAxisHidden) return 0;
     if (settings.yAxis.spaceMode === 'fixed') return settings.yAxis.spaceModeValue;
+    if (settings.yAxis.spaceMode === 'ratio') return Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
     let maxW = 0;
     for (const cat of categories) {
       const fs = settings.yAxis.perRowLabelFontSizes?.[cat] ?? yTickStyle.fontSize;
@@ -201,7 +206,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
       if (w > maxW) maxW = w;
     }
     return maxW + 10 + yAxisLabelMargin;
-  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.perRowLabelFontSizes, yTickStyle, yAxisLabelMargin]);
+  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.spaceModeRatio, width, settings.yAxis.perRowLabelFontSizes, yTickStyle, yAxisLabelMargin]);
 
   // ── Info column width ──
   const infoColumnWidth = useMemo(() => {
@@ -370,10 +375,10 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
     return categories.map((cat) => {
       const fs = perRowFs?.[cat] ?? yTickStyle.fontSize;
       const baseHeight = fs + 8;
-      if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) {
+      if (!yLabelWraps || !yLabelWrapW) {
         return baseHeight;
       }
-      const maxW = settings.yAxis.spaceModeValue;
+      const maxW = yLabelWrapW;
       const fullW = measureTextWidth(cat, fs, yTickStyle.fontFamily, yTickStyle.fontWeight);
       if (fullW > maxW && cat.includes(' ')) {
         const lines = wrapText(cat, maxW, fs, yTickStyle.fontFamily, yTickStyle.fontWeight);
@@ -381,7 +386,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
       }
       return baseHeight;
     });
-  }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.perRowLabelFontSizes, categories]);
+  }, [isAboveBars, yTickStyle, yLabelWraps, yLabelWrapW, settings.yAxis.perRowLabelFontSizes, categories]);
 
   const barHeight = (() => {
     if (heightProp && categories.length > 0) {
@@ -731,9 +736,9 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                 const yLs = settings.yAxis.perRowLabelLetterSpacings?.[cat] ?? yLsDefault;
                 const yLsStyle = yLs !== 0 ? `${yLs}px` : undefined;
 
-                // Handle text wrapping if spaceMode is fixed
-                if (settings.yAxis.spaceMode === 'fixed' && settings.yAxis.spaceModeValue > 0) {
-                  const maxW = settings.yAxis.spaceModeValue;
+                // Handle text wrapping if spaceMode reserves a column (fixed or ratio)
+                if (yLabelWraps && yLabelWrapW > 0) {
+                  const maxW = yLabelWrapW;
                   const fullW = measureTextWidth(cat, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
                   if (fullW > maxW && cat.includes(' ')) {
                     const lines = wrapText(cat, maxW, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
@@ -826,8 +831,8 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                 }
 
                 // Wrap or truncate
-                if (settings.yAxis.spaceMode === 'fixed' && settings.yAxis.spaceModeValue > 0) {
-                  const maxW = settings.yAxis.spaceModeValue;
+                if (yLabelWraps && yLabelWrapW > 0) {
+                  const maxW = yLabelWrapW;
                   const fullW = measureTextWidth(cat, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);
                   if (fullW > maxW && cat.includes(' ')) {
                     const lines = wrapText(cat, maxW, rowFs, yTickStyle.fontFamily, yTickStyle.fontWeight);

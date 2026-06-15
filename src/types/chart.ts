@@ -344,7 +344,8 @@ export interface XAxisSettings {
   showGridlineStyling: boolean;
 }
 
-export type YAxisSpaceMode = 'auto' | 'fixed';
+// 'auto' = One line (auto-fit label width, no wrap); 'ratio' = Auto (label column is a % of chart width, labels wrap); 'fixed' = fixed px column
+export type YAxisSpaceMode = 'auto' | 'ratio' | 'fixed';
 
 export interface YAxisSettings {
   position: YAxisPosition;
@@ -361,6 +362,7 @@ export interface YAxisSettings {
   tickPadding: number;
   spaceMode: YAxisSpaceMode;
   spaceModeValue: number;
+  spaceModeRatio: number; // 'ratio' mode: max % of total chart width the graph may use (labels get the rest)
   fixedMaxLines: number;
   fixedEllipsis: boolean;
   axisLine: AxisLineSettings;

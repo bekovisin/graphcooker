@@ -221,6 +221,7 @@ export const defaultChartSettings: ChartSettings = {
     tickPadding: 0,
     spaceMode: 'auto',
     spaceModeValue: 120,
+    spaceModeRatio: 50,
     fixedMaxLines: 0,
     fixedEllipsis: true,
     axisLine: { show: true, width: 1, color: '#666666' },

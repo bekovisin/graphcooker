@@ -316,17 +316,22 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   const xAxisDecimals = settings.numberFormatting.xAxisCustomDecimals ? settings.numberFormatting.xAxisDecimalPlaces : undefined;
 
   // Y-axis label width
+  // Space mode: 'auto' = One line (auto-fit, no wrap); 'ratio' = Auto (label column is a % of width, labels wrap); 'fixed' = fixed px column.
+  const yRatioLabelW = Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
+  const yLabelWraps = settings.yAxis.spaceMode === 'fixed' || settings.yAxis.spaceMode === 'ratio';
+  const yLabelWrapW = settings.yAxis.spaceMode === 'ratio' ? yRatioLabelW : settings.yAxis.spaceModeValue;
   const yAxisLabelWidth = useMemo(() => {
     if (yAxisHidden) return 0;
     if (settings.yAxis.spaceMode === 'fixed') return settings.yAxis.spaceModeValue;
-    // Auto: measure longest label
+    if (settings.yAxis.spaceMode === 'ratio') return Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
+    // Auto (one line): measure longest label
     let maxW = 0;
     for (const cat of categories) {
       const w = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
       if (w > maxW) maxW = w;
     }
     return maxW + 10;
-  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, yTickStyle]);
+  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.spaceModeRatio, width, yTickStyle]);
 
   // X-axis tick generation with custom step support
   const xTicksAll = useMemo(() => {
@@ -504,10 +509,10 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   const labelRowHeights = useMemo(() => {
     if (!isAboveBars) return categories.map(() => 0);
     const baseHeight = yTickStyle.fontSize + 8;
-    if (settings.yAxis.spaceMode !== 'fixed' || !settings.yAxis.spaceModeValue) {
+    if (!yLabelWraps || !yLabelWrapW) {
       return categories.map(() => baseHeight);
     }
-    const maxW = settings.yAxis.spaceModeValue;
+    const maxW = yLabelWrapW;
     return categories.map((cat) => {
       const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
       if (fullW > maxW && cat.includes(' ')) {
@@ -516,7 +521,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
       }
       return baseHeight;
     });
-  }, [isAboveBars, yTickStyle, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, categories]);
+  }, [isAboveBars, yTickStyle, yLabelWraps, yLabelWrapW, categories]);
 
   // Determine which categories are "empty" (blank label AND all series values are 0/null)
   const isEmptyCategory = useMemo(() =>
@@ -1173,8 +1178,8 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
           const renderYAxisLabel = () => {
             if (yAxisHidden || isAboveBars) return null;
 
-            const useFixedWidth = settings.yAxis.spaceMode === 'fixed';
-            const maxLabelW = useFixedWidth ? settings.yAxis.spaceModeValue - 4 : yLabelMaxWidth;
+            const useFixedWidth = yLabelWraps;
+            const maxLabelW = useFixedWidth ? yLabelWrapW - 4 : yLabelMaxWidth;
             const maxLines = useFixedWidth ? (settings.yAxis.fixedMaxLines ?? 0) : 0;
             const useEllipsis = settings.yAxis.fixedEllipsis ?? true;
 
@@ -1273,9 +1278,9 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
                 const aboveX = aboveLabelX + (abPad.aboveBarPaddingLeft || 0) - (abPad.aboveBarPaddingRight || 0);
                 const aboveY = catY + yTickStyle.fontSize + (abPad.aboveBarPaddingTop || 0) - (abPad.aboveBarPaddingBottom || 0);
 
-                // When space mode is fixed, wrap/truncate above-bars labels
-                const useAboveFixedWidth = settings.yAxis.spaceMode === 'fixed';
-                const aboveMaxW = useAboveFixedWidth ? settings.yAxis.spaceModeValue : 0;
+                // When space mode reserves a column (fixed or ratio), wrap/truncate above-bars labels
+                const useAboveFixedWidth = yLabelWraps;
+                const aboveMaxW = useAboveFixedWidth ? yLabelWrapW : 0;
 
                 if (useAboveFixedWidth && aboveMaxW > 0) {
                   const fullW = measureTextWidth(cat, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight);
