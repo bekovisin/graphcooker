@@ -720,6 +720,12 @@ export const defaultChartSettings: ChartSettings = {
     // Outer
     cornerRadius: 12,
   },
+  divergingBar: {
+    seriesSides: {},
+    scaleMode: 'independent' as const,
+    centerGap: 0,
+    absoluteValues: true,
+  },
 };
 
 export const defaultData = [

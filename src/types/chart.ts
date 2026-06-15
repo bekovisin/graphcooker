@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2' | 'heatmap';
+export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2' | 'heatmap' | 'bar_diverging';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';
@@ -964,6 +964,16 @@ export type HeatmapAlign = 'left' | 'center' | 'right';
 export type HeatmapSizingMode = 'auto' | 'custom';
 export type HeatmapTotalsMode = 'column' | 'row' | 'both';
 
+// ===== DIVERGING (back-to-back) BAR CHART SETTINGS =====
+export type DivergingScaleMode = 'independent' | 'symmetric';
+
+export interface DivergingBarSettings {
+  seriesSides: Record<string, 'left' | 'right'>; // per-series side override; default: index 0 → left, rest → right
+  scaleMode: DivergingScaleMode; // 'independent' = each side scaled to its own max; 'symmetric' = shared max
+  centerGap: number; // px gap between the two halves at the center baseline
+  absoluteValues: boolean; // draw bar length and label from |value| (so negative-encoded data works)
+}
+
 export interface HeatmapSettings {
   // Coloring
   colorMode: HeatmapColorMode;
@@ -1076,6 +1086,7 @@ export interface ChartSettings {
   electionBar: ElectionBarSettings;
   lineInfoAnnotation: LineInfoAnnotationSettings;
   heatmap: HeatmapSettings;
+  divergingBar: DivergingBarSettings;
 }
 
 // ===== PREVIEW STATE (persisted in columnMapping) =====

@@ -36,6 +36,7 @@ import { ElectionBarSection } from '@/components/settings/ElectionBarSection';
 import { LineInfoAnnotationSection } from '@/components/settings/LineInfoAnnotationSection';
 import { DesignVersionSection } from '@/components/settings/DesignVersionSection';
 import { HeatmapSection } from '@/components/settings/HeatmapSection';
+import { DivergingBarSection } from '@/components/settings/DivergingBarSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
@@ -137,6 +138,25 @@ const heatmapSections = [
   { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
 ];
 
+const divergingBarSections = [
+  { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
+  { id: 'diverging-bar', title: 'Diverging bar', Component: DivergingBarSection },
+  { id: 'colors', title: 'Colors', Component: ColorsSection },
+  { id: 'bars', title: 'Bars', Component: BarsSection },
+  { id: 'labels', title: 'Labels', Component: LabelsSection },
+  { id: 'x-axis', title: 'X axis', Component: XAxisSection },
+  { id: 'y-axis', title: 'Y axis', Component: YAxisSection },
+  { id: 'number-formatting', title: 'Number formatting', Component: NumberFormattingSection },
+  { id: 'legend', title: 'Legend', Component: LegendSection },
+  { id: 'layout', title: 'Layout', Component: LayoutSection },
+  { id: 'question', title: 'Question', Component: QuestionSection },
+  { id: 'header', title: 'Header', Component: HeaderSection },
+  { id: 'footer', title: 'Footer', Component: FooterSection },
+  { id: 'animations', title: 'Animations', Component: AnimationsSection },
+  { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
+];
+
 export function SettingsPanel() {
   const { settingsSearchQuery } = useEditorStore();
   const chartType = useEditorStore((s) => s.settings.chartType.chartType);
@@ -151,7 +171,9 @@ export function SettingsPanel() {
         ? electionSections
         : chartType === 'heatmap'
           ? heatmapSections
-          : barSections;
+          : chartType === 'bar_diverging'
+            ? divergingBarSections
+            : barSections;
   const activePreset = presets.find((p) => p.id === activePresetId);
 
   // Filter by search query first

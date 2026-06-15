@@ -10,6 +10,7 @@ import { LineChart } from '@/components/chart/LineChart';
 import { BarChartCustom2 } from '@/components/chart/BarChartCustom2';
 import { BarChartElection } from '@/components/chart/BarChartElection';
 import { HeatmapChart } from '@/components/chart/HeatmapChart';
+import { DivergingBarChart } from '@/components/chart/DivergingBarChart';
 import type { QuestionSettings } from '@/types/chart';
 
 const deviceWidths: Record<string, string> = {
@@ -217,6 +218,16 @@ export function ChartPreview() {
             />
           ) : settings.chartType.chartType === 'heatmap' ? (
             <HeatmapChart
+              data={data}
+              columnMapping={columnMapping}
+              settings={settings}
+              width={chartAreaWidth}
+              height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+              columnOrder={columnOrder}
+              seriesNames={seriesNames}
+            />
+          ) : settings.chartType.chartType === 'bar_diverging' ? (
+            <DivergingBarChart
               data={data}
               columnMapping={columnMapping}
               settings={settings}

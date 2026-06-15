@@ -27,6 +27,7 @@ const chartTypeOptions: { value: ChartType; label: string }[] = [
   { value: 'bar_stacked_2', label: 'Bar chart stacked 2 (Election)' },
   { value: 'line_chart', label: 'Line chart' },
   { value: 'heatmap', label: 'Heatmap' },
+  { value: 'bar_diverging', label: 'Diverging bar chart' },
 ];
 
 function TabMenu<T extends string>({
