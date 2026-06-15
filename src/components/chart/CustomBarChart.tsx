@@ -892,11 +892,14 @@ export const CustomBarChart = React.memo(function CustomBarChart({ data, columnM
               let labelX: number;
               let anchor: 'start' | 'middle' | 'end';
 
+              // The "1" glyph is narrow; in a thin stacked segment the 4px edge pad
+              // pushes it past its own bar. Trim 1px (→3) for the value "1" only.
+              const edgePad = labelText === '1' ? 3 : 4;
               if (labelPos === 'left') {
-                labelX = padding.left + barX + 4;
+                labelX = padding.left + barX + edgePad;
                 anchor = 'start';
               } else if (labelPos === 'right') {
-                labelX = padding.left + barX + renderedW - 4;
+                labelX = padding.left + barX + renderedW - edgePad;
                 anchor = 'end';
               } else if (labelPos === 'outside_right') {
                 labelX = padding.left + barX + renderedW + (settings.labels.outsideLabelPadding ?? 6);
