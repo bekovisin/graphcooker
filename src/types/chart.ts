@@ -125,6 +125,8 @@ export interface LabelsSettings {
   dataPointFontStyle: FontStyle;
   dataPointColorMode: DataPointLabelColorMode;
   dataPointColor: string;
+  dataPointAutoWhitePref: boolean; // auto-contrast: prefer white on saturated mid-tones (off = pure WCAG/Google)
+  dataPointAutoWhiteStrength: number; // 0–100: how far the white/black crossover is raised toward lighter colors
   dataPointSeriesColors: Record<string, string>;
   dataPointColorCustomMode?: 'column' | 'row';
   dataPointRowColors?: Record<string, string>;

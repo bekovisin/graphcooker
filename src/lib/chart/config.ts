@@ -77,6 +77,8 @@ export const defaultChartSettings: ChartSettings = {
     dataPointFontStyle: 'normal',
     dataPointColorMode: 'auto',
     dataPointColor: '#333333',
+    dataPointAutoWhitePref: true,
+    dataPointAutoWhiteStrength: 60,
     dataPointSeriesColors: {},
     dataPointColorCustomMode: 'column',
     dataPointRowColors: {},

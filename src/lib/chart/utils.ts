@@ -86,25 +86,37 @@ export function relativeLuminance(hexColor: string): number {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
 
-/**
- * Auto-contrast black/white crossover luminance. WCAG's mathematically-optimal
- * crossover sits at a relative luminance of ~0.179 (where black and white reach
- * equal contrast ratio), but on saturated mid-tones white reads cleaner than the
- * higher-ratio black. The preferred crossover is anchored to #ed5a7a: any color
- * at least as dark as it (luminance ≤ this) uses white text, lighter uses black.
- */
-const AUTO_CONTRAST_WHITE_MAX_LUMINANCE = relativeLuminance('#ed5a7a'); // ≈ 0.2672
+// WCAG black/white crossover: below this relative luminance, white gives the
+// higher contrast ratio; above it, black does. This is the Google/Lighthouse choice.
+const WCAG_CONTRAST_CROSSOVER = 0.1791;
+// "Prefer white" strength=100 raises the crossover up to this luminance, so even
+// fairly light mid-tones get white. (#16a34a≈0.269, #0ea5e9≈0.329 sit below ~0.34.)
+const WHITE_PREFERENCE_MAX_LUMINANCE = 0.45;
 
 /**
- * Pick black or white text for `hexColor`. Luminance uses the WCAG 2.x relative
- * luminance model (the same Google Lighthouse uses); the black/white decision
- * point is tuned via AUTO_CONTRAST_WHITE_MAX_LUMINANCE so colors as dark as
- * #ed5a7a (or darker) get white — sharper on saturated mid-tones than the
- * strictly-higher-ratio black WCAG would otherwise pick.
+ * Pick black or white text for `hexColor`, using the WCAG 2.x relative-luminance
+ * model (the same Google Lighthouse uses).
+ *
+ * - Without `whitePreference` (or when `enabled` is false) it returns the
+ *   WCAG-optimal choice — whichever of black/white yields the higher contrast
+ *   ratio (crossover luminance ≈ 0.179).
+ * - With `whitePreference.enabled`, the black/white crossover is raised toward
+ *   lighter colors by `strength` (0–100), so more saturated mid-tones get white
+ *   (which reads sharper there). strength 0 ≈ WCAG; strength 100 ≈ luminance 0.45.
  */
-export function getContrastColor(hexColor: string): string {
+export function getContrastColor(
+  hexColor: string,
+  whitePreference?: { enabled: boolean; strength: number },
+): string {
   const L = relativeLuminance(hexColor);
-  return L <= AUTO_CONTRAST_WHITE_MAX_LUMINANCE ? '#ffffff' : '#000000';
+  if (whitePreference?.enabled) {
+    const t = Math.max(0, Math.min(100, whitePreference.strength)) / 100;
+    const crossover = WCAG_CONTRAST_CROSSOVER + t * (WHITE_PREFERENCE_MAX_LUMINANCE - WCAG_CONTRAST_CROSSOVER);
+    return L <= crossover ? '#ffffff' : '#000000';
+  }
+  const contrastWithWhite = 1.05 / (L + 0.05); // (1.0 + 0.05) / (L + 0.05)
+  const contrastWithBlack = (L + 0.05) / 0.05; // (L + 0.05) / (0.0 + 0.05)
+  return contrastWithBlack >= contrastWithWhite ? '#000000' : '#ffffff';
 }
 
 // ─── Number Formatting ──────────────────────────────────────────────

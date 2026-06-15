@@ -14,6 +14,7 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -1928,6 +1929,36 @@ export function LabelsSection() {
               ]}
             />
           </SettingRow>
+
+          {/* Auto (contrast): prefer-white toggle + strength slider */}
+          {settings.dataPointColorMode === 'auto' && (
+            <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+              <SettingRow label="Prefer white" variant="inline">
+                <Switch
+                  checked={settings.dataPointAutoWhitePref ?? true}
+                  onCheckedChange={(checked) => update({ dataPointAutoWhitePref: checked })}
+                />
+              </SettingRow>
+              {(settings.dataPointAutoWhitePref ?? true) ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-xs text-gray-600 shrink-0">White preference</span>
+                    <span className="text-xs text-gray-400">{settings.dataPointAutoWhiteStrength ?? 60}</span>
+                  </div>
+                  <Slider
+                    value={[settings.dataPointAutoWhiteStrength ?? 60]}
+                    onValueChange={([v]) => update({ dataPointAutoWhiteStrength: v })}
+                    min={0}
+                    max={100}
+                    step={1}
+                  />
+                  <p className="text-[10px] text-gray-400">Higher = more saturated colors use white text. Off = exact Google/WCAG contrast.</p>
+                </div>
+              ) : (
+                <p className="text-[10px] text-gray-400">Using exact Google/WCAG contrast (black or white, whichever scores higher).</p>
+              )}
+            </div>
+          )}
 
           {/* Custom color mode - modal based */}
           {settings.dataPointColorMode === 'custom' && (() => {

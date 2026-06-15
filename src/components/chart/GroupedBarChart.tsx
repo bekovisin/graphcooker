@@ -1027,7 +1027,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
 
               const barColorForLabel = colorByRow ? categoryColors[ci] : s.color;
               const labelColor = settings.labels.dataPointColorMode === 'auto'
-                ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(barColorForLabel))
+                ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(barColorForLabel, { enabled: settings.labels.dataPointAutoWhitePref ?? true, strength: settings.labels.dataPointAutoWhiteStrength ?? 60 }))
                 : (settings.labels.dataPointColorCustomMode === 'row'
                   ? (settings.labels.dataPointRowColors?.[String(ci)] || settings.labels.dataPointColor)
                   : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor));

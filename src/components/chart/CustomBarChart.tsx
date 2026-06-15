@@ -907,7 +907,7 @@ export const CustomBarChart = React.memo(function CustomBarChart({ data, columnM
               }
 
               const labelColor = settings.labels.dataPointColorMode === 'auto'
-                ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(s.color))
+                ? (labelPos === 'outside_right' ? '#333333' : getContrastColor(s.color, { enabled: settings.labels.dataPointAutoWhitePref ?? true, strength: settings.labels.dataPointAutoWhiteStrength ?? 60 }))
                 : (settings.labels.dataPointColorCustomMode === 'row'
                   ? (settings.labels.dataPointRowColors?.[String(ci)] || settings.labels.dataPointColor)
                   : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor));

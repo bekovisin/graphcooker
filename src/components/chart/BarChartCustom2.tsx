@@ -1029,7 +1029,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
                 }
 
                 const labelColor = settings.labels.dataPointColorMode === 'auto'
-                  ? ((labelPos === 'outside_right' || labelPos === 'fixed') ? '#333333' : getContrastColor(barColor))
+                  ? ((labelPos === 'outside_right' || labelPos === 'fixed') ? '#333333' : getContrastColor(barColor, { enabled: settings.labels.dataPointAutoWhitePref ?? true, strength: settings.labels.dataPointAutoWhiteStrength ?? 60 }))
                   : (settings.labels.dataPointColorCustomMode === 'row'
                     ? (settings.labels.dataPointRowColors?.[String(ci)] || settings.labels.dataPointColor)
                     : (settings.labels.dataPointSeriesColors[columnMapping.values[0]] || settings.labels.dataPointColor));
