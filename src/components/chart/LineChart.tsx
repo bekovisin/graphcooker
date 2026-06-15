@@ -1247,7 +1247,14 @@ export const LineChart = React.memo(function LineChart({
                 const cx = xScale(pi);
                 const cy = yScale(val * animProgress);
 
-                let position: 'above' | 'below' = (labelSettings.lineDataPointPosition as 'above' | 'below') ?? 'above';
+                // Default to 'above' unless an explicit above/below is set. In custom mode
+                // the per-row/per-series maps below override this; a newly added month/row
+                // with no custom entry must fall back to 'above' (not the literal 'custom',
+                // which would otherwise leave the label mis-placed near the dot center).
+                let position: 'above' | 'below' =
+                  labelSettings.lineDataPointPosition === 'above' || labelSettings.lineDataPointPosition === 'below'
+                    ? labelSettings.lineDataPointPosition
+                    : 'above';
                 if (labelSettings.lineDataPointPosition === 'custom') {
                   const customMode = labelSettings.lineDataPointCustomMode ?? 'column';
                   if (customMode === 'row') {
