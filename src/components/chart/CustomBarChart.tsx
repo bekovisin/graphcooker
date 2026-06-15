@@ -3,7 +3,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { resolveColors, measureWrappedMaxWidth } from '@/lib/chart/utils';
+import { resolveColors, measureWrappedMaxWidth, getContrastColor } from '@/lib/chart/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────
 interface SeriesData {
@@ -54,15 +54,6 @@ function formatNumber(value: number, nf: ChartSettings['numberFormatting'], deci
   }
   str = decPart ? `${formattedInt}${nf.decimalSeparator}${decPart}` : formattedInt;
   return `${nf.prefix}${str}${nf.suffix}`;
-}
-
-function getContrastColor(hexColor: string): string {
-  const hex = hexColor.replace('#', '');
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 128 ? '#000000' : '#ffffff';
 }
 
 function fontWeightToCSS(fw: string): number {

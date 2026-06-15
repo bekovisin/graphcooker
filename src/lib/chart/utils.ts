@@ -57,13 +57,48 @@ export function resolveColors(
   });
 }
 
-export function getContrastColor(hexColor: string): string {
-  const hex = hexColor.replace('#', '');
+/** Parse a hex color (#rgb, #rrggbb, or #rrggbbaa — alpha ignored) into 0–255 channels. */
+function parseHexColor(hexColor: string): { r: number; g: number; b: number } {
+  let hex = hexColor.replace('#', '').trim();
+  if (hex.length === 3) {
+    hex = hex.split('').map((ch) => ch + ch).join('');
+  }
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
-  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-  return yiq >= 128 ? '#000000' : '#ffffff';
+  return {
+    r: Number.isNaN(r) ? 0 : r,
+    g: Number.isNaN(g) ? 0 : g,
+    b: Number.isNaN(b) ? 0 : b,
+  };
+}
+
+/**
+ * WCAG 2.x relative luminance of an sRGB color (0 = black … 1 = white).
+ * Matches the formula used by axe-core / Google Lighthouse for contrast audits.
+ */
+export function relativeLuminance(hexColor: string): number {
+  const { r, g, b } = parseHexColor(hexColor);
+  const lin = (channel: number): number => {
+    const s = channel / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+/**
+ * Pick black or white for maximum legibility on `hexColor` using the WCAG 2.x
+ * contrast-ratio algorithm — the same relative-luminance + (L1+0.05)/(L2+0.05)
+ * math Google Lighthouse uses. This replaces the older YIQ brightness heuristic,
+ * which disagrees on saturated colors (e.g. pure red: YIQ picks white at 4.0:1,
+ * WCAG correctly picks black at 5.25:1). The black/white crossover sits at a
+ * relative luminance of ~0.179.
+ */
+export function getContrastColor(hexColor: string): string {
+  const L = relativeLuminance(hexColor);
+  const contrastWithWhite = 1.05 / (L + 0.05); // (1.0 + 0.05) / (L + 0.05)
+  const contrastWithBlack = (L + 0.05) / 0.05; // (L + 0.05) / (0.0 + 0.05)
+  return contrastWithBlack >= contrastWithWhite ? '#000000' : '#ffffff';
 }
 
 // ─── Number Formatting ──────────────────────────────────────────────
