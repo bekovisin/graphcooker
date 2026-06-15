@@ -966,12 +966,18 @@ export type HeatmapTotalsMode = 'column' | 'row' | 'both';
 
 // ===== DIVERGING (back-to-back) BAR CHART SETTINGS =====
 export type DivergingScaleMode = 'independent' | 'symmetric';
+// In-bar value label placement, specific to the diverging layout:
+// 'center' = centered in each bar; 'inner' = both labels meet at the center baseline;
+// 'outer' = labels at the outer ends (opposite corners).
+export type DivergingLabelPosition = 'center' | 'inner' | 'outer';
 
 export interface DivergingBarSettings {
   seriesSides: Record<string, 'left' | 'right'>; // per-series side override; default: index 0 → left, rest → right
   scaleMode: DivergingScaleMode; // 'independent' = each side scaled to its own max; 'symmetric' = shared max
   centerGap: number; // px gap between the two halves at the center baseline
   absoluteValues: boolean; // draw bar length and label from |value| (so negative-encoded data works)
+  labelPosition: DivergingLabelPosition; // diverging-specific in-bar value label placement
+  legendCenterOnPlot: boolean; // center the legend over the plot/graph area (not the full width incl. labels)
 }
 
 export interface HeatmapSettings {

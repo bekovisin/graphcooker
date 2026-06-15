@@ -369,6 +369,16 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
           </g>
         )}
 
+        {/* Y-axis gridlines (one horizontal line per category row) */}
+        {settings.yAxis.gridlines && categories.map((_, ci) => {
+          const y = chartTop + ci * (barHeight + spacingMain) + barHeight / 2;
+          return (
+            <line key={`ygrid-${ci}`} x1={padding.left} y1={y} x2={padding.left + plotWidth} y2={y}
+              stroke={settings.yAxis.gridlineStyling.color} strokeWidth={settings.yAxis.gridlineStyling.width}
+              strokeDasharray={settings.yAxis.gridlineStyling.dashArray > 0 ? `${settings.yAxis.gridlineStyling.dashArray} ${settings.yAxis.gridlineStyling.dashArray}` : undefined} />
+          );
+        })}
+
         {/* Bars + value labels */}
         {categories.map((cat, ci) => {
           const rowY = chartTop + ci * (barHeight + spacingMain);
@@ -388,8 +398,19 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
                 : (settings.labels.dataPointColorCustomMode === 'row'
                   ? (settings.labels.dataPointRowColors?.[String(ci)] || settings.labels.dataPointColor)
                   : (settings.labels.dataPointSeriesColors[s.key] || settings.labels.dataPointColor));
+              // Diverging-specific label placement: center / inner (meet at center) / outer (opposite corners)
+              const lblPad = 4;
+              let lx = x + len / 2;
+              let lAnchor: 'start' | 'middle' | 'end' = 'middle';
+              if (div.labelPosition === 'inner') {
+                if (s.side === 'left') { lx = x + len - lblPad; lAnchor = 'end'; }
+                else { lx = x + lblPad; lAnchor = 'start'; }
+              } else if (div.labelPosition === 'outer') {
+                if (s.side === 'left') { lx = x + lblPad; lAnchor = 'start'; }
+                else { lx = x + len - lblPad; lAnchor = 'end'; }
+              }
               nodes.push(
-                <text key={`lbl-${s.key}-${ci}`} x={x + len / 2} y={cy} dy="0.35em" textAnchor="middle"
+                <text key={`lbl-${s.key}-${ci}`} x={lx} y={cy} dy="0.35em" textAnchor={lAnchor}
                   style={{ fontSize: labelFs, fontFamily: labelFf, fontWeight: labelFwCss, fontStyle: settings.labels.dataPointFontStyle || 'normal', fill: labelColor, pointerEvents: 'none' }}>
                   {labelText}
                 </text>
@@ -484,6 +505,7 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
           if (settings.legend.orientation === 'vertical') {
             const maxItemW = Math.max(...itemWidths);
             const startX = legendIsOverlay ? padding.left + (settings.legend.overlayX ?? 10) + lPadL
+              : div.legendCenterOnPlot ? padding.left + (plotWidth - maxItemW) / 2
               : settings.legend.alignment === 'center' ? lPadL + (width - lPadL - lPadR - maxItemW) / 2
               : settings.legend.alignment === 'right' ? width - maxItemW - lPadR : lPadL;
             return legendItems.map((it, idx) => {
@@ -519,7 +541,8 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
             const rowTotalW = row.reduce((s, i) => s + itemWidths[i], 0) + (row.length - 1) * gap;
             let rowX = legendIsOverlay ? padding.left + (settings.legend.overlayX ?? 10) + lPadL : lPadL;
             if (!legendIsOverlay) {
-              if (settings.legend.alignment === 'center') rowX = (width - rowTotalW) / 2 + lPadL - lPadR;
+              if (div.legendCenterOnPlot) rowX = padding.left + (plotWidth - rowTotalW) / 2;
+              else if (settings.legend.alignment === 'center') rowX = (width - rowTotalW) / 2 + lPadL - lPadR;
               else if (settings.legend.alignment === 'right') rowX = width - rowTotalW - lPadR;
             }
             const rowY = legendY + rowIdx * (fontSize + rowGapPx);
