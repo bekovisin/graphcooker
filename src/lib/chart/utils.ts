@@ -87,18 +87,24 @@ export function relativeLuminance(hexColor: string): number {
 }
 
 /**
- * Pick black or white for maximum legibility on `hexColor` using the WCAG 2.x
- * contrast-ratio algorithm — the same relative-luminance + (L1+0.05)/(L2+0.05)
- * math Google Lighthouse uses. This replaces the older YIQ brightness heuristic,
- * which disagrees on saturated colors (e.g. pure red: YIQ picks white at 4.0:1,
- * WCAG correctly picks black at 5.25:1). The black/white crossover sits at a
- * relative luminance of ~0.179.
+ * Auto-contrast black/white crossover luminance. WCAG's mathematically-optimal
+ * crossover sits at a relative luminance of ~0.179 (where black and white reach
+ * equal contrast ratio), but on saturated mid-tones white reads cleaner than the
+ * higher-ratio black. The preferred crossover is anchored to #ed5a7a: any color
+ * at least as dark as it (luminance ≤ this) uses white text, lighter uses black.
+ */
+const AUTO_CONTRAST_WHITE_MAX_LUMINANCE = relativeLuminance('#ed5a7a'); // ≈ 0.2672
+
+/**
+ * Pick black or white text for `hexColor`. Luminance uses the WCAG 2.x relative
+ * luminance model (the same Google Lighthouse uses); the black/white decision
+ * point is tuned via AUTO_CONTRAST_WHITE_MAX_LUMINANCE so colors as dark as
+ * #ed5a7a (or darker) get white — sharper on saturated mid-tones than the
+ * strictly-higher-ratio black WCAG would otherwise pick.
  */
 export function getContrastColor(hexColor: string): string {
   const L = relativeLuminance(hexColor);
-  const contrastWithWhite = 1.05 / (L + 0.05); // (1.0 + 0.05) / (L + 0.05)
-  const contrastWithBlack = (L + 0.05) / 0.05; // (L + 0.05) / (0.0 + 0.05)
-  return contrastWithBlack >= contrastWithWhite ? '#000000' : '#ffffff';
+  return L <= AUTO_CONTRAST_WHITE_MAX_LUMINANCE ? '#ffffff' : '#000000';
 }
 
 // ─── Number Formatting ──────────────────────────────────────────────
