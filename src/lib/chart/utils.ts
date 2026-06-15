@@ -185,3 +185,33 @@ export function wrapText(text: string, maxWidth: number, fontSize: number, fontF
   }
   return lines.length > 0 ? lines : [truncateText(text, maxWidth, fontSize, fontFamily, fontWeight)];
 }
+
+/**
+ * Widest rendered line width across `labels` when each is wrapped at `cap` px.
+ * Labels that fit on one line contribute their full width; longer ones are wrapped
+ * (each wrapped line is already ≤ cap), so the result is always ≤ cap. Used by the
+ * Y-axis "Auto" (ratio) space mode to collapse the unused label-column slack.
+ */
+export function measureWrappedMaxWidth(
+  labels: string[],
+  cap: number,
+  fontSize: number,
+  fontFamily: string,
+  fontWeight: string,
+): number {
+  let maxW = 0;
+  for (const label of labels) {
+    if (!label) continue;
+    const fullW = measureTextWidth(label, fontSize, fontFamily, fontWeight);
+    if (fullW <= cap) {
+      if (fullW > maxW) maxW = fullW;
+      continue;
+    }
+    const lines = wrapText(label, cap, fontSize, fontFamily, fontWeight);
+    for (const ln of lines) {
+      const w = measureTextWidth(ln, fontSize, fontFamily, fontWeight);
+      if (w > maxW) maxW = w;
+    }
+  }
+  return maxW;
+}

@@ -198,7 +198,22 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
   const yAxisLabelWidth = useMemo(() => {
     if (yAxisHidden) return 0;
     if (settings.yAxis.spaceMode === 'fixed') return settings.yAxis.spaceModeValue;
-    if (settings.yAxis.spaceMode === 'ratio') return Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
+    if (settings.yAxis.spaceMode === 'ratio') {
+      const cap = Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
+      if (!(settings.yAxis.spaceModeCollapse ?? true)) return cap;
+      // collapse: reclaim the unused slack — fit the column to the widest (wrapped) label, capped at the ratio width
+      let maxLine = 0;
+      for (const cat of categories) {
+        const fs = settings.yAxis.perRowLabelFontSizes?.[cat] ?? yTickStyle.fontSize;
+        const fullW = measureTextWidth(cat, fs, yTickStyle.fontFamily, yTickStyle.fontWeight);
+        if (fullW <= cap) { if (fullW > maxLine) maxLine = fullW; continue; }
+        for (const ln of wrapText(cat, cap, fs, yTickStyle.fontFamily, yTickStyle.fontWeight)) {
+          const w = measureTextWidth(ln, fs, yTickStyle.fontFamily, yTickStyle.fontWeight);
+          if (w > maxLine) maxLine = w;
+        }
+      }
+      return Math.min(cap, maxLine + 10 + yAxisLabelMargin);
+    }
     let maxW = 0;
     for (const cat of categories) {
       const fs = settings.yAxis.perRowLabelFontSizes?.[cat] ?? yTickStyle.fontSize;
@@ -206,7 +221,7 @@ export const BarChartCustom2 = React.memo(function BarChartCustom2({ data, colum
       if (w > maxW) maxW = w;
     }
     return maxW + 10 + yAxisLabelMargin;
-  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.spaceModeRatio, width, settings.yAxis.perRowLabelFontSizes, yTickStyle, yAxisLabelMargin]);
+  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.spaceModeRatio, settings.yAxis.spaceModeCollapse, width, settings.yAxis.perRowLabelFontSizes, yTickStyle, yAxisLabelMargin]);
 
   // ── Info column width ──
   const infoColumnWidth = useMemo(() => {

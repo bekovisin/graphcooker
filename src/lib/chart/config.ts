@@ -222,6 +222,7 @@ export const defaultChartSettings: ChartSettings = {
     spaceMode: 'auto',
     spaceModeValue: 120,
     spaceModeRatio: 50,
+    spaceModeCollapse: true,
     fixedMaxLines: 0,
     fixedEllipsis: true,
     axisLine: { show: true, width: 1, color: '#666666' },

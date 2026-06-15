@@ -363,6 +363,7 @@ export interface YAxisSettings {
   spaceMode: YAxisSpaceMode;
   spaceModeValue: number;
   spaceModeRatio: number; // 'ratio' mode: max % of total chart width the graph may use (labels get the rest)
+  spaceModeCollapse: boolean; // 'ratio' mode: when on, reclaim the unused label-column slack and give it to the graph
   fixedMaxLines: number;
   fixedEllipsis: boolean;
   axisLine: AxisLineSettings;

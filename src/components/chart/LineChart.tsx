@@ -3,7 +3,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping, AnnotationEndpointType } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { resolveColors } from '@/lib/chart/utils';
+import { resolveColors, measureWrappedMaxWidth } from '@/lib/chart/utils';
 import {
   line as d3Line,
   area as d3Area,
@@ -427,7 +427,13 @@ export const LineChart = React.memo(function LineChart({
     if (!yAxisVisible) return 0;
     // Space mode: 'auto' = One line (auto-fit); 'ratio' = Auto (label column is a % of width); 'fixed' = fixed px column.
     if (yAxisSettings.spaceMode === 'fixed') return yAxisSettings.spaceModeValue;
-    if (yAxisSettings.spaceMode === 'ratio') return Math.max(1, Math.round(width * (100 - (yAxisSettings.spaceModeRatio ?? 50)) / 100));
+    if (yAxisSettings.spaceMode === 'ratio') {
+      const cap = Math.max(1, Math.round(width * (100 - (yAxisSettings.spaceModeRatio ?? 50)) / 100));
+      if (!(yAxisSettings.spaceModeCollapse ?? true)) return cap;
+      // collapse: reclaim the unused slack — fit the column to the widest label, capped at the ratio width
+      const labels = yTickValues.map((v) => formatNumber(v, nf, yAxisDecimals));
+      return Math.min(cap, measureWrappedMaxWidth(labels, cap, yTickFontMemo.fontSize, yTickFontMemo.fontFamily, yTickFontMemo.fontWeight) + 12);
+    }
     let maxW = 0;
     for (const v of yTickValues) {
       const txt = formatNumber(v, nf, yAxisDecimals);
@@ -435,7 +441,7 @@ export const LineChart = React.memo(function LineChart({
       if (w > maxW) maxW = w;
     }
     return maxW + 12;
-  }, [yAxisVisible, yAxisSettings.spaceMode, yAxisSettings.spaceModeValue, yAxisSettings.spaceModeRatio, width, yTickValues, nf, yAxisDecimals, yTickFontMemo]);
+  }, [yAxisVisible, yAxisSettings.spaceMode, yAxisSettings.spaceModeValue, yAxisSettings.spaceModeRatio, yAxisSettings.spaceModeCollapse, width, yTickValues, nf, yAxisDecimals, yTickFontMemo]);
 
   // X axis
   const xAxisHidden = xAxisSettings.position === 'hidden';

@@ -420,6 +420,14 @@ export function YAxisSection() {
         {settings.spaceMode === 'ratio' && (
           <p className="text-[10px] text-gray-400 -mt-1 pl-1">Graph uses up to {settings.spaceModeRatio ?? 50}% of width; labels take the rest and wrap.</p>
         )}
+        {settings.spaceMode === 'ratio' && (
+          <SettingRow label="Collapse empty space" variant="inline">
+            <Switch
+              checked={settings.spaceModeCollapse ?? true}
+              onCheckedChange={(checked) => update({ spaceModeCollapse: checked })}
+            />
+          </SettingRow>
+        )}
 
         {/* TICKS TO SHOW */}
         <SubHeader>Ticks to show</SubHeader>
@@ -773,6 +781,14 @@ export function YAxisSection() {
       </SettingRow>
       {settings.spaceMode === 'ratio' && (
         <p className="text-[10px] text-gray-400 -mt-1 pl-1">Graph uses up to {settings.spaceModeRatio ?? 50}% of width; labels take the rest and wrap.</p>
+      )}
+      {settings.spaceMode === 'ratio' && (
+        <SettingRow label="Collapse empty space" variant="inline">
+          <Switch
+            checked={settings.spaceModeCollapse ?? true}
+            onCheckedChange={(checked) => update({ spaceModeCollapse: checked })}
+          />
+        </SettingRow>
       )}
 
       {/* Fixed mode: max lines + ellipsis */}

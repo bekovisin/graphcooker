@@ -3,7 +3,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { resolveColors } from '@/lib/chart/utils';
+import { resolveColors, measureWrappedMaxWidth } from '@/lib/chart/utils';
 
 // ─── Rounded rect helper ──────────────────────────────────────────────
 function roundedRectPath(
@@ -323,7 +323,12 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   const yAxisLabelWidth = useMemo(() => {
     if (yAxisHidden) return 0;
     if (settings.yAxis.spaceMode === 'fixed') return settings.yAxis.spaceModeValue;
-    if (settings.yAxis.spaceMode === 'ratio') return Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
+    if (settings.yAxis.spaceMode === 'ratio') {
+      const cap = Math.max(1, Math.round(width * (100 - (settings.yAxis.spaceModeRatio ?? 50)) / 100));
+      if (!(settings.yAxis.spaceModeCollapse ?? true)) return cap;
+      // collapse: reclaim the unused slack — fit the column to the widest (wrapped) label, capped at the ratio width
+      return Math.min(cap, measureWrappedMaxWidth(categories, cap, yTickStyle.fontSize, yTickStyle.fontFamily, yTickStyle.fontWeight) + 10);
+    }
     // Auto (one line): measure longest label
     let maxW = 0;
     for (const cat of categories) {
@@ -331,7 +336,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
       if (w > maxW) maxW = w;
     }
     return maxW + 10;
-  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.spaceModeRatio, width, yTickStyle]);
+  }, [categories, yAxisHidden, settings.yAxis.spaceMode, settings.yAxis.spaceModeValue, settings.yAxis.spaceModeRatio, settings.yAxis.spaceModeCollapse, width, yTickStyle]);
 
   // X-axis tick generation with custom step support
   const xTicksAll = useMemo(() => {
