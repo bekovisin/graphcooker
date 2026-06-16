@@ -203,20 +203,24 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
       if (lSum > lMax) lMax = lSum;
       if (rSum > rMax) rMax = rSum;
     }
-    const userMax = settings.xAxis.max ? Math.abs(parseFloat(settings.xAxis.max)) : undefined;
-    if (userMax !== undefined && !Number.isNaN(userMax)) { lMax = userMax; rMax = userMax; }
-    let lTicks = sideTicks(lMax, settings);
-    let rTicks = sideTicks(rMax, settings);
-    let lAxisMax = lTicks[lTicks.length - 1] || lMax || 1;
-    let rAxisMax = rTicks[rTicks.length - 1] || rMax || 1;
+    const um = settings.xAxis.max ? Math.abs(parseFloat(settings.xAxis.max)) : NaN;
+    const hasUserMax = !Number.isNaN(um);
+    // When a manual max is set it's a HARD cap: the axis ends exactly at it and
+    // ticks are filtered to <= it (so e.g. max 65 never renders a 70 tick).
+    const buildSide = (dataMax: number) => {
+      if (hasUserMax) return { axisMax: um, ticks: sideTicks(um, settings).filter((t) => t <= um + 1e-9) };
+      const ticks = sideTicks(dataMax, settings);
+      return { axisMax: ticks[ticks.length - 1] || dataMax || 1, ticks };
+    };
+    let L = buildSide(lMax);
+    let R = buildSide(rMax);
     if (div.scaleMode === 'symmetric') {
-      const shared = Math.max(lAxisMax, rAxisMax);
-      lTicks = sideTicks(shared, settings);
-      rTicks = sideTicks(shared, settings);
-      lAxisMax = lTicks[lTicks.length - 1] || shared;
-      rAxisMax = rTicks[rTicks.length - 1] || shared;
+      const shared = hasUserMax ? um : Math.max(L.axisMax, R.axisMax);
+      const ticks = sideTicks(shared, settings).filter((t) => !hasUserMax || t <= shared + 1e-9);
+      L = { axisMax: shared, ticks };
+      R = { axisMax: shared, ticks: [...ticks] };
     }
-    return { leftAxisMax: lAxisMax, rightAxisMax: rAxisMax, leftTickList: lTicks, rightTickList: rTicks };
+    return { leftAxisMax: L.axisMax, rightAxisMax: R.axisMax, leftTickList: L.ticks, rightTickList: R.ticks };
   }, [categories, leftSeries, rightSeries, settings, div.scaleMode]);
 
   // ── Layout pieces ──
@@ -296,13 +300,26 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
 
   const totalBarsHeight = categories.length * (barHeight + spacingMain) + settings.bars.bottomBarPadding;
 
+  // Edge padding so the extreme tick labels (left-max / right-max) aren't clipped at the SVG edges
+  const xEdgePad = (() => {
+    if (xAxisHidden) return { left: 0, right: 0 };
+    const lTick = leftTickList.length ? leftTickList[leftTickList.length - 1] : 0;
+    const rTick = rightTickList.length ? rightTickList[rightTickList.length - 1] : 0;
+    const lW = measureTextWidth(formatNumber(Math.abs(lTick), settings.numberFormatting, xAxisDecimals), xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
+    const rW = measureTextWidth(formatNumber(Math.abs(rTick), settings.numberFormatting, xAxisDecimals), xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
+    return {
+      left: Math.max(0, Math.ceil(lW / 2) - (settings.xAxis.firstLabelPadding || 0)),
+      right: Math.max(0, Math.ceil(rW / 2) - (settings.xAxis.lastLabelPadding || 0)),
+    };
+  })();
+
   // Padding (plot insets)
   const yLabelSpace = yAxisHidden ? 0 : yAxisLabelWidth + tickPadding;
   const padding = {
     top: settings.layout.paddingTop + legendAboveOffset + (xAxisOnTop ? xAxisHeight : 0),
-    right: settings.layout.paddingRight + (yAxisRight ? yLabelSpace : 0),
+    right: settings.layout.paddingRight + (yAxisRight ? yLabelSpace : 0) + xEdgePad.right,
     bottom: settings.layout.paddingBottom + (!xAxisOnTop ? xAxisHeight : 0) + (legendIsAbove || legendIsOverlay ? 0 : legendHeight),
-    left: settings.layout.paddingLeft + (!yAxisRight ? yLabelSpace : 0),
+    left: settings.layout.paddingLeft + (!yAxisRight ? yLabelSpace : 0) + xEdgePad.left,
   };
 
   const chartTop = settings.layout.paddingTop + legendAboveOffset + (xAxisOnTop ? xAxisHeight : 0);
@@ -311,12 +328,18 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
   const xAxisYPos = xAxisOnTop ? chartTop : chartBottom;
 
   const plotWidth = Math.max(1, width - padding.left - padding.right);
+  // X-axis "Data area padding": inset the plotted region from the left/right edges
+  const startPad = settings.xAxis.startPadding || 0;
+  const endPad = settings.xAxis.endPadding || 0;
+  const plotLeftX = padding.left + startPad;
+  const plotRightX = padding.left + plotWidth - endPad;
+  const effPlotW = Math.max(1, plotRightX - plotLeftX);
 
   // ── Diverging geometry ──
   const centerGap = Math.max(0, div.centerGap || 0);
-  const ppu = (Math.max(1, plotWidth - centerGap)) / Math.max(1e-9, leftAxisMax + rightAxisMax);
-  const leftBaseX = padding.left + leftAxisMax * ppu;   // the "0" line for the left side
-  const rightBaseX = leftBaseX + centerGap;             // the "0" line for the right side
+  const ppu = (Math.max(1, effPlotW - centerGap)) / Math.max(1e-9, leftAxisMax + rightAxisMax);
+  const leftBaseX = plotLeftX + leftAxisMax * ppu;   // the "0" line for the left side
+  const rightBaseX = leftBaseX + centerGap;          // the "0" line for the right side
 
   if (width <= 0) return null;
   if (series.length === 0 || categories.length === 0) {
@@ -351,10 +374,10 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
 
         {/* Plot background */}
         {settings.plotBackground.backgroundColor && settings.plotBackground.backgroundColor !== 'transparent' && (
-          <rect x={padding.left} y={chartTop} width={plotWidth} height={totalBarsHeight} fill={settings.plotBackground.backgroundColor} fillOpacity={(settings.plotBackground.backgroundOpacity ?? 100) / 100} />
+          <rect x={plotLeftX} y={chartTop} width={effPlotW} height={totalBarsHeight} fill={settings.plotBackground.backgroundColor} fillOpacity={(settings.plotBackground.backgroundOpacity ?? 100) / 100} />
         )}
         {settings.plotBackground.border && (
-          <rect x={padding.left} y={chartTop} width={plotWidth} height={totalBarsHeight} fill="none" stroke={settings.plotBackground.borderColor || '#cccccc'} strokeWidth={settings.plotBackground.borderWidth || 1} />
+          <rect x={plotLeftX} y={chartTop} width={effPlotW} height={totalBarsHeight} fill="none" stroke={settings.plotBackground.borderColor || '#cccccc'} strokeWidth={settings.plotBackground.borderWidth || 1} />
         )}
 
         {/* Gridlines (both sides) */}
@@ -373,7 +396,7 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
         {settings.yAxis.gridlines && categories.map((_, ci) => {
           const y = chartTop + ci * (barHeight + spacingMain) + barHeight / 2;
           return (
-            <line key={`ygrid-${ci}`} x1={padding.left} y1={y} x2={padding.left + plotWidth} y2={y}
+            <line key={`ygrid-${ci}`} x1={plotLeftX} y1={y} x2={plotRightX} y2={y}
               stroke={settings.yAxis.gridlineStyling.color} strokeWidth={settings.yAxis.gridlineStyling.width}
               strokeDasharray={settings.yAxis.gridlineStyling.dashArray > 0 ? `${settings.yAxis.gridlineStyling.dashArray} ${settings.yAxis.gridlineStyling.dashArray}` : undefined} />
           );
@@ -437,7 +460,7 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
           let yLabel: React.ReactNode = null;
           if (!yAxisHidden) {
             const areaRight = yAxisRight ? width - settings.layout.paddingRight : padding.left - tickPadding - 4;
-            const areaLeft = yAxisRight ? padding.left + plotWidth + tickPadding + 4 : settings.layout.paddingLeft;
+            const areaLeft = yAxisRight ? plotRightX + tickPadding + 4 : settings.layout.paddingLeft;
             const anchorX = yLabelAlign === 'start' ? areaLeft : yLabelAlign === 'center' ? (areaLeft + areaRight) / 2 : areaRight;
             const anchor: 'start' | 'middle' | 'end' = yLabelAlign === 'start' ? 'start' : yLabelAlign === 'center' ? 'middle' : 'end';
             const lblStyle = { fontSize: yTickStyle.fontSize, fontFamily: yTickStyle.fontFamily, fontWeight: fontWeightToCSS(yTickStyle.fontWeight), fill: yTickStyle.color } as React.CSSProperties;
@@ -458,11 +481,24 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
           return <g key={`row-${ci}`}>{segs}{yLabel}</g>;
         })}
 
+        {/* Zero line — the center baseline where the two sides meet */}
+        {settings.xAxis.zeroLine?.show !== false && (() => {
+          const zx = (leftBaseX + rightBaseX) / 2;
+          return (
+            <line
+              x1={zx} y1={chartTop - (settings.xAxis.zeroLineExtendTop || 0)}
+              x2={zx} y2={chartBottom + (settings.xAxis.zeroLineExtendBottom || 0)}
+              stroke={settings.xAxis.zeroLine?.color || '#666666'}
+              strokeWidth={settings.xAxis.zeroLine?.width ?? 1}
+            />
+          );
+        })()}
+
         {/* X axis (two-sided) */}
         {!xAxisHidden && (
           <g>
             {settings.xAxis.axisLine.show && (
-              <line x1={padding.left} y1={xAxisYPos} x2={padding.left + plotWidth} y2={xAxisYPos} stroke={settings.xAxis.axisLine.color} strokeWidth={settings.xAxis.axisLine.width} />
+              <line x1={plotLeftX} y1={xAxisYPos} x2={plotRightX} y2={xAxisYPos} stroke={settings.xAxis.axisLine.color} strokeWidth={settings.xAxis.axisLine.width} />
             )}
             {[
               ...leftTickList.map((t) => ({ t, x: leftBaseX - t * ppu, key: `xt-l-${t}` })),
@@ -505,7 +541,7 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
           if (settings.legend.orientation === 'vertical') {
             const maxItemW = Math.max(...itemWidths);
             const startX = legendIsOverlay ? padding.left + (settings.legend.overlayX ?? 10) + lPadL
-              : div.legendCenterOnPlot ? padding.left + (plotWidth - maxItemW) / 2
+              : div.legendCenterOnPlot ? plotLeftX + (effPlotW - maxItemW) / 2
               : settings.legend.alignment === 'center' ? lPadL + (width - lPadL - lPadR - maxItemW) / 2
               : settings.legend.alignment === 'right' ? width - maxItemW - lPadR : lPadL;
             return legendItems.map((it, idx) => {
@@ -541,7 +577,7 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
             const rowTotalW = row.reduce((s, i) => s + itemWidths[i], 0) + (row.length - 1) * gap;
             let rowX = legendIsOverlay ? padding.left + (settings.legend.overlayX ?? 10) + lPadL : lPadL;
             if (!legendIsOverlay) {
-              if (div.legendCenterOnPlot) rowX = padding.left + (plotWidth - rowTotalW) / 2;
+              if (div.legendCenterOnPlot) rowX = plotLeftX + (effPlotW - rowTotalW) / 2;
               else if (settings.legend.alignment === 'center') rowX = (width - rowTotalW) / 2 + lPadL - lPadR;
               else if (settings.legend.alignment === 'right') rowX = width - rowTotalW - lPadR;
             }
