@@ -300,17 +300,16 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
 
   const totalBarsHeight = categories.length * (barHeight + spacingMain) + settings.bars.bottomBarPadding;
 
-  // Edge padding so the extreme tick labels (left-max / right-max) aren't clipped at the SVG edges
+  // Edge padding so the extreme tick labels (left-max / right-max) aren't clipped at the SVG edges.
+  // Based purely on label width so the chart layout stays FIXED — the first/last label/tick
+  // padding settings only nudge those individual ticks (applied below), never the whole chart.
   const xEdgePad = (() => {
     if (xAxisHidden) return { left: 0, right: 0 };
     const lTick = leftTickList.length ? leftTickList[leftTickList.length - 1] : 0;
     const rTick = rightTickList.length ? rightTickList[rightTickList.length - 1] : 0;
     const lW = measureTextWidth(formatNumber(Math.abs(lTick), settings.numberFormatting, xAxisDecimals), xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
     const rW = measureTextWidth(formatNumber(Math.abs(rTick), settings.numberFormatting, xAxisDecimals), xTickStyle.fontSize, xTickStyle.fontFamily, xTickStyle.fontWeight);
-    return {
-      left: Math.max(0, Math.ceil(lW / 2) - (settings.xAxis.firstLabelPadding || 0)),
-      right: Math.max(0, Math.ceil(rW / 2) - (settings.xAxis.lastLabelPadding || 0)),
-    };
+    return { left: Math.ceil(lW / 2), right: Math.ceil(rW / 2) };
   })();
 
   // Padding (plot insets)
@@ -500,22 +499,34 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
             {settings.xAxis.axisLine.show && (
               <line x1={plotLeftX} y1={xAxisYPos} x2={plotRightX} y2={xAxisYPos} stroke={settings.xAxis.axisLine.color} strokeWidth={settings.xAxis.axisLine.width} />
             )}
-            {[
-              ...leftTickList.map((t) => ({ t, x: leftBaseX - t * ppu, key: `xt-l-${t}` })),
-              ...rightTickList.filter((t) => t > 0 || centerGap > 0).map((t) => ({ t, x: rightBaseX + t * ppu, key: `xt-r-${t}` })),
-            ].map(({ t, x, key }) => {
-              const labelY = xAxisOnTop ? xAxisYPos - tickLen - 6 : xAxisYPos + tickLen + xTickStyle.fontSize + 4;
-              return (
-                <g key={key}>
-                  {tickMarksShow && (
-                    <line x1={x} y1={xAxisYPos} x2={x} y2={xAxisOnTop ? xAxisYPos - tickLen : xAxisYPos + tickLen} stroke={settings.xAxis.tickMarks.color} strokeWidth={settings.xAxis.tickMarks.width} />
-                  )}
-                  <text x={x} y={labelY} textAnchor="middle" style={{ fontSize: xTickStyle.fontSize, fontFamily: xTickStyle.fontFamily, fontWeight: fontWeightToCSS(xTickStyle.fontWeight), fill: xTickStyle.color }}>
-                    {formatNumber(Math.abs(t), settings.numberFormatting, xAxisDecimals)}
-                  </text>
-                </g>
-              );
-            })}
+            {(() => {
+              // The leftmost tick is the left side's max; the rightmost is the right side's max.
+              const leftMostT = leftTickList.length ? leftTickList[leftTickList.length - 1] : null;
+              const rightMostT = rightTickList.length ? rightTickList[rightTickList.length - 1] : null;
+              const ticks = [
+                ...leftTickList.map((t) => ({ t, x: leftBaseX - t * ppu, key: `xt-l-${t}`, side: 'left' as const })),
+                ...rightTickList.filter((t) => t > 0 || centerGap > 0).map((t) => ({ t, x: rightBaseX + t * ppu, key: `xt-r-${t}`, side: 'right' as const })),
+              ];
+              return ticks.map(({ t, x, key, side }) => {
+                const labelY = xAxisOnTop ? xAxisYPos - tickLen - 6 : xAxisYPos + tickLen + xTickStyle.fontSize + 4;
+                const isFirst = side === 'left' && t === leftMostT;
+                const isLast = side === 'right' && t === rightMostT;
+                // Per-tick inward offsets — only the extreme ticks move; the chart stays fixed.
+                // Leftmost moves right (+), rightmost moves left (−).
+                const labelOff = isFirst ? (settings.xAxis.firstLabelPadding || 0) : isLast ? -(settings.xAxis.lastLabelPadding || 0) : 0;
+                const tickOff = isFirst ? (settings.xAxis.firstTickPadding || 0) : isLast ? -(settings.xAxis.lastTickPadding || 0) : 0;
+                return (
+                  <g key={key}>
+                    {tickMarksShow && (
+                      <line x1={x + tickOff} y1={xAxisYPos} x2={x + tickOff} y2={xAxisOnTop ? xAxisYPos - tickLen : xAxisYPos + tickLen} stroke={settings.xAxis.tickMarks.color} strokeWidth={settings.xAxis.tickMarks.width} />
+                    )}
+                    <text x={x + labelOff} y={labelY} textAnchor="middle" style={{ fontSize: xTickStyle.fontSize, fontFamily: xTickStyle.fontFamily, fontWeight: fontWeightToCSS(xTickStyle.fontWeight), fill: xTickStyle.color }}>
+                      {formatNumber(Math.abs(t), settings.numberFormatting, xAxisDecimals)}
+                    </text>
+                  </g>
+                );
+              });
+            })()}
           </g>
         )}
 
