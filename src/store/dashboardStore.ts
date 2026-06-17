@@ -158,12 +158,14 @@ interface DashboardState {
   duplicateViz: (id: number) => Promise<void>;
   renameViz: (id: number, name: string) => Promise<void>;
   moveVizToFolder: (vizId: number, folderId: number | null) => Promise<void>;
+  moveItemsToFolder: (vizIds: number[], folderIds: number[], targetFolderId: number | null) => Promise<void>;
+  copyItemsToFolder: (vizIds: number[], folderIds: number[], targetFolderId: number | null) => Promise<void>;
   handleBulkDelete: (selectedIds: Set<number>) => void;
   handleBulkExport: (selectedIds: Set<number>, exportOptions: BulkExportOptions) => Promise<void>;
   handleExportSingle: (id: number) => void;
 
   // Actions - Folder CRUD
-  createFolder: (name: string, parentId?: number | null, colors?: { bgColor?: string; textColor?: string; iconColor?: string }) => Promise<void>;
+  createFolder: (name: string, parentId?: number | null, colors?: { bgColor?: string; textColor?: string; iconColor?: string }) => Promise<FolderItem | null>;
   renameFolder: (id: number, name: string) => Promise<void>;
   updateFolderColors: (id: number, colors: { bgColor?: string; textColor?: string; iconColor?: string }) => Promise<void>;
   deleteFolder: (id: number) => void;
@@ -601,6 +603,95 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
   },
 
+  // Bulk MOVE selected visualizations + folders into a target folder (null = root).
+  // Callers pass de-duplicated lists (viz inside a selected folder are excluded upstream).
+  moveItemsToFolder: async (vizIds, folderIds, targetFolderId) => {
+    const folders = get().folders;
+    let moved = 0;
+    await Promise.all(vizIds.map(async (vizId) => {
+      try {
+        const res = await fetch(`/api/visualizations/${vizId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folderId: targetFolderId }),
+        });
+        if (res.ok) {
+          set((s) => ({ visualizations: s.visualizations.map((v) => (v.id === vizId ? { ...v, folderId: targetFolderId } : v)) }));
+          moved++;
+        }
+      } catch (error) { console.error('Failed to move visualization:', error); }
+    }));
+    await Promise.all(folderIds.map(async (fid) => {
+      if (fid === targetFolderId) return; // can't move into itself
+      if (targetFolderId !== null && getDescendantIds(fid, folders).has(targetFolderId)) return; // no circular move
+      try {
+        const res = await fetch(`/api/folders/${fid}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parentId: targetFolderId }),
+        });
+        if (res.ok) {
+          set((s) => ({ folders: s.folders.map((f) => (f.id === fid ? { ...f, parentId: targetFolderId } : f)) }));
+          moved++;
+        }
+      } catch (error) { console.error('Failed to move folder:', error); }
+    }));
+    const targetName = targetFolderId ? folders.find((f) => f.id === targetFolderId)?.name || 'folder' : 'Visualizations';
+    if (moved > 0) toast.success(`Moved ${moved} item${moved > 1 ? 's' : ''} to ${targetName}`);
+    else toast.error('Nothing was moved');
+  },
+
+  // Bulk COPY selected visualizations + folders into a target folder (null = root).
+  copyItemsToFolder: async (vizIds, folderIds, targetFolderId) => {
+    const { folders, visualizations } = get();
+    let copied = 0;
+    await Promise.all(vizIds.map(async (vizId) => {
+      const original = visualizations.find((v) => v.id === vizId);
+      if (!original) return;
+      try {
+        const fullRes = await fetch(`/api/visualizations/${vizId}`);
+        if (!fullRes.ok) return;
+        const fullViz = await fullRes.json();
+        const res = await fetch('/api/visualizations', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: `${original.name} (copy)`,
+            folderId: targetFolderId,
+            chartType: original.chartType,
+            data: fullViz.data, settings: fullViz.settings, columnMapping: fullViz.columnMapping,
+          }),
+        });
+        if (res.ok) {
+          const newViz = await res.json();
+          set((s) => ({ visualizations: [newViz, ...s.visualizations] }));
+          copied++;
+        }
+      } catch (error) { console.error('Failed to copy visualization:', error); }
+    }));
+    // Folders: deep-duplicate, then move the duplicate's root into the target folder.
+    for (const fid of folderIds) {
+      if (fid === targetFolderId) continue;
+      if (targetFolderId !== null && getDescendantIds(fid, get().folders).has(targetFolderId)) continue;
+      try {
+        const dupRes = await fetch(`/api/folders/${fid}/duplicate`, { method: 'POST' });
+        if (!dupRes.ok) continue;
+        const { folders: newFolders, visualizations: newVizs } = await dupRes.json();
+        set((s) => ({ folders: [...s.folders, ...newFolders], visualizations: [...newVizs, ...s.visualizations] }));
+        copied++;
+        const newSet = new Set((newFolders as FolderItem[]).map((f) => f.id));
+        const newRoot = (newFolders as FolderItem[]).find((nf) => nf.parentId == null || !newSet.has(nf.parentId));
+        if (newRoot && (newRoot.parentId ?? null) !== targetFolderId) {
+          const mvRes = await fetch(`/api/folders/${newRoot.id}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ parentId: targetFolderId }),
+          });
+          if (mvRes.ok) set((s) => ({ folders: s.folders.map((f) => (f.id === newRoot.id ? { ...f, parentId: targetFolderId } : f)) }));
+        }
+      } catch (error) { console.error('Failed to copy folder:', error); }
+    }
+    const targetName = targetFolderId ? folders.find((f) => f.id === targetFolderId)?.name || 'folder' : 'Visualizations';
+    if (copied > 0) toast.success(`Copied ${copied} item${copied > 1 ? 's' : ''} to ${targetName}`);
+    else toast.error('Nothing was copied');
+  },
+
   handleBulkDelete: (selectedIds) => {
     const count = selectedIds.size;
     if (count === 0) return;
@@ -752,11 +843,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const folder = await res.json();
         set((s) => ({ folders: [...s.folders, folder] }));
         toast.success(`Folder "${name}" created`);
+        return folder as FolderItem;
       }
     } catch (error) {
       console.error('Failed to create folder:', error);
       toast.error('Failed to create folder');
     }
+    return null;
   },
 
   renameFolder: async (id, name) => {

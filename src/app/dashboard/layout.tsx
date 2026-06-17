@@ -21,6 +21,8 @@ import {
   Square,
   Download,
   Share2,
+  FolderInput,
+  CopyPlus,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -36,6 +38,7 @@ import { ConfirmDialog } from '@/components/dashboard/ConfirmDialog';
 import { ShareTemplateDialog } from '@/components/dashboard/ShareTemplateDialog';
 import { ShareVisualizationDialog } from '@/components/dashboard/ShareVisualizationDialog';
 import { FolderDialog } from '@/components/dashboard/FolderDialog';
+import { MoveToFolderDialog } from '@/components/dashboard/MoveToFolderDialog';
 import { useAuthStore } from '@/store/authStore';
 import {
   useDashboardStore,
@@ -73,6 +76,8 @@ export default function DashboardLayout({
   const selectedFolderIds = useDashboardStore((s) => s.selectedFolderIds);
   const handleBulkDelete = useDashboardStore((s) => s.handleBulkDelete);
   const handleBulkExport = useDashboardStore((s) => s.handleBulkExport);
+  const moveItemsToFolder = useDashboardStore((s) => s.moveItemsToFolder);
+  const copyItemsToFolder = useDashboardStore((s) => s.copyItemsToFolder);
   const visualizations = useDashboardStore((s) => s.visualizations);
   const effectiveVizIds = useEffectiveSelectedVizIds();
   const totalSelectedCount = effectiveVizIds.size;
@@ -113,6 +118,9 @@ export default function DashboardLayout({
   // Folder dialogs (local)
   const [showNewTemplateFolderDialog, setShowNewTemplateFolderDialog] = useState(false);
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
+
+  // Move / Copy to folder dialog (local) — null = closed
+  const [moveDialog, setMoveDialog] = useState<null | 'move' | 'copy'>(null);
 
   // Share template dialog (local)
   const [showShareTemplate, setShowShareTemplate] = useState(false);
@@ -271,6 +279,25 @@ export default function DashboardLayout({
   const handleExportSelected = useCallback(async (options: import('@/store/dashboardStore').BulkExportOptions) => {
     await handleBulkExport(effectiveVizIds, options);
   }, [handleBulkExport, effectiveVizIds]);
+
+  // Build the move/copy payload: selected folders carry their own contents, so any viz that
+  // already lives inside a selected folder is de-duplicated out (mirrors the Share handler).
+  const getMovePayload = useCallback(() => {
+    const coveredFolderIds = new Set<number>();
+    const q: number[] = [];
+    selectedFolderIds.forEach((id) => { coveredFolderIds.add(id); q.push(id); });
+    while (q.length > 0) {
+      const cur = q.shift()!;
+      for (const f of folders) {
+        if (f.parentId === cur && !coveredFolderIds.has(f.id)) { coveredFolderIds.add(f.id); q.push(f.id); }
+      }
+    }
+    const standaloneVizIds = Array.from(effectiveVizIds).filter((vizId) => {
+      const viz = visualizations.find((v) => v.id === vizId);
+      return !viz || viz.folderId === null || !coveredFolderIds.has(viz.folderId);
+    });
+    return { standaloneVizIds, folderIds: Array.from(selectedFolderIds) };
+  }, [selectedFolderIds, folders, effectiveVizIds, visualizations]);
 
   // Stable callback for confirm dialog close
   const handleConfirmOpenChange = useCallback((open: boolean) => {
@@ -696,6 +723,31 @@ export default function DashboardLayout({
             )}
           </div>
 
+          {/* Selection — second row: move / copy to folder */}
+          {!isTemplatesView && isSelectionMode && totalSelectedCount > 0 && (
+            <div className="px-3 sm:px-6 py-1.5 border-b border-gray-200 bg-gray-50 flex items-center gap-2 shrink-0">
+              <span className="text-[11px] text-gray-400 mr-0.5">Organize:</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 text-xs h-7"
+                onClick={() => setMoveDialog('move')}
+              >
+                <FolderInput className="w-3 h-3" />
+                Move to folder
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 text-xs h-7"
+                onClick={() => setMoveDialog('copy')}
+              >
+                <CopyPlus className="w-3 h-3" />
+                Copy to folder
+              </Button>
+            </div>
+          )}
+
           {/* Content area */}
           <div className="flex-1 overflow-y-auto p-3 sm:p-6">
             {children}
@@ -767,7 +819,25 @@ export default function DashboardLayout({
         title="New folder"
         description="Create a folder to organize your visualizations."
         confirmLabel="Create"
-        onConfirm={(name, colors) => createFolder(name, activeFolderId, colors)}
+        onConfirm={async (name, colors) => { await createFolder(name, activeFolderId, colors); }}
+      />
+
+      <MoveToFolderDialog
+        open={!!moveDialog}
+        mode={moveDialog ?? 'move'}
+        count={totalSelectedCount}
+        excludeFolderIds={Array.from(selectedFolderIds)}
+        onOpenChange={(o) => { if (!o) setMoveDialog(null); }}
+        onConfirm={async (target) => {
+          const { standaloneVizIds, folderIds } = getMovePayload();
+          if (moveDialog === 'copy') {
+            await copyItemsToFolder(standaloneVizIds, folderIds, target);
+          } else {
+            await moveItemsToFolder(standaloneVizIds, folderIds, target);
+          }
+          setMoveDialog(null);
+          exitSelectionMode();
+        }}
       />
     </div>
   );
