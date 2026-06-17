@@ -262,7 +262,7 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
   const legendIsAbove = settings.legend.position === 'above';
   const legendFontSize = settings.legend.size;
   const legendRowGap = settings.legend.rowGap ?? 4;
-  const legendItems = useMemo(() => series.map((s) => ({ name: s.name, color: s.color })), [series]);
+  const legendItems = useMemo(() => series.map((s) => ({ name: s.name, color: s.color, side: s.side })), [series]);
   const legendHeight = (() => {
     if (!settings.legend.show || legendIsOverlay) return 0;
     const marginTop = settings.legend.marginTop || 0;
@@ -564,6 +564,28 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
                 </g>
               );
             });
+          }
+
+          // Diverging "center over plot": the left-side legend item(s) END where the left bars end
+          // (the left baseline), the right-side item(s) START where the right bars start (the right
+          // baseline). A center gap therefore pushes the two groups apart.
+          if (div.legendCenterOnPlot && !legendIsOverlay) {
+            const itemW = (it: { name: string }) => swW + 4 + measureTextWidth(it.name, fontSize, fontFamily, settings.legend.textWeight);
+            const groupW = (items: typeof legendItems) => items.reduce((s, it) => s + itemW(it), 0) + Math.max(0, items.length - 1) * gap;
+            const renderItem = (it: typeof legendItems[number], x: number, key: string) => (
+              <g key={key}>
+                <rect x={x} y={legendY} width={swW} height={swH} fill={it.color} rx={settings.legend.swatchRoundness} />
+                <text x={x + swW + 4} y={legendY + swH / 2} dy="0.35em" style={textStyle(settings.legend.color)}>{it.name}</text>
+              </g>
+            );
+            const leftItems = legendItems.filter((it) => it.side === 'left');
+            const rightItems = legendItems.filter((it) => it.side === 'right');
+            const nodes: React.ReactNode[] = [];
+            let lx = leftBaseX - groupW(leftItems); // left group ends at the left baseline
+            leftItems.forEach((it, i) => { nodes.push(renderItem(it, lx, `lg-l-${i}`)); lx += itemW(it) + gap; });
+            let rx = rightBaseX; // right group starts at the right baseline
+            rightItems.forEach((it, i) => { nodes.push(renderItem(it, rx, `lg-r-${i}`)); rx += itemW(it) + gap; });
+            return nodes;
           }
 
           // Horizontal with wrapping
