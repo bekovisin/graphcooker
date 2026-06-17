@@ -107,7 +107,7 @@ export function MoveToFolderDialog({ open, onOpenChange, mode, count, excludeFol
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden">
         <div className="p-6 pb-4">
           <DialogHeader className="flex-row items-start gap-4 space-y-0">
             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-blue-50">
@@ -152,12 +152,12 @@ export function MoveToFolderDialog({ open, onOpenChange, mode, count, excludeFol
                   }}
                   placeholder={targetName ? `New folder in "${targetName}"…` : 'New folder name…'}
                   autoFocus
-                  className="flex-1 text-sm bg-white border border-gray-300 rounded-md px-3 py-1.5 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                  className="flex-1 min-w-0 text-sm bg-white border border-gray-300 rounded-md px-3 py-1.5 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
                 />
-                <Button size="sm" onClick={handleCreate} disabled={!newName.trim() || busy}>
+                <Button size="sm" className="shrink-0" onClick={handleCreate} disabled={!newName.trim() || busy}>
                   {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Create'}
                 </Button>
-                <Button size="sm" variant="ghost" onClick={() => { setCreating(false); setNewName(''); }}>Cancel</Button>
+                <Button size="sm" variant="ghost" className="shrink-0" onClick={() => { setCreating(false); setNewName(''); }}>Cancel</Button>
               </div>
             ) : (
               <button
