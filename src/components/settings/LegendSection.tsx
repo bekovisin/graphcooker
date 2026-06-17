@@ -120,6 +120,20 @@ export function LegendSection() {
                 />
               </SettingRow>
               <p className="text-[10px] text-gray-400 px-1 -mt-1">Centers the legend over the graph area only (ignores the left category labels), overriding the alignment above.</p>
+              {(divergingBar.legendCenterOnPlot ?? false) && (
+                <>
+                  <NumberInput
+                    label="Item gap"
+                    value={divergingBar.legendCenterGap ?? 0}
+                    onChange={(v) => updateSettings('divergingBar', { legendCenterGap: v })}
+                    min={0}
+                    max={400}
+                    step={1}
+                    suffix="px"
+                  />
+                  <p className="text-[10px] text-gray-400 px-1 -mt-1">Extra distance between the two legend items, added symmetrically around the center.</p>
+                </>
+              )}
             </>
           )}
 

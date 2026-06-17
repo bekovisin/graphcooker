@@ -727,6 +727,7 @@ export const defaultChartSettings: ChartSettings = {
     absoluteValues: true,
     labelPosition: 'center' as const,
     legendCenterOnPlot: false,
+    legendCenterGap: 0,
   },
 };
 

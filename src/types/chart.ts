@@ -978,6 +978,7 @@ export interface DivergingBarSettings {
   absoluteValues: boolean; // draw bar length and label from |value| (so negative-encoded data works)
   labelPosition: DivergingLabelPosition; // diverging-specific in-bar value label placement
   legendCenterOnPlot: boolean; // center the legend over the plot/graph area (not the full width incl. labels)
+  legendCenterGap: number; // extra px spread between the two legend groups when centered over the plot
 }
 
 export interface HeatmapSettings {

@@ -580,10 +580,11 @@ export const DivergingBarChart = React.memo(function DivergingBarChart({
             );
             const leftItems = legendItems.filter((it) => it.side === 'left');
             const rightItems = legendItems.filter((it) => it.side === 'right');
+            const extra = Math.max(0, div.legendCenterGap || 0) / 2; // extra spread, split symmetrically
             const nodes: React.ReactNode[] = [];
-            let lx = leftBaseX - groupW(leftItems); // left group ends at the left baseline
+            let lx = leftBaseX - extra - groupW(leftItems); // left group ends at the left baseline (− extra)
             leftItems.forEach((it, i) => { nodes.push(renderItem(it, lx, `lg-l-${i}`)); lx += itemW(it) + gap; });
-            let rx = rightBaseX; // right group starts at the right baseline
+            let rx = rightBaseX + extra; // right group starts at the right baseline (+ extra)
             rightItems.forEach((it, i) => { nodes.push(renderItem(it, rx, `lg-r-${i}`)); rx += itemW(it) + gap; });
             return nodes;
           }
