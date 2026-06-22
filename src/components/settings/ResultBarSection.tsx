@@ -44,7 +44,7 @@ const fontWeightOptions: { value: FontWeight; label: string }[] = [
 ];
 const ACCEPT = 'image/png,image/jpeg,image/svg+xml,image/webp';
 const valuePosOptions: { value: ResultValuePosition; label: string }[] = [
-  { value: 'auto', label: 'Auto' }, { value: 'inside', label: 'Inside' }, { value: 'below', label: 'Below' }, { value: 'hidden', label: 'Off' },
+  { value: 'auto', label: 'Auto' }, { value: 'inside', label: 'Inside' }, { value: 'below', label: 'Below' }, { value: 'both', label: 'Inside + below' }, { value: 'hidden', label: 'Off' },
 ];
 const namePosOptions: { value: ResultNamePosition; label: string }[] = [
   { value: 'above', label: 'Above' }, { value: 'legend', label: 'Legend' }, { value: 'hidden', label: 'Off' },
@@ -267,7 +267,12 @@ export function ResultLabelsSection() {
     <AccordionSection id="result-labels" title="Labels">
       {/* VALUE LABELS (defaults) */}
       <SubHeader>Value labels</SubHeader>
-      <SettingRow label="Position"><TabMenu value={rb.valuePosition} onChange={(v) => update({ valuePosition: v })} options={valuePosOptions} /></SettingRow>
+      <SettingRow label="Position">
+        <Select value={rb.valuePosition} onValueChange={(v) => update({ valuePosition: v as ResultValuePosition })}>
+          <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+          <SelectContent>{valuePosOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
+        </Select>
+      </SettingRow>
       <SettingRow label="Align to edges" variant="inline"><Switch checked={rb.valueAlignEdges} onCheckedChange={(v) => update({ valueAlignEdges: v })} /></SettingRow>
       <SettingRow label="Color"><TabMenu value={rb.valueColorMode} onChange={(v) => update({ valueColorMode: v })} options={[{ value: 'auto', label: 'Auto (contrast)' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
       <FontGrid family={rb.valueFontFamily} size={rb.valueFontSize} weight={rb.valueFontWeight} color={rb.valueColor}
@@ -311,7 +316,7 @@ export function ResultLabelsSection() {
       <FontGrid family={rb.nameFontFamily} size={rb.nameFontSize} weight={rb.nameFontWeight} color={rb.nameColor}
         onFamily={(v) => update({ nameFontFamily: v })} onSize={(v) => update({ nameFontSize: v })} onWeight={(v) => update({ nameFontWeight: v })} onColor={(v) => update({ nameColor: v })} />
       <SettingRow label="Bold weight"><Select value={rb.nameBoldWeight} onValueChange={(v) => update({ nameBoldWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-      <p className="text-[10px] text-gray-400">Wrap part of a name in **double asterisks** for the bold weight — e.g. {'Ekrem **İMAMOĞLU**'}</p>
+      <p className="text-[10px] text-gray-400">Wrap a word in **double asterisks** for the bold weight, or set a per-word weight with **word|600** — e.g. {'**Ekrem|300** **İMAMOĞLU|800**'}</p>
       <NumberInput label="Gap above" value={rb.nameGap} onChange={(v) => update({ nameGap: v })} min={0} max={40} suffix="px" />
 
       {/* PER-SEGMENT MODAL */}
@@ -330,9 +335,16 @@ export function ResultLabelsSection() {
                 <div className="text-xs font-semibold truncate">{name}</div>
                 <SettingRow label="Display name"><Input value={o.name ?? ''} onChange={(e) => setSeg(name, { name: e.target.value || undefined })} placeholder={name} className="h-8 text-xs w-full" /></SettingRow>
 
-                <div className="text-[10px] font-medium text-gray-500">Value label</div>
-                <SettingRow label="Position"><TabMenu value={o.valuePosition || 'auto'} onChange={(v) => setSeg(name, { valuePosition: v })} options={valuePosOptions} /></SettingRow>
+                <div className="text-[10px] font-medium text-gray-500">Value label (inside)</div>
+                <SettingRow label="Position">
+                  <Select value={o.valuePosition || 'auto'} onValueChange={(v) => setSeg(name, { valuePosition: v as ResultValuePosition })}>
+                    <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>{valuePosOptions.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </SettingRow>
                 <SettingRow label="Prefix (%)"><TabMenu value={o.prefixShow === undefined ? 'default' : o.prefixShow ? 'on' : 'off'} onChange={(v) => setSeg(name, { prefixShow: v === 'default' ? undefined : v === 'on' })} options={[{ value: 'default', label: 'Default' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} /></SettingRow>
+                <SettingRow label="Custom decimals" variant="inline"><Switch checked={o.valueDecimals !== undefined} onCheckedChange={(v) => setSeg(name, { valueDecimals: v ? rb.numberFormat.decimalPlaces : undefined })} /></SettingRow>
+                {o.valueDecimals !== undefined && <div className="pl-2 border-l-2 border-gray-100"><NumberInput label="Decimals" value={o.valueDecimals} onChange={(v) => setSeg(name, { valueDecimals: v })} min={0} max={10} /></div>}
                 <SettingRow label="Align"><TabMenu value={o.valueAlign || 'default'} onChange={(v) => setSeg(name, { valueAlign: v === 'default' ? undefined : (v as 'left' | 'center' | 'right') })} options={[{ value: 'default', label: 'Auto' }, { value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></SettingRow>
                 <Select value={o.valueFontFamily || '__default__'} onValueChange={(v) => setSeg(name, { valueFontFamily: v === '__default__' ? undefined : v })}>
                   <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>

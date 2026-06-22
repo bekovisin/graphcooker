@@ -29,19 +29,36 @@ function roundedRect(x: number, y: number, w: number, h: number, r: number): str
   return `M${x + radius},${y} h${w - 2 * radius} a${radius},${radius} 0 0 1 ${radius},${radius} v${h - 2 * radius} a${radius},${radius} 0 0 1 ${-radius},${radius} h${-(w - 2 * radius)} a${radius},${radius} 0 0 1 ${-radius},${-radius} v${-(h - 2 * radius)} a${radius},${radius} 0 0 1 ${radius},${-radius} Z`;
 }
 
-// Strip the **bold** markers for width measurement
-function stripMarks(s: string): string {
-  return s.replace(/\*\*/g, '');
+const WEIGHT_SUFFIX = /\|(100|200|300|400|500|600|700|800|900|normal|bold|light|medium|semibold|black)$/i;
+function aliasWeight(w: string): string {
+  const l = w.toLowerCase();
+  if (l === 'light') return '300';
+  if (l === 'medium') return '500';
+  if (l === 'semibold') return '600';
+  if (l === 'black') return '900';
+  if (l === '400') return 'normal';
+  if (l === '700') return 'bold';
+  return l;
 }
 
-// Render text with **double-asterisk** parts in a bolder weight (e.g. "Ekrem **İMAMOĞLU**")
+// Strip the **bold** markers (and any |weight suffix) for width measurement
+function stripMarks(s: string): string {
+  return s.replace(/\*\*([^*]+)\*\*/g, (_, inner: string) => inner.replace(WEIGHT_SUFFIX, '')).replace(/\*\*/g, '');
+}
+
+// Render text with **double-asterisk** parts in a bolder weight. Each wrapped part may carry an
+// explicit per-word weight via a "|weight" suffix, e.g. "**Ekrem|300** **İMAMOĞLU|800**".
 function renderRich(text: string, baseW: string, boldW: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
-  return parts.map((p, i) =>
-    p.startsWith('**') && p.endsWith('**')
-      ? <tspan key={i} fontWeight={fontWeightToCSS(boldW)}>{p.slice(2, -2)}</tspan>
-      : <tspan key={i} fontWeight={fontWeightToCSS(baseW)}>{p}</tspan>
-  );
+  return parts.map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**')) {
+      const inner = p.slice(2, -2);
+      const m = inner.match(WEIGHT_SUFFIX);
+      if (m) return <tspan key={i} fontWeight={fontWeightToCSS(aliasWeight(m[1]))}>{inner.replace(WEIGHT_SUFFIX, '')}</tspan>;
+      return <tspan key={i} fontWeight={fontWeightToCSS(boldW)}>{inner}</tspan>;
+    }
+    return <tspan key={i} fontWeight={fontWeightToCSS(baseW)}>{p}</tspan>;
+  });
 }
 
 interface Seg {
@@ -171,11 +188,12 @@ export const ResultBar = React.memo(function ResultBar({
       const fitsName = seg.w >= nameW;
 
       const vPos = o.valuePosition || rb.valuePosition;
-      let valueMode: 'inside_full' | 'inside_compact_below' | 'hidden';
+      let valueMode: 'inside' | 'below' | 'both' | 'hidden';
       if (vPos === 'hidden') valueMode = 'hidden';
-      else if (vPos === 'inside') valueMode = 'inside_full';
-      else if (vPos === 'below') valueMode = 'inside_compact_below';
-      else valueMode = fitsValue ? 'inside_full' : 'inside_compact_below'; // auto
+      else if (vPos === 'inside') valueMode = 'inside';
+      else if (vPos === 'below') valueMode = 'below';
+      else if (vPos === 'both') valueMode = 'both';
+      else valueMode = fitsValue ? 'inside' : 'below'; // auto
 
       const nPos = o.namePosition || rb.namePosition;
       let nameMode: 'above' | 'legend' | 'hidden';
@@ -189,7 +207,7 @@ export const ResultBar = React.memo(function ResultBar({
   }, [segs, rb]);
 
   const anyAbove = resolved.some((r) => r.nameMode === 'above');
-  const anyBelow = resolved.some((r) => r.valueMode === 'inside_compact_below');
+  const anyBelow = resolved.some((r) => r.valueMode === 'below' || r.valueMode === 'both');
 
   // Legend membership: auto = nameMode 'legend'; per-segment legendVisibleRows forces in/out.
   const legendItems = resolved
@@ -322,12 +340,12 @@ export const ResultBar = React.memo(function ResultBar({
 
         {/* Inside values */}
         {resolved.map(({ seg, valueMode }) => {
-          // Only the value that fits is drawn inside — narrow segments show their value
-          // below (via the connector line) at full size, so nothing ever shrinks.
-          if (valueMode !== 'inside_full') return null;
+          // Inside value: drawn for 'inside' / 'both' (auto resolves narrow segments to 'below').
+          if (valueMode !== 'inside' && valueMode !== 'both') return null;
           const o = ov(seg.key);
           const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
-          const numText = fmt(Math.abs(seg.rawValue), rb.numberFormat);
+          const segNf = o.valueDecimals !== undefined ? { ...rb.numberFormat, decimalPlaces: o.valueDecimals } : rb.numberFormat;
+          const numText = fmt(Math.abs(seg.rawValue), segNf);
           const color = o.valueColor || (rb.valueColorMode === 'auto' ? getContrastColor(seg.color) : rb.valueColor);
           const vSize = o.valueFontSize ?? rb.valueFontSize;
           const vFamily = o.valueFontFamily || rb.valueFontFamily;
@@ -356,7 +374,7 @@ export const ResultBar = React.memo(function ResultBar({
 
         {/* Below values (connector line + precise value) */}
         {resolved.map(({ seg, valueMode }) => {
-          if (valueMode !== 'inside_compact_below') return null;
+          if (valueMode !== 'below' && valueMode !== 'both') return null;
           const o = ov(seg.key);
           const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
           const color = o.belowColor || fontStyleFor(rb.belowColorMode, rb.belowColor, seg.color);

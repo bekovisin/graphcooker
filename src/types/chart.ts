@@ -1124,7 +1124,7 @@ export interface HeatmapSettings {
 // rates, optional Info column for the difference bar. Big % inside wide segments;
 // narrow segments drop their value below the bar with a connector line; overflowing
 // names move into a legend row.
-export type ResultValuePosition = 'auto' | 'inside' | 'below' | 'hidden';
+export type ResultValuePosition = 'auto' | 'inside' | 'below' | 'both' | 'hidden';
 export type ResultNamePosition = 'auto' | 'above' | 'legend' | 'hidden';
 
 export interface ResultBarImageSettings {
@@ -1162,6 +1162,7 @@ export interface ResultSegmentOverride {
   valueFontFamily?: string;
   valueFontWeight?: FontWeight;
   valueLetterSpacing?: number;
+  valueDecimals?: number;        // custom decimal places for this segment's inside value
 }
 
 export interface ResultBarSettings {
