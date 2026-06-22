@@ -106,6 +106,7 @@ export const BarChartElection = React.memo(function BarChartElection({
   settings,
   width,
   height: heightProp,
+  seriesNames: seriesNamesProp,
   skipAnimation,
 }: BarChartElectionProps) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -133,25 +134,41 @@ export const BarChartElection = React.memo(function BarChartElection({
   const layout = settings.layout;
 
   // ─── Data Processing ────────────────────────────────────────────
-  const { categories, values, colors } = useMemo(() => {
-    const labelsCol = columnMapping.labels || '';
-    const valueCol = columnMapping.values?.[0] || '';
-    if (!labelsCol || !valueCol) return { categories: [], values: [], colors: [] };
+  // Dual-mode:
+  //  • 2+ value columns  → SERIES mode: each value column is a segment, read from the first row.
+  //    (candidates as columns / series, one row of rates — head-to-head layout)
+  //  • 1 value column    → ROWS mode (legacy): each data row is a segment.
+  const { categories, values, colors, srcRows } = useMemo(() => {
+    const empty = { categories: [] as string[], values: [] as number[], colors: [] as string[], srcRows: [] as DataRow[] };
+    const valueCols = columnMapping.values || [];
+    if (valueCols.length === 0) return empty;
+    const names = seriesNamesProp || columnMapping.seriesNames;
 
-    const cats: string[] = [];
-    const vals: number[] = [];
-    for (const row of data) {
-      const label = String(row[labelsCol] ?? '');
-      const val = Number(row[valueCol]) || 0;
-      if (label) {
-        cats.push(label);
-        vals.push(val);
-      }
+    if (valueCols.length >= 2) {
+      const row = data[0] || {};
+      const cats = valueCols.map((c) => names?.[c] || c);
+      const vals = valueCols.map((c) => Number(row[c]) || 0);
+      const resolvedColors = resolveColors(settings.colors, valueCols, names);
+      return { categories: cats, values: vals, colors: resolvedColors, srcRows: valueCols.map(() => row) };
     }
 
+    const labelsCol = columnMapping.labels || '';
+    const valueCol = valueCols[0];
+    if (!labelsCol) return empty;
+    const cats: string[] = [];
+    const vals: number[] = [];
+    const rows: DataRow[] = [];
+    for (const row of data) {
+      const label = String(row[labelsCol] ?? '');
+      if (label) {
+        cats.push(label);
+        vals.push(Number(row[valueCol]) || 0);
+        rows.push(row);
+      }
+    }
     const resolvedColors = resolveColors(settings.colors, cats);
-    return { categories: cats, values: vals, colors: resolvedColors };
-  }, [data, columnMapping, settings.colors]);
+    return { categories: cats, values: vals, colors: resolvedColors, srcRows: rows };
+  }, [data, columnMapping, settings.colors, seriesNamesProp]);
 
   const totalSum = useMemo(() => values.reduce((a, b) => a + b, 0), [values]);
 
@@ -238,6 +255,34 @@ export const BarChartElection = React.memo(function BarChartElection({
     return maxH;
   }, [categories, eb]);
 
+  // ─── Difference Bar ───────────────────────────────────────────
+  const db = eb.differenceBar;
+  const differenceInfo = useMemo(() => {
+    if (!db?.show || values.length === 0) return null;
+    // leader = largest segment, trailer = next largest
+    let leaderIdx = 0;
+    for (let i = 1; i < values.length; i++) if (values[i] > values[leaderIdx]) leaderIdx = i;
+    let trailerIdx = -1;
+    for (let i = 0; i < values.length; i++) {
+      if (i === leaderIdx) continue;
+      if (trailerIdx === -1 || values[i] > values[trailerIdx]) trailerIdx = i;
+    }
+    let value: number;
+    if (db.source === 'info' && columnMapping.info) {
+      value = Math.abs(Number(srcRows[leaderIdx]?.[columnMapping.info]) || 0);
+    } else {
+      value = Math.abs((values[leaderIdx] ?? 0) - (trailerIdx >= 0 ? values[trailerIdx] : 0));
+    }
+    return {
+      value,
+      leaderLabel: categories[leaderIdx] ?? '',
+      trailerLabel: trailerIdx >= 0 ? (categories[trailerIdx] ?? '') : '',
+      leaderColor: colors[leaderIdx] ?? db.color,
+    };
+  }, [db, values, categories, colors, srcRows, columnMapping.info]);
+
+  const differenceBarContribution = db?.show && differenceInfo ? db.marginTop + db.height : 0;
+
   // ─── Legend Height ────────────────────────────────────────────
   const legendSettings = settings.legend;
   const legendIsOverlay = legendSettings.position === 'overlay';
@@ -282,8 +327,8 @@ export const BarChartElection = React.memo(function BarChartElection({
   const totalHeight = useMemo(() => {
     const legendAbove = legendIsAbove ? legendHeight : 0;
     const legendBelow = !legendIsAbove && !legendIsOverlay ? legendHeight : 0;
-    return padding.top + legendAbove + labelsAboveHeight + eb.barHeight + labelsBelowHeight + infoHeight + legendBelow + padding.bottom;
-  }, [padding, labelsAboveHeight, labelsBelowHeight, eb.barHeight, infoHeight, legendHeight, legendIsAbove, legendIsOverlay]);
+    return padding.top + legendAbove + labelsAboveHeight + eb.barHeight + labelsBelowHeight + infoHeight + differenceBarContribution + legendBelow + padding.bottom;
+  }, [padding, labelsAboveHeight, labelsBelowHeight, eb.barHeight, infoHeight, differenceBarContribution, legendHeight, legendIsAbove, legendIsOverlay]);
 
   const chartHeight = heightProp || totalHeight;
 
@@ -330,16 +375,17 @@ export const BarChartElection = React.memo(function BarChartElection({
     >
       {/* Layout background */}
       <rect x="0" y="0" width={width} height={chartHeight} fill={layout.backgroundColor === 'transparent' ? 'none' : layout.backgroundColor} fillOpacity={layout.backgroundOpacity / 100} />
-      {/* ── Left Images ── */}
-      {eb.leftImage.show && categories.map((cat, ci) => {
+      {/* ── Left Image (leftmost segment) ── */}
+      {eb.leftImage.show && categories.length > 0 && (() => {
+        const cat = categories[0];
         const img = resolveImageSide(cat, eb.leftImage.perRowSettings, eb.leftImage.defaultSettings);
         if (!img.show || !img.url) return null;
         const imgX = padding.left + img.paddingLeft;
         const imgY = barY + (eb.barHeight - img.height) / 2 + img.paddingTop - img.paddingBottom;
         const br = img.borderRadius;
-        const clipId = `left-img-clip-${ci}`;
+        const clipId = `left-img-clip`;
         return (
-          <g key={`left-img-${ci}`}>
+          <g key="left-img">
             {br > 0 && (
               <defs>
                 <clipPath id={clipId}>
@@ -358,18 +404,19 @@ export const BarChartElection = React.memo(function BarChartElection({
             />
           </g>
         );
-      })}
+      })()}
 
-      {/* ── Right Images ── */}
-      {eb.rightImage.show && categories.map((cat, ci) => {
+      {/* ── Right Image (rightmost segment) ── */}
+      {eb.rightImage.show && categories.length > 0 && (() => {
+        const cat = categories[categories.length - 1];
         const img = resolveImageSide(cat, eb.rightImage.perRowSettings, eb.rightImage.defaultSettings);
         if (!img.show || !img.url) return null;
         const imgX = barLeft + plotWidth + img.paddingLeft;
         const imgY = barY + (eb.barHeight - img.height) / 2 + img.paddingTop - img.paddingBottom;
         const br = img.borderRadius;
-        const clipId = `right-img-clip-${ci}`;
+        const clipId = `right-img-clip`;
         return (
-          <g key={`right-img-${ci}`}>
+          <g key="right-img">
             {br > 0 && (
               <defs>
                 <clipPath id={clipId}>
@@ -388,7 +435,7 @@ export const BarChartElection = React.memo(function BarChartElection({
             />
           </g>
         );
-      })}
+      })()}
 
       {/* ── Bar Segments ── */}
       <g data-role="bar-segments">
@@ -543,6 +590,49 @@ export const BarChartElection = React.memo(function BarChartElection({
         );
       })}
 
+      {/* ── Difference / Margin Bar ── */}
+      {db?.show && differenceInfo && (() => {
+        const barTop = barY + eb.barHeight + labelsBelowHeight + infoHeight + db.marginTop;
+        const valueStr = formatElectionNumber(differenceInfo.value, db.numberFormat);
+        const text = (db.template || '{leader} +{value}')
+          .replace(/\{leader\}/g, differenceInfo.leaderLabel)
+          .replace(/\{trailer\}/g, differenceInfo.trailerLabel)
+          .replace(/\{value\}/g, valueStr);
+        const textColor = db.matchLeaderColor ? differenceInfo.leaderColor : db.color;
+        let tx: number;
+        let anchor: 'start' | 'middle' | 'end';
+        if (db.align === 'left') { tx = barLeft + 12; anchor = 'start'; }
+        else if (db.align === 'right') { tx = barLeft + plotWidth - 12; anchor = 'end'; }
+        else { tx = barLeft + plotWidth / 2; anchor = 'middle'; }
+        return (
+          <g key="difference-bar">
+            <rect
+              x={barLeft}
+              y={barTop}
+              width={plotWidth}
+              height={db.height}
+              rx={db.cornerRadius}
+              ry={db.cornerRadius}
+              fill={db.backgroundColor}
+            />
+            <text
+              x={tx}
+              y={barTop + db.height / 2}
+              textAnchor={anchor}
+              dominantBaseline="central"
+              fontSize={db.fontSize}
+              fontFamily={db.fontFamily}
+              fontWeight={fontWeightToCSS(db.fontWeight)}
+              fontStyle={db.fontStyle}
+              fill={textColor}
+              letterSpacing={db.letterSpacing}
+            >
+              {text}
+            </text>
+          </g>
+        );
+      })()}
+
       {/* ── Legend ── */}
       {legendSettings.show && (() => {
         const lPadT = legendSettings.paddingTop || 0;
@@ -558,7 +648,7 @@ export const BarChartElection = React.memo(function BarChartElection({
           ? barY + (legendSettings.overlayY ?? 10) + lPadT
           : legendIsAbove
             ? padding.top + (legendSettings.marginTop || 0) + lPadT
-            : barY + eb.barHeight + labelsBelowHeight + infoHeight + (legendSettings.marginTop || 0) + lPadT;
+            : barY + eb.barHeight + labelsBelowHeight + infoHeight + differenceBarContribution + (legendSettings.marginTop || 0) + lPadT;
 
         // Legend aligned to bar area
         const legendAreaLeft = barLeft + lPadL;

@@ -262,6 +262,7 @@ export function ElectionBarSection() {
     info: false,
     nf: false,
     images: false,
+    difference: false,
     legend: false,
   });
   const toggleSection = (key: string) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -521,6 +522,82 @@ export function ElectionBarSection() {
               <button className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 mt-1" onClick={() => setShowRightImgDialog(true)}>
                 <Settings2 className="w-3 h-3" /> Per-row right image settings
               </button>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── Difference Bar ── */}
+      <SubHeader collapsible open={openSections.difference} onToggle={() => toggleSection('difference')}>Difference Bar</SubHeader>
+      {openSections.difference && (
+        <>
+          <SettingRow label="Show difference bar">
+            <Switch checked={eb.differenceBar.show} onCheckedChange={(v) => update({ differenceBar: { ...eb.differenceBar, show: v } })} />
+          </SettingRow>
+          {eb.differenceBar.show && (
+            <>
+              <SettingRow label="Value source">
+                <Select value={eb.differenceBar.source} onValueChange={(v) => update({ differenceBar: { ...eb.differenceBar, source: v as 'info' | 'auto' } })}>
+                  <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info" className="text-xs">Info column</SelectItem>
+                    <SelectItem value="auto" className="text-xs">Auto (leader − next)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+              <SettingRow label="Template">
+                <Input value={eb.differenceBar.template} onChange={(e) => update({ differenceBar: { ...eb.differenceBar, template: e.target.value } })} className="h-7 text-xs w-full" />
+              </SettingRow>
+              <div className="text-[10px] text-gray-400 -mt-1">Placeholders: {'{leader} {trailer} {value}'}</div>
+              <SettingRow label="Height">
+                <NumberInput value={eb.differenceBar.height} onChange={(v) => update({ differenceBar: { ...eb.differenceBar, height: v } })} min={10} max={200} className="h-7 text-xs w-20" />
+              </SettingRow>
+              <SettingRow label="Margin top">
+                <NumberInput value={eb.differenceBar.marginTop} onChange={(v) => update({ differenceBar: { ...eb.differenceBar, marginTop: v } })} min={0} max={100} className="h-7 text-xs w-20" />
+              </SettingRow>
+              <SettingRow label="Background">
+                <ColorPicker value={eb.differenceBar.backgroundColor} onChange={(c) => update({ differenceBar: { ...eb.differenceBar, backgroundColor: c } })} />
+              </SettingRow>
+              <SettingRow label="Corner radius">
+                <NumberInput value={eb.differenceBar.cornerRadius} onChange={(v) => update({ differenceBar: { ...eb.differenceBar, cornerRadius: v } })} min={0} max={100} className="h-7 text-xs w-20" />
+              </SettingRow>
+              <SettingRow label="Align">
+                <Select value={eb.differenceBar.align} onValueChange={(v) => update({ differenceBar: { ...eb.differenceBar, align: v as 'left' | 'center' | 'right' } })}>
+                  <SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="left" className="text-xs">Left</SelectItem>
+                    <SelectItem value="center" className="text-xs">Center</SelectItem>
+                    <SelectItem value="right" className="text-xs">Right</SelectItem>
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+              <SettingRow label="Match leader color">
+                <Switch checked={eb.differenceBar.matchLeaderColor} onCheckedChange={(v) => update({ differenceBar: { ...eb.differenceBar, matchLeaderColor: v } })} />
+              </SettingRow>
+              {!eb.differenceBar.matchLeaderColor && (
+                <SettingRow label="Text color">
+                  <ColorPicker value={eb.differenceBar.color} onChange={(c) => update({ differenceBar: { ...eb.differenceBar, color: c } })} />
+                </SettingRow>
+              )}
+              <div className="grid grid-cols-3 gap-1 pt-1">
+                <Select value={eb.differenceBar.fontFamily} onValueChange={(v) => update({ differenceBar: { ...eb.differenceBar, fontFamily: v } })}>
+                  <SelectTrigger className="h-7 text-[10px] col-span-3"><SelectValue placeholder="Font" /></SelectTrigger>
+                  <SelectContent>{fontFamilyOptions.map((f) => <SelectItem key={f} value={f} className="text-xs">{f.split(',')[0]}</SelectItem>)}</SelectContent>
+                </Select>
+                <Select value={eb.differenceBar.fontWeight} onValueChange={(v) => update({ differenceBar: { ...eb.differenceBar, fontWeight: v as FontWeight } })}>
+                  <SelectTrigger className="h-7 text-[10px]"><SelectValue placeholder="Wt" /></SelectTrigger>
+                  <SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
+                </Select>
+                <div className="flex items-center gap-0.5">
+                  <NumberInput value={eb.differenceBar.fontSize} onChange={(v) => update({ differenceBar: { ...eb.differenceBar, fontSize: v } })} min={6} max={120} className="h-7 text-[10px] w-full" />
+                  <span className="text-[9px] text-gray-400">px</span>
+                </div>
+              </div>
+              <div className="text-[10px] font-medium text-gray-500 mt-2">Value number format</div>
+              <NumberFormatEditor
+                fmt={eb.differenceBar.numberFormat}
+                onChange={(updates) => update({ differenceBar: { ...eb.differenceBar, numberFormat: { ...eb.differenceBar.numberFormat, ...updates } } })}
+              />
             </>
           )}
         </>

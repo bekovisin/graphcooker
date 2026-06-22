@@ -880,6 +880,28 @@ export interface BarBackgroundSettings {
 export type ElectionSegmentAlign = 'left' | 'center' | 'right';
 export type ElectionLabelPosition = 'above_bar' | 'below_bar' | 'hidden';
 
+// Difference / margin bar shown below the main election bar (e.g. "İMAMOĞLU +14,70")
+export type ElectionDifferenceSource = 'info' | 'auto';
+
+export interface ElectionDifferenceBarSettings {
+  show: boolean;
+  source: ElectionDifferenceSource; // 'info' = value from the mapped Info column; 'auto' = leader − runner-up
+  height: number;
+  backgroundColor: string;
+  cornerRadius: number;
+  marginTop: number;                // gap below the main bar
+  template: string;                 // placeholders: {leader} {trailer} {value}
+  matchLeaderColor: boolean;        // text color follows the leading segment's color
+  color: string;                    // text color when matchLeaderColor is off
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: FontWeight;
+  fontStyle: FontStyle;
+  align: 'left' | 'center' | 'right';
+  letterSpacing: number;
+  numberFormat: ElectionPerRowNumberFormat;
+}
+
 export interface ElectionPerRowTextStyle {
   fontSize: number;
   fontFamily: string;
@@ -986,6 +1008,9 @@ export interface ElectionBarSettings {
     defaultSettings: ElectionRowImageSide;
     perRowSettings: Record<string, Partial<ElectionRowImageSide>>;
   };
+
+  // Difference / margin bar below the main bar
+  differenceBar: ElectionDifferenceBarSettings;
 }
 
 // ===== HEATMAP SETTINGS =====
