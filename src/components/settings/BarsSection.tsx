@@ -95,10 +95,12 @@ export function BarsSection() {
         suffix="px"
       />
 
-      {/* Proportional size — grouped bar chart only: bars fill a % of each category row */}
+      {/* Scale to 100% — grouped bar chart only: fixes the value axis to a reference max
+          (default 100) so bar LENGTHS reflect their share of that total instead of
+          auto-scaling the largest value to fill the plot. */}
       {chartType === 'bar_grouped' && (
         <>
-          <SettingRow label="Proportional size" variant="inline">
+          <SettingRow label="Scale to 100%" variant="inline">
             <Switch
               checked={settings.proportionalSize ?? false}
               onCheckedChange={(checked) => update({ proportionalSize: checked })}
@@ -106,14 +108,13 @@ export function BarsSection() {
           </SettingRow>
           {settings.proportionalSize && (
             <div className="space-y-3 pl-2 border-l-2 border-gray-100">
-              <SliderWithInput
-                label="Fill amount"
+              <NumberInput
+                label="Max value"
                 value={settings.proportionalSizeValue ?? 100}
                 onChange={(v) => update({ proportionalSizeValue: v })}
-                min={10}
-                max={100}
+                min={1}
+                max={100000}
                 step={1}
-                suffix="%"
               />
             </div>
           )}
