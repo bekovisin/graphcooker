@@ -12,6 +12,7 @@ import { BarChartElection } from '@/components/chart/BarChartElection';
 import { HeatmapChart } from '@/components/chart/HeatmapChart';
 import { DivergingBarChart } from '@/components/chart/DivergingBarChart';
 import { ColumnChart } from '@/components/chart/ColumnChart';
+import { ResultBar } from '@/components/chart/ResultBar';
 import type { QuestionSettings } from '@/types/chart';
 
 const deviceWidths: Record<string, string> = {
@@ -239,6 +240,16 @@ export function ChartPreview() {
             />
           ) : settings.chartType.chartType === 'column_chart' ? (
             <ColumnChart
+              data={data}
+              columnMapping={columnMapping}
+              settings={settings}
+              width={chartAreaWidth}
+              height={hasFixedHeight ? settings.chartType.standardHeight : undefined}
+              columnOrder={columnOrder}
+              seriesNames={seriesNames}
+            />
+          ) : settings.chartType.chartType === 'result_bar' ? (
+            <ResultBar
               data={data}
               columnMapping={columnMapping}
               settings={settings}

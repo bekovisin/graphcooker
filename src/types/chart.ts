@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2' | 'heatmap' | 'bar_diverging' | 'column_chart';
+export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2' | 'heatmap' | 'bar_diverging' | 'column_chart' | 'result_bar';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';
@@ -1119,6 +1119,122 @@ export interface HeatmapSettings {
   cornerRadius: number;
 }
 
+// ===== RESULT BAR (advanced election / vote bar) =====
+// A horizontal 100%-stacked result bar: segments = value columns (series), one row of
+// rates, optional Info column for the difference bar. Big % inside wide segments;
+// narrow segments drop their value below the bar with a connector line; overflowing
+// names move into a legend row.
+export type ResultValuePosition = 'auto' | 'inside' | 'below' | 'hidden';
+export type ResultNamePosition = 'auto' | 'above' | 'legend' | 'hidden';
+
+export interface ResultBarImageSettings {
+  show: boolean;
+  url: string;
+  width: number;
+  height: number;
+  borderRadius: number;
+  paddingX: number;
+}
+
+export interface ResultBarNumberFormat {
+  decimalPlaces: number;
+  thousandsSeparator: ThousandsSeparator;
+  decimalSeparator: DecimalSeparator;
+  prefix: string;
+  suffix: string;
+  showTrailingZeros: boolean;
+}
+
+export interface ResultSegmentOverride {
+  name?: string;
+  color?: string;
+  valuePosition?: ResultValuePosition;
+  namePosition?: ResultNamePosition;
+  valueColor?: string;
+  nameColor?: string;
+  belowColor?: string;
+}
+
+export interface ResultBarSettings {
+  // Bar layout
+  barHeight: number;
+  segmentSpacing: number;
+  cornerRadius: number;
+  barOpacity: number;
+  outline: boolean;
+  outlineColor: string;
+  outlineWidth: number;
+  manualPlotWidth: boolean;
+  manualPlotWidthValue: number;
+
+  // Value labels (the big % shown inside / below)
+  valuePosition: ResultValuePosition;
+  valueFontFamily: string;
+  valueFontSize: number;
+  valueFontWeight: FontWeight;
+  valueColorMode: 'auto' | 'custom'; // auto = contrast against the segment
+  valueColor: string;
+  valueAlignEdges: boolean;          // first segment left / last right / middle centered
+  valuePaddingX: number;
+  prefixShow: boolean;
+  prefixText: string;
+  prefixPosition: 'left' | 'right';
+  prefixFontSize: number;
+  numberFormat: ResultBarNumberFormat;
+
+  // Below-the-bar value (for narrow / overflow segments) — connector line + value
+  belowLineColor: string;
+  belowLineWidth: number;
+  belowLineLength: number;
+  belowGap: number;
+  belowFontSize: number;
+  belowFontWeight: FontWeight;
+  belowColorMode: 'match' | 'custom';  // match = segment color
+  belowColor: string;
+  belowNumberFormat: ResultBarNumberFormat;
+
+  // Names (above the bar / legend)
+  namePosition: ResultNamePosition;
+  nameFontFamily: string;
+  nameFontSize: number;
+  nameFontWeight: FontWeight;
+  nameColorMode: 'match' | 'custom';
+  nameColor: string;
+  nameGap: number;
+
+  // Legend (segments whose name is in legend mode)
+  legendDotSize: number;
+  legendFontSize: number;
+  legendFontWeight: FontWeight;
+  legendColor: string;
+  legendAlign: 'left' | 'center' | 'right';
+  legendGap: number;
+
+  // Difference / info bar
+  diffShow: boolean;
+  diffSource: 'info' | 'auto';
+  diffHeight: number;
+  diffBackgroundColor: string;
+  diffCornerRadius: number;
+  diffMarginTop: number;
+  diffTemplate: string;          // {leader} {trailer} {value}
+  diffMatchLeaderColor: boolean;
+  diffColor: string;
+  diffFontFamily: string;
+  diffFontSize: number;
+  diffFontWeight: FontWeight;
+  diffFontStyle: FontStyle;
+  diffAlign: 'left' | 'center' | 'right';
+  diffNumberFormat: ResultBarNumberFormat;
+
+  // Images
+  leftImage: ResultBarImageSettings;
+  rightImage: ResultBarImageSettings;
+
+  // Per-segment overrides (modal)
+  perSegment: Record<string, ResultSegmentOverride>;
+}
+
 // ===== MASTER SETTINGS OBJECT =====
 export interface ChartSettings {
   chartType: ChartTypeSettings;
@@ -1148,6 +1264,7 @@ export interface ChartSettings {
   barBackground: BarBackgroundSettings;
   rowImages: RowImagesSettings;
   electionBar: ElectionBarSettings;
+  resultBar: ResultBarSettings;
   lineInfoAnnotation: LineInfoAnnotationSettings;
   heatmap: HeatmapSettings;
   divergingBar: DivergingBarSettings;

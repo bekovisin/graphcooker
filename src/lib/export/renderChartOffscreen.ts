@@ -835,7 +835,9 @@ export async function renderChartOffscreen(
               ? (await import('@/components/chart/DivergingBarChart')).DivergingBarChart
               : chartType === 'column_chart'
                 ? (await import('@/components/chart/ColumnChart')).ColumnChart
-                : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
+                : chartType === 'result_bar'
+                  ? (await import('@/components/chart/ResultBar')).ResultBar
+                  : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
 
   // When auto height, don't pass a fixed height — let the chart compute its own
   const chartHeightProp = isAutoHeight ? undefined : (chartHeight > 0 ? chartHeight : undefined);
