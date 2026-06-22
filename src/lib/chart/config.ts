@@ -44,6 +44,8 @@ export const defaultChartSettings: ChartSettings = {
     outlineColor: '#ffffff',
     outlineWidth: 1,
     borderRadius: {},
+    proportionalSize: false,
+    proportionalSizeValue: 100,
   },
   columns: {
     mode: 'grouped',

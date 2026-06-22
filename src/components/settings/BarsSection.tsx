@@ -74,6 +74,7 @@ function SliderWithInput({ label, value, onChange, min, max, step, suffix }: Sli
 export function BarsSection() {
   const settings = useEditorStore((s) => s.settings.bars);
   const seriesNames = useEditorStore((s) => s.columnMapping.values || []);
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const updateSettings = useEditorStore((s) => s.updateSettings);
   const [showRadiusModal, setShowRadiusModal] = useState(false);
 
@@ -93,6 +94,31 @@ export function BarsSection() {
         step={1}
         suffix="px"
       />
+
+      {/* Proportional size — grouped bar chart only: bars fill a % of each category row */}
+      {chartType === 'bar_grouped' && (
+        <>
+          <SettingRow label="Proportional size" variant="inline">
+            <Switch
+              checked={settings.proportionalSize ?? false}
+              onCheckedChange={(checked) => update({ proportionalSize: checked })}
+            />
+          </SettingRow>
+          {settings.proportionalSize && (
+            <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+              <SliderWithInput
+                label="Fill amount"
+                value={settings.proportionalSizeValue ?? 100}
+                onChange={(v) => update({ proportionalSizeValue: v })}
+                min={10}
+                max={100}
+                step={1}
+                suffix="%"
+              />
+            </div>
+          )}
+        </>
+      )}
 
       {/* Spacing (main) - gap between bars in px */}
       <SliderWithInput

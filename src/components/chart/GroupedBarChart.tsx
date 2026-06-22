@@ -535,7 +535,7 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
   // Sum of per-category label heights for non-empty categories (used in height calculations)
   const totalLabelRowHeight = labelRowHeights.reduce((sum, h, ci) => sum + (isEmptyCategory[ci] ? 0 : h), 0);
 
-  const barHeight = (() => {
+  const baseBarHeight = (() => {
     if (heightProp && categories.length > 0 && nonEmptyCount > 0) {
       const nonBarSpace = padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight) + bottomBarPadding;
       const availableForBars = heightProp - nonBarSpace - emptyCount * emptyRowSpacing - totalLabelRowHeight;
@@ -545,19 +545,28 @@ export const GroupedBarChart = React.memo(function GroupedBarChart({ data, colum
     return settings.bars.barHeight;
   })();
 
+  // Proportional size: bars fill a percentage of each category's row pitch (bar + main spacing).
+  // At 100% the bars expand to fill the row completely (no gap between groups); the row pitch —
+  // and therefore the overall chart height — stays the same regardless of the fill amount.
+  const proportionalSize = settings.bars.proportionalSize ?? false;
+  const proportionalPct = settings.bars.proportionalSizeValue ?? 100;
+  const rowPitch = baseBarHeight + spacingMain;
+  const barHeight = proportionalSize ? Math.max(2, rowPitch * (proportionalPct / 100)) : baseBarHeight;
+  const spacingMainEff = proportionalSize ? Math.max(0, rowPitch - barHeight) : spacingMain;
+
   // Build cumulative Y offsets for each category (per-category heights)
   const catYOffsets = useMemo(() => {
     const offsets: number[] = [];
     let cumY = 0;
     for (let ci = 0; ci < categories.length; ci++) {
       offsets.push(cumY);
-      cumY += isEmptyCategory[ci] ? emptyRowSpacing : (barHeight + spacingMain + labelRowHeights[ci]);
+      cumY += isEmptyCategory[ci] ? emptyRowSpacing : (barHeight + spacingMainEff + labelRowHeights[ci]);
     }
     return offsets;
-  }, [categories.length, isEmptyCategory, emptyRowSpacing, barHeight, spacingMain, labelRowHeights]);
+  }, [categories.length, isEmptyCategory, emptyRowSpacing, barHeight, spacingMainEff, labelRowHeights]);
 
   const totalBarsHeight = catYOffsets.length > 0
-    ? catYOffsets[catYOffsets.length - 1] + (isEmptyCategory[categories.length - 1] ? emptyRowSpacing : (barHeight + spacingMain + labelRowHeights[categories.length - 1])) + bottomBarPadding
+    ? catYOffsets[catYOffsets.length - 1] + (isEmptyCategory[categories.length - 1] ? emptyRowSpacing : (barHeight + spacingMainEff + labelRowHeights[categories.length - 1])) + bottomBarPadding
     : bottomBarPadding;
 
   const computedChartHeight = totalBarsHeight + padding.top + padding.bottom + legendAboveOffset + (legendIsAbove ? 0 : legendHeight);

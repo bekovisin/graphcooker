@@ -70,6 +70,10 @@ export interface BarsSettings {
   borderRadius: Record<string, { tl: number; tr: number; bl: number; br: number }>;
   manualPlotWidth?: boolean;
   manualPlotWidthValue?: number;
+  // Proportional sizing (grouped bar chart): when on, bars fill a percentage of each
+  // category's row pitch — at 100% they expand to fill the row completely.
+  proportionalSize?: boolean;
+  proportionalSizeValue?: number;
 }
 
 // ===== COLUMN CHART (vertical bars) =====
