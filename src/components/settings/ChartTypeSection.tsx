@@ -25,6 +25,7 @@ const chartTypeOptions: { value: ChartType; label: string }[] = [
   { value: 'bar_grouped', label: 'Bar chart grouped' },
   { value: 'bar_chart_custom_2', label: 'Bar chart custom 2' },
   { value: 'bar_stacked_2', label: 'Bar chart stacked 2 (Election)' },
+  { value: 'column_chart', label: 'Column chart' },
   { value: 'line_chart', label: 'Line chart' },
   { value: 'heatmap', label: 'Heatmap' },
   { value: 'bar_diverging', label: 'Diverging bar chart' },

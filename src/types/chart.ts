@@ -1,6 +1,6 @@
 // ===== CHART SETTINGS TYPES =====
 
-export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2' | 'heatmap' | 'bar_diverging';
+export type ChartType = 'bar_stacked_custom' | 'bar_grouped' | 'line_chart' | 'bar_chart_custom_2' | 'bar_stacked_2' | 'heatmap' | 'bar_diverging' | 'column_chart';
 
 export type StackSortMode = 'normal' | 'ascending' | 'descending';
 export type GridMode = 'single' | 'grid';
@@ -70,6 +70,33 @@ export interface BarsSettings {
   borderRadius: Record<string, { tl: number; tr: number; bl: number; br: number }>;
   manualPlotWidth?: boolean;
   manualPlotWidthValue?: number;
+}
+
+// ===== COLUMN CHART (vertical bars) =====
+export type ColumnMode = 'grouped' | 'stacked' | 'stacked_100';
+export type ColumnValuePosition = 'above' | 'inside_top' | 'inside_center' | 'inside_bottom';
+
+export interface ColumnsSettings {
+  // Stacking / layout mode
+  mode: ColumnMode;
+  // Geometry — fractions of the per-category band
+  columnWidth: number;       // 0.1–1: how much of the category band the column group occupies
+  groupSpacing: number;      // 0–0.5: gap fraction between columns inside a group (grouped mode)
+  maxColumnWidth: number;    // px cap for a single column, 0 = no cap
+  minColumnHeight: number;   // px floor so small non-zero values stay visible, 0 = off
+  cornerRadius: number;      // top-corner radius (px)
+  opacity: number;           // 0–1
+  outline: boolean;
+  outlineColor: string;
+  outlineWidth: number;
+  // Value labels drawn on / above columns
+  showValues: boolean;
+  valuePosition: ColumnValuePosition;
+  valueFontFamily: string;
+  valueFontSize: number;
+  valueFontWeight: FontWeight;
+  valueColorMode: 'auto' | 'custom'; // auto = contrast when inside, dark when above
+  valueColor: string;
 }
 
 // Lines, Dots and Areas (Line chart)
@@ -1069,6 +1096,7 @@ export interface ChartSettings {
   controlsFilters: ControlsFiltersSettings;
   colors: ColorsSettings;
   bars: BarsSettings;
+  columns: ColumnsSettings;
   lineDotsAreas: LineDotsAreasSettings;
   labels: LabelsSettings;
   xAxis: XAxisSettings;

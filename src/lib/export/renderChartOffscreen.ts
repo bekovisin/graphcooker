@@ -833,7 +833,9 @@ export async function renderChartOffscreen(
             ? (await import('@/components/chart/HeatmapChart')).HeatmapChart
             : chartType === 'bar_diverging'
               ? (await import('@/components/chart/DivergingBarChart')).DivergingBarChart
-              : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
+              : chartType === 'column_chart'
+                ? (await import('@/components/chart/ColumnChart')).ColumnChart
+                : (await import('@/components/chart/CustomBarChart')).CustomBarChart;
 
   // When auto height, don't pass a fixed height — let the chart compute its own
   const chartHeightProp = isAutoHeight ? undefined : (chartHeight > 0 ? chartHeight : undefined);

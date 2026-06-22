@@ -37,6 +37,7 @@ import { LineInfoAnnotationSection } from '@/components/settings/LineInfoAnnotat
 import { DesignVersionSection } from '@/components/settings/DesignVersionSection';
 import { HeatmapSection } from '@/components/settings/HeatmapSection';
 import { DivergingBarSection } from '@/components/settings/DivergingBarSection';
+import { ColumnsSection } from '@/components/settings/ColumnsSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
@@ -124,6 +125,27 @@ const lineSections = [
   { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
 ];
 
+const columnSections = [
+  { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
+  { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
+  { id: 'controls-filters', title: 'Controls & filters', Component: ControlsFiltersSection },
+  { id: 'colors', title: 'Colors', Component: ColorsSection },
+  { id: 'columns', title: 'Columns', Component: ColumnsSection },
+  { id: 'x-axis', title: 'Value axis', Component: XAxisSection },
+  { id: 'y-axis', title: 'Category axis', Component: YAxisSection },
+  { id: 'plot-background', title: 'Plot background', Component: PlotBackgroundSection },
+  { id: 'number-formatting', title: 'Number formatting', Component: NumberFormattingSection },
+  { id: 'legend', title: 'Legend', Component: LegendSection },
+  { id: 'popups-panels', title: 'Popups & panels', Component: PopupsPanelsSection },
+  { id: 'annotations', title: 'Annotations', Component: AnnotationsSection },
+  { id: 'animations', title: 'Animations', Component: AnimationsSection },
+  { id: 'layout', title: 'Layout', Component: LayoutSection },
+  { id: 'question', title: 'Question', Component: QuestionSection },
+  { id: 'header', title: 'Header', Component: HeaderSection },
+  { id: 'footer', title: 'Footer', Component: FooterSection },
+  { id: 'accessibility', title: 'Accessibility', Component: AccessibilitySection },
+];
+
 const heatmapSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
   { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
@@ -173,7 +195,9 @@ export function SettingsPanel() {
           ? heatmapSections
           : chartType === 'bar_diverging'
             ? divergingBarSections
-            : barSections;
+            : chartType === 'column_chart'
+              ? columnSections
+              : barSections;
   const activePreset = presets.find((p) => p.id === activePresetId);
 
   // Filter by search query first

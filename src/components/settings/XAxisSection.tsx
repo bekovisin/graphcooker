@@ -271,6 +271,7 @@ export function XAxisSection() {
   const numberFormatting = useEditorStore((s) => s.settings.numberFormatting);
   const chartData = useEditorStore((s) => s.data);
   const columnMapping = useEditorStore((s) => s.columnMapping);
+  const chartType = useEditorStore((s) => s.settings.chartType.chartType);
   const updateSettings = useEditorStore((s) => s.updateSettings);
 
   const allTickLabels = useMemo(() => {
@@ -334,7 +335,7 @@ export function XAxisSection() {
   };
 
   return (
-    <AccordionSection id="x-axis" title="X axis">
+    <AccordionSection id="x-axis" title={chartType === 'column_chart' ? 'Value axis' : 'X axis'}>
       {/* Position — 5-button tab menu */}
       <SettingRow label="Position">
         <TabMenu

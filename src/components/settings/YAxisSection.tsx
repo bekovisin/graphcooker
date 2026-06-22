@@ -625,7 +625,7 @@ export function YAxisSection() {
   }
 
   return (
-    <AccordionSection id="y-axis" title="Y axis">
+    <AccordionSection id="y-axis" title={chartType === 'column_chart' ? 'Category axis' : 'Y axis'}>
       {/* Position — 3-button tab menu */}
       <SettingRow label="Position">
         <TabMenu
