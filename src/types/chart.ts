@@ -1158,6 +1158,10 @@ export interface ResultSegmentOverride {
   valueAlign?: 'left' | 'center' | 'right';
   valuePadX?: number;            // horizontal nudge (custom padding)
   valuePadY?: number;            // vertical nudge (custom padding)
+  valueFontSize?: number;
+  valueFontFamily?: string;
+  valueFontWeight?: FontWeight;
+  valueLetterSpacing?: number;
 }
 
 export interface ResultBarSettings {
@@ -1179,6 +1183,7 @@ export interface ResultBarSettings {
   valueFontWeight: FontWeight;
   valueColorMode: 'auto' | 'custom'; // auto = contrast against the segment
   valueColor: string;
+  valueLetterSpacing: number;
   valueAlignEdges: boolean;          // first segment left / last right / middle centered
   valuePaddingX: number;
   prefixShow: boolean;

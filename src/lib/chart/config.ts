@@ -671,6 +671,7 @@ export const defaultChartSettings: ChartSettings = {
     valueFontWeight: 'bold' as const,
     valueColorMode: 'auto' as const,
     valueColor: '#ffffff',
+    valueLetterSpacing: 0,
     valueAlignEdges: true,
     valuePaddingX: 20,
     prefixShow: true,

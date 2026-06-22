@@ -103,11 +103,20 @@ export const ResultBar = React.memo(function ResultBar({
     const nameMap = seriesNamesProp || columnMapping.seriesNames || {};
     if (valueCols.length === 0) return { keys: [] as string[], names: [] as string[], rawVals: [] as number[], colors: [] as string[] };
 
+    // A cell counts as data only if it is present and non-zero (empty / 0 cells are skipped
+    // entirely so no phantom "0,0" segments or labels appear).
+    const hasData = (cell: unknown) => {
+      if (cell === '' || cell == null) return false;
+      const v = Number(cell);
+      return !isNaN(v) && v !== 0;
+    };
+
     // series mode when 2+ columns, or a single column with a single row
     if (valueCols.length >= 2 || data.length <= 1) {
       const row = data[0] || {};
-      const dn = valueCols.map((c) => nameMap[c] || c);
-      const vals = valueCols.map((c) => Number(row[c]) || 0);
+      const kept = valueCols.filter((c) => hasData(row[c]));
+      const dn = kept.map((c) => nameMap[c] || c);
+      const vals = kept.map((c) => Number(row[c]));
       const cols = resolveColors(settings.colors, dn);
       return { keys: dn, names: dn, rawVals: vals, colors: cols };
     }
@@ -117,7 +126,7 @@ export const ResultBar = React.memo(function ResultBar({
     const ks: string[] = []; const vals: number[] = [];
     for (const row of data) {
       const label = String(row[labelsCol] ?? '');
-      if (label) { ks.push(label); vals.push(Number(row[vc]) || 0); }
+      if (label && hasData(row[vc])) { ks.push(label); vals.push(Number(row[vc])); }
     }
     return { keys: ks, names: ks, rawVals: vals, colors: resolveColors(settings.colors, ks) };
   }, [data, columnMapping, settings.colors, seriesNamesProp]);
@@ -313,23 +322,21 @@ export const ResultBar = React.memo(function ResultBar({
 
         {/* Inside values */}
         {resolved.map(({ seg, valueMode }) => {
-          if (valueMode === 'hidden') return null;
+          // Only the value that fits is drawn inside — narrow segments show their value
+          // below (via the connector line) at full size, so nothing ever shrinks.
+          if (valueMode !== 'inside_full') return null;
           const o = ov(seg.key);
-          const compact = valueMode === 'inside_compact_below';
           const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
-          const numText = fmt(Math.abs(seg.rawValue), compact ? { ...rb.numberFormat, decimalPlaces: 0, showTrailingZeros: false } : rb.numberFormat);
+          const numText = fmt(Math.abs(seg.rawValue), rb.numberFormat);
           const color = o.valueColor || (rb.valueColorMode === 'auto' ? getContrastColor(seg.color) : rb.valueColor);
-          // Shrink the value to fit a narrow (overflow) segment so it never spills over neighbours
-          let vSize = rb.valueFontSize;
-          if (compact) {
-            const tW = measureTextWidth((segPrefixShow ? rb.prefixText : '') + numText, rb.valueFontSize, rb.valueFontFamily, rb.valueFontWeight);
-            const avail = seg.w - 6;
-            if (tW > avail && tW > 0) vSize = Math.max(11, rb.valueFontSize * (avail / tW));
-          }
+          const vSize = o.valueFontSize ?? rb.valueFontSize;
+          const vFamily = o.valueFontFamily || rb.valueFontFamily;
+          const vWeight = o.valueFontWeight || rb.valueFontWeight;
+          const vLetter = o.valueLetterSpacing ?? rb.valueLetterSpacing;
           const pxSize = rb.prefixFontSize * (vSize / rb.valueFontSize);
           const padX = o.valuePadX ?? 0;
           const padY = o.valuePadY ?? 0;
-          const edgeAlign = rb.valueAlignEdges && !compact ? (seg.isFirst ? 'left' : seg.isLast ? 'right' : 'center') : 'center';
+          const edgeAlign = rb.valueAlignEdges ? (seg.isFirst ? 'left' : seg.isLast ? 'right' : 'center') : 'center';
           const align = o.valueAlign || edgeAlign;
           let x: number; let anchor: 'start' | 'middle' | 'end';
           if (align === 'left') { x = seg.x + rb.valuePaddingX + padX; anchor = 'start'; }
@@ -339,7 +346,7 @@ export const ResultBar = React.memo(function ResultBar({
           const px = rb.prefixText;
           return (
             <text key={`val-${seg.index}`} x={x} y={y} textAnchor={anchor} dominantBaseline="central"
-              fontSize={vSize} fontFamily={rb.valueFontFamily} fontWeight={fontWeightToCSS(rb.valueFontWeight)} fill={color}>
+              fontSize={vSize} fontFamily={vFamily} fontWeight={fontWeightToCSS(vWeight)} fill={color} letterSpacing={vLetter}>
               {segPrefixShow && rb.prefixPosition === 'left' && <tspan fontSize={pxSize}>{px}</tspan>}
               <tspan>{numText}</tspan>
               {segPrefixShow && rb.prefixPosition === 'right' && <tspan fontSize={pxSize}>{px}</tspan>}
