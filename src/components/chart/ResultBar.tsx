@@ -29,6 +29,21 @@ function roundedRect(x: number, y: number, w: number, h: number, r: number): str
   return `M${x + radius},${y} h${w - 2 * radius} a${radius},${radius} 0 0 1 ${radius},${radius} v${h - 2 * radius} a${radius},${radius} 0 0 1 ${-radius},${radius} h${-(w - 2 * radius)} a${radius},${radius} 0 0 1 ${-radius},${-radius} v${-(h - 2 * radius)} a${radius},${radius} 0 0 1 ${radius},${-radius} Z`;
 }
 
+// Strip the **bold** markers for width measurement
+function stripMarks(s: string): string {
+  return s.replace(/\*\*/g, '');
+}
+
+// Render text with **double-asterisk** parts in a bolder weight (e.g. "Ekrem **İMAMOĞLU**")
+function renderRich(text: string, baseW: string, boldW: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
+  return parts.map((p, i) =>
+    p.startsWith('**') && p.endsWith('**')
+      ? <tspan key={i} fontWeight={fontWeightToCSS(boldW)}>{p.slice(2, -2)}</tspan>
+      : <tspan key={i} fontWeight={fontWeightToCSS(baseW)}>{p}</tspan>
+  );
+}
+
 interface Seg {
   key: string;
   name: string;
@@ -113,8 +128,9 @@ export const ResultBar = React.memo(function ResultBar({
   const pad = { top: settings.layout.paddingTop, right: settings.layout.paddingRight, bottom: settings.layout.paddingBottom, left: settings.layout.paddingLeft };
   const leftImgSpace = rb.leftImage.show && rb.leftImage.url ? rb.leftImage.width + rb.leftImage.paddingX * 2 : 0;
   const rightImgSpace = rb.rightImage.show && rb.rightImage.url ? rb.rightImage.width + rb.rightImage.paddingX * 2 : 0;
-  const plotWidth = rb.manualPlotWidth ? rb.manualPlotWidthValue : Math.max(10, width - pad.left - pad.right - leftImgSpace - rightImgSpace);
-  const barLeft = pad.left + leftImgSpace;
+  const legendSideBlock = rb.legendPosition === 'left' || rb.legendPosition === 'right' ? rb.legendWidth : 0;
+  const plotWidth = rb.manualPlotWidth ? rb.manualPlotWidthValue : Math.max(10, width - pad.left - pad.right - leftImgSpace - rightImgSpace - legendSideBlock);
+  const barLeft = pad.left + leftImgSpace + (rb.legendPosition === 'left' ? legendSideBlock : 0);
 
   // ── Resolve per-segment label placement ──
   const segs: Seg[] = useMemo(() => {
@@ -142,7 +158,7 @@ export const ResultBar = React.memo(function ResultBar({
       const fullText = (rb.prefixShow && rb.prefixPosition === 'left' ? rb.prefixText : '') + fmt(Math.abs(seg.rawValue), rb.numberFormat) + (rb.prefixShow && rb.prefixPosition === 'right' ? rb.prefixText : '');
       const fullW = measureTextWidth(fullText, rb.valueFontSize, rb.valueFontFamily, rb.valueFontWeight);
       const fitsValue = seg.w >= fullW + rb.valuePaddingX * 2;
-      const nameW = measureTextWidth(seg.name, rb.nameFontSize, rb.nameFontFamily, rb.nameFontWeight);
+      const nameW = measureTextWidth(stripMarks(seg.name), rb.nameFontSize, rb.nameFontFamily, rb.nameBoldWeight);
       const fitsName = seg.w >= nameW;
 
       const vPos = o.valuePosition || rb.valuePosition;
@@ -165,12 +181,22 @@ export const ResultBar = React.memo(function ResultBar({
 
   const anyAbove = resolved.some((r) => r.nameMode === 'above');
   const anyBelow = resolved.some((r) => r.valueMode === 'inside_compact_below');
-  const anyLegend = resolved.some((r) => r.nameMode === 'legend');
+
+  // Legend membership: auto = nameMode 'legend'; per-segment legendVisibleRows forces in/out.
+  const legendItems = resolved
+    .filter((r) => {
+      const v = rb.legendVisibleRows?.[r.seg.key];
+      return v === undefined ? r.nameMode === 'legend' : v;
+    })
+    .map((r) => r.seg);
+  const legendBelow = rb.legendPosition === 'below' && legendItems.length > 0;
 
   const aboveHeight = anyAbove ? rb.nameFontSize + rb.nameGap : 0;
   const belowValHeight = anyBelow ? rb.belowGap + rb.belowLineLength + rb.belowFontSize + 4 : 0;
-  const legendHeight = anyLegend ? rb.legendGap + rb.legendFontSize + 4 : 0;
-  const belowBandHeight = Math.max(belowValHeight, legendHeight);
+  const legendBelowHeight = legendBelow
+    ? rb.legendGap + (rb.legendOrientation === 'vertical' ? legendItems.length * (rb.legendFontSize + rb.legendItemGapY) : rb.legendFontSize) + 4
+    : 0;
+  const belowBandHeight = Math.max(belowValHeight, legendBelowHeight);
 
   // ── Difference info ──
   const diffInfo = useMemo(() => {
@@ -196,9 +222,19 @@ export const ResultBar = React.memo(function ResultBar({
 
   const diffContribution = rb.diffShow && diffInfo ? rb.diffMarginTop + rb.diffHeight : 0;
 
-  const barY = pad.top + aboveHeight;
+  // Images may be taller than the bar — reserve the overhang above/below so they aren't clipped.
+  const imgMaxH = Math.max(
+    rb.leftImage.show && rb.leftImage.url ? rb.leftImage.height : 0,
+    rb.rightImage.show && rb.rightImage.url ? rb.rightImage.height : 0,
+  );
+  const imgOverhang = Math.max(0, (imgMaxH - rb.barHeight) / 2);
+
+  const topSpace = Math.max(aboveHeight, imgOverhang);
+  const barY = pad.top + topSpace;
   const barBottom = barY + rb.barHeight;
-  const totalHeight = pad.top + aboveHeight + rb.barHeight + belowBandHeight + diffContribution + pad.bottom;
+  const contentBottom = barBottom + belowBandHeight + diffContribution;
+  const imageBottom = barBottom + imgOverhang;
+  const totalHeight = Math.max(contentBottom, imageBottom) + pad.bottom;
   const chartHeight = heightProp || totalHeight;
 
   if (keys.length === 0 || total === 0) {
@@ -269,8 +305,8 @@ export const ResultBar = React.memo(function ResultBar({
           else { x = seg.x + seg.w / 2; anchor = 'middle'; }
           return (
             <text key={`name-${seg.index}`} x={x} y={barY - rb.nameGap} textAnchor={anchor}
-              fontSize={rb.nameFontSize} fontFamily={rb.nameFontFamily} fontWeight={fontWeightToCSS(rb.nameFontWeight)} fill={color}>
-              {seg.name}
+              fontSize={rb.nameFontSize} fontFamily={rb.nameFontFamily} fill={color}>
+              {renderRich(seg.name, rb.nameFontWeight, rb.nameBoldWeight)}
             </text>
           );
         })}
@@ -280,28 +316,33 @@ export const ResultBar = React.memo(function ResultBar({
           if (valueMode === 'hidden') return null;
           const o = ov(seg.key);
           const compact = valueMode === 'inside_compact_below';
+          const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
           const numText = fmt(Math.abs(seg.rawValue), compact ? { ...rb.numberFormat, decimalPlaces: 0, showTrailingZeros: false } : rb.numberFormat);
           const color = o.valueColor || (rb.valueColorMode === 'auto' ? getContrastColor(seg.color) : rb.valueColor);
           // Shrink the value to fit a narrow (overflow) segment so it never spills over neighbours
           let vSize = rb.valueFontSize;
           if (compact) {
-            const tW = measureTextWidth((rb.prefixShow ? rb.prefixText : '') + numText, rb.valueFontSize, rb.valueFontFamily, rb.valueFontWeight);
+            const tW = measureTextWidth((segPrefixShow ? rb.prefixText : '') + numText, rb.valueFontSize, rb.valueFontFamily, rb.valueFontWeight);
             const avail = seg.w - 6;
             if (tW > avail && tW > 0) vSize = Math.max(11, rb.valueFontSize * (avail / tW));
           }
           const pxSize = rb.prefixFontSize * (vSize / rb.valueFontSize);
+          const padX = o.valuePadX ?? 0;
+          const padY = o.valuePadY ?? 0;
+          const edgeAlign = rb.valueAlignEdges && !compact ? (seg.isFirst ? 'left' : seg.isLast ? 'right' : 'center') : 'center';
+          const align = o.valueAlign || edgeAlign;
           let x: number; let anchor: 'start' | 'middle' | 'end';
-          if (!compact && rb.valueAlignEdges && seg.isFirst) { x = seg.x + rb.valuePaddingX; anchor = 'start'; }
-          else if (!compact && rb.valueAlignEdges && seg.isLast) { x = seg.x + seg.w - rb.valuePaddingX; anchor = 'end'; }
-          else { x = seg.x + seg.w / 2; anchor = 'middle'; }
-          const y = barY + rb.barHeight / 2;
-          const px = rb.prefixShow ? rb.prefixText : '';
+          if (align === 'left') { x = seg.x + rb.valuePaddingX + padX; anchor = 'start'; }
+          else if (align === 'right') { x = seg.x + seg.w - rb.valuePaddingX - padX; anchor = 'end'; }
+          else { x = seg.x + seg.w / 2 + padX; anchor = 'middle'; }
+          const y = barY + rb.barHeight / 2 + padY;
+          const px = rb.prefixText;
           return (
             <text key={`val-${seg.index}`} x={x} y={y} textAnchor={anchor} dominantBaseline="central"
               fontSize={vSize} fontFamily={rb.valueFontFamily} fontWeight={fontWeightToCSS(rb.valueFontWeight)} fill={color}>
-              {rb.prefixShow && rb.prefixPosition === 'left' && <tspan fontSize={pxSize}>{px}</tspan>}
+              {segPrefixShow && rb.prefixPosition === 'left' && <tspan fontSize={pxSize}>{px}</tspan>}
               <tspan>{numText}</tspan>
-              {rb.prefixShow && rb.prefixPosition === 'right' && <tspan fontSize={pxSize}>{px}</tspan>}
+              {segPrefixShow && rb.prefixPosition === 'right' && <tspan fontSize={pxSize}>{px}</tspan>}
             </text>
           );
         })}
@@ -310,11 +351,12 @@ export const ResultBar = React.memo(function ResultBar({
         {resolved.map(({ seg, valueMode }) => {
           if (valueMode !== 'inside_compact_below') return null;
           const o = ov(seg.key);
+          const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
           const color = o.belowColor || fontStyleFor(rb.belowColorMode, rb.belowColor, seg.color);
           const cx = seg.x + seg.w / 2;
           const lineTop = barBottom + rb.belowGap;
           const lineBottom = lineTop + rb.belowLineLength;
-          const text = (rb.prefixShow && rb.prefixPosition === 'left' ? rb.prefixText : '') + fmt(Math.abs(seg.rawValue), rb.belowNumberFormat) + (rb.prefixShow && rb.prefixPosition === 'right' ? rb.prefixText : '');
+          const text = (segPrefixShow && rb.prefixPosition === 'left' ? rb.prefixText : '') + fmt(Math.abs(seg.rawValue), rb.belowNumberFormat) + (segPrefixShow && rb.prefixPosition === 'right' ? rb.prefixText : '');
           return (
             <g key={`below-${seg.index}`}>
               <line x1={cx} y1={lineTop} x2={cx} y2={lineBottom} stroke={rb.belowLineColor} strokeWidth={rb.belowLineWidth} />
@@ -325,27 +367,42 @@ export const ResultBar = React.memo(function ResultBar({
           );
         })}
 
-        {/* Legend (overflow names) */}
-        {anyLegend && (() => {
-          const items = resolved.filter((r) => r.nameMode === 'legend').map((r) => r.seg);
+        {/* Legend */}
+        {legendItems.length > 0 && (() => {
           const dot = rb.legendDotSize;
           const gap = 6;
-          const itemGap = 16;
-          const widths = items.map((s) => dot + gap + measureTextWidth(s.name, rb.legendFontSize, rb.nameFontFamily, rb.legendFontWeight));
-          const totalW = widths.reduce((a, b) => a + b, 0) + (items.length - 1) * itemGap;
-          let startX = barLeft;
-          if (rb.legendAlign === 'center') startX = barLeft + (plotWidth - totalW) / 2;
-          else if (rb.legendAlign === 'right') startX = barLeft + plotWidth - totalW;
+          const itemGapX = rb.legendItemGapX;
+          const itemGapY = rb.legendItemGapY;
+          const isSide = rb.legendPosition !== 'below';
+          const vertical = rb.legendOrientation === 'vertical' || isSide;
+          const widths = legendItems.map((s) => dot + gap + measureTextWidth(stripMarks(s.name), rb.legendFontSize, rb.nameFontFamily, rb.legendFontWeight));
+          const renderItem = (s: Seg, x: number, y: number, i: number) => (
+            <g key={`leg-${i}`}>
+              <circle cx={x + dot / 2} cy={y} r={dot / 2} fill={s.color} />
+              <text x={x + dot + gap} y={y} dominantBaseline="central" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fill={rb.legendColor}>{renderRich(s.name, rb.legendFontWeight, rb.nameBoldWeight)}</text>
+            </g>
+          );
+
+          // Origin of the legend block
+          let originX: number;
+          if (rb.legendPosition === 'left') originX = pad.left + leftImgSpace;
+          else if (rb.legendPosition === 'right') originX = barLeft + plotWidth + rightImgSpace + 8;
+          else {
+            const totalW = vertical ? Math.max(...widths) : widths.reduce((a, b) => a + b, 0) + (legendItems.length - 1) * itemGapX;
+            originX = barLeft;
+            if (rb.legendAlign === 'center') originX = barLeft + (plotWidth - totalW) / 2;
+            else if (rb.legendAlign === 'right') originX = barLeft + plotWidth - totalW;
+          }
+
+          if (vertical) {
+            const baseY = isSide ? barY + rb.legendFontSize / 2 : barBottom + rb.legendGap + rb.legendFontSize / 2;
+            return legendItems.map((s, i) => renderItem(s, originX, baseY + i * (rb.legendFontSize + itemGapY), i));
+          }
           const y = barBottom + rb.legendGap + rb.legendFontSize / 2;
-          let cx = startX;
-          return items.map((s, i) => {
-            const el = (
-              <g key={`leg-${i}`}>
-                <circle cx={cx + dot / 2} cy={y} r={dot / 2} fill={s.color} />
-                <text x={cx + dot + gap} y={y} dominantBaseline="central" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fontWeight={fontWeightToCSS(rb.legendFontWeight)} fill={rb.legendColor}>{s.name}</text>
-              </g>
-            );
-            cx += widths[i] + itemGap;
+          let cx = originX;
+          return legendItems.map((s, i) => {
+            const el = renderItem(s, cx, y, i);
+            cx += widths[i] + itemGapX;
             return el;
           });
         })()}

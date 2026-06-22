@@ -185,6 +185,8 @@ export function ResultBarSection() {
           <SettingRow label="Position"><Select value={rb.namePosition} onValueChange={(v) => update({ namePosition: v as ResultNamePosition })}><SelectTrigger className="h-7 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{namePosOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
           <SettingRow label="Color"><Select value={rb.nameColorMode} onValueChange={(v) => update({ nameColorMode: v as 'match' | 'custom' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="match" className="text-xs">Match segment</SelectItem><SelectItem value="custom" className="text-xs">Custom</SelectItem></SelectContent></Select></SettingRow>
           <FontRow family={rb.nameFontFamily} weight={rb.nameFontWeight} size={rb.nameFontSize} color={rb.nameColor} onChange={(u) => update({ nameFontFamily: u.family ?? rb.nameFontFamily, nameFontWeight: u.weight ?? rb.nameFontWeight, nameFontSize: u.size ?? rb.nameFontSize, nameColor: u.color ?? rb.nameColor })} />
+          <SettingRow label="Bold weight"><Select value={rb.nameBoldWeight} onValueChange={(v) => update({ nameBoldWeight: v as FontWeight })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
+          <div className="text-[10px] text-gray-400 -mt-1">Wrap part of a name in **double asterisks** for the bold weight — e.g. {'Ekrem **İMAMOĞLU**'}</div>
           <SettingRow label="Gap above"><NumberInput value={rb.nameGap} onChange={(v) => update({ nameGap: v })} min={0} max={40} className="h-7 text-xs w-20" /></SettingRow>
         </>
       )}
@@ -231,17 +233,39 @@ export function ResultBarSection() {
       )}
 
       {/* ── Legend ── */}
-      <SubHeader open={open.legend} onToggle={() => toggle('legend')}>Legend (overflow names)</SubHeader>
+      <SubHeader open={open.legend} onToggle={() => toggle('legend')}>Legend</SubHeader>
       {open.legend && (
         <>
-          <SettingRow label="Align"><Select value={rb.legendAlign} onValueChange={(v) => update({ legendAlign: v as 'left' | 'center' | 'right' })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="center" className="text-xs">Center</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>
+          <SettingRow label="Position"><Select value={rb.legendPosition} onValueChange={(v) => update({ legendPosition: v as 'below' | 'left' | 'right' })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="below" className="text-xs">Below</SelectItem><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>
+          <SettingRow label="Orientation"><Select value={rb.legendOrientation} onValueChange={(v) => update({ legendOrientation: v as 'horizontal' | 'vertical' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="horizontal" className="text-xs">Horizontal</SelectItem><SelectItem value="vertical" className="text-xs">Vertical</SelectItem></SelectContent></Select></SettingRow>
+          {rb.legendPosition !== 'below' && <SettingRow label="Column width"><NumberInput value={rb.legendWidth} onChange={(v) => update({ legendWidth: v })} min={40} max={500} className="h-7 text-xs w-20" /></SettingRow>}
+          {rb.legendPosition === 'below' && <SettingRow label="Align"><Select value={rb.legendAlign} onValueChange={(v) => update({ legendAlign: v as 'left' | 'center' | 'right' })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="center" className="text-xs">Center</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>}
           <div className="grid grid-cols-2 gap-2">
             <NumberInput label="Dot size" value={rb.legendDotSize} onChange={(v) => update({ legendDotSize: v })} min={4} max={24} suffix="px" />
             <NumberInput label="Font size" value={rb.legendFontSize} onChange={(v) => update({ legendFontSize: v })} min={6} max={40} suffix="px" />
-            <NumberInput label="Gap" value={rb.legendGap} onChange={(v) => update({ legendGap: v })} min={0} max={40} suffix="px" />
+            <NumberInput label="Gap from bar" value={rb.legendGap} onChange={(v) => update({ legendGap: v })} min={0} max={80} suffix="px" />
+            <NumberInput label="Gap horizontal" value={rb.legendItemGapX} onChange={(v) => update({ legendItemGapX: v })} min={0} max={80} suffix="px" />
+            <NumberInput label="Gap vertical" value={rb.legendItemGapY} onChange={(v) => update({ legendItemGapY: v })} min={0} max={40} suffix="px" />
           </div>
           <SettingRow label="Font weight"><Select value={rb.legendFontWeight} onValueChange={(v) => update({ legendFontWeight: v as FontWeight })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
           <SettingRow label="Color"><ColorPicker value={rb.legendColor} onChange={(c) => update({ legendColor: c })} /></SettingRow>
+          {segmentNames.length > 0 && (
+            <>
+              <div className="text-[10px] font-medium text-gray-500 mt-2">Segments in legend</div>
+              {segmentNames.map((name) => {
+                const cur = rb.legendVisibleRows?.[name];
+                const val = cur === undefined ? 'auto' : cur ? 'show' : 'hide';
+                return (
+                  <SettingRow key={name} label={name}>
+                    <Select value={val} onValueChange={(v) => { const next = { ...rb.legendVisibleRows }; if (v === 'auto') delete next[name]; else next[name] = v === 'show'; update({ legendVisibleRows: next }); }}>
+                      <SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="auto" className="text-xs">Auto</SelectItem><SelectItem value="show" className="text-xs">Show</SelectItem><SelectItem value="hide" className="text-xs">Hide</SelectItem></SelectContent>
+                    </Select>
+                  </SettingRow>
+                );
+              })}
+            </>
+          )}
         </>
       )}
 
@@ -291,6 +315,14 @@ export function ResultBarSection() {
                 <SettingRow label="Color"><ColorPicker value={o.color || '#cccccc'} onChange={(c) => setO({ color: c })} /></SettingRow>
                 <SettingRow label="Value position"><Select value={o.valuePosition || 'auto'} onValueChange={(v) => setO({ valuePosition: v as ResultValuePosition })}><SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger><SelectContent>{valuePosOptions.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}</SelectContent></Select></SettingRow>
                 <SettingRow label="Name position"><Select value={o.namePosition || 'auto'} onValueChange={(v) => setO({ namePosition: v as ResultNamePosition })}><SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger><SelectContent>{namePosOptions.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}</SelectContent></Select></SettingRow>
+                <SettingRow label="Prefix"><Select value={o.prefixShow === undefined ? 'default' : o.prefixShow ? 'on' : 'off'} onValueChange={(v) => setO({ prefixShow: v === 'default' ? undefined : v === 'on' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default" className="text-xs">Default</SelectItem><SelectItem value="on" className="text-xs">On</SelectItem><SelectItem value="off" className="text-xs">Off</SelectItem></SelectContent></Select></SettingRow>
+                <SettingRow label="Value align"><Select value={o.valueAlign || 'default'} onValueChange={(v) => setO({ valueAlign: v === 'default' ? undefined : (v as 'left' | 'center' | 'right') })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default" className="text-xs">Default</SelectItem><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="center" className="text-xs">Center</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>
+                <SettingRow label="Value padding (X / Y)">
+                  <div className="flex items-center gap-1">
+                    <NumberInput value={o.valuePadX ?? 0} onChange={(v) => setO({ valuePadX: v })} min={-300} max={300} className="h-7 text-xs w-16" />
+                    <NumberInput value={o.valuePadY ?? 0} onChange={(v) => setO({ valuePadY: v })} min={-300} max={300} className="h-7 text-xs w-16" />
+                  </div>
+                </SettingRow>
               </div>
             );
           })}

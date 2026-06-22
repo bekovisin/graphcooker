@@ -1153,6 +1153,11 @@ export interface ResultSegmentOverride {
   valueColor?: string;
   nameColor?: string;
   belowColor?: string;
+  // Per-segment value (data point) label tweaks
+  prefixShow?: boolean;          // turn the % prefix off/on for this segment
+  valueAlign?: 'left' | 'center' | 'right';
+  valuePadX?: number;            // horizontal nudge (custom padding)
+  valuePadY?: number;            // vertical nudge (custom padding)
 }
 
 export interface ResultBarSettings {
@@ -1197,18 +1202,25 @@ export interface ResultBarSettings {
   namePosition: ResultNamePosition;
   nameFontFamily: string;
   nameFontSize: number;
-  nameFontWeight: FontWeight;
+  nameFontWeight: FontWeight;      // base weight; **wrapped** parts use nameBoldWeight
+  nameBoldWeight: FontWeight;      // weight for text wrapped in **double asterisks**
   nameColorMode: 'match' | 'custom';
   nameColor: string;
   nameGap: number;
 
-  // Legend (segments whose name is in legend mode)
+  // Legend (overflow / chosen segments)
+  legendPosition: 'below' | 'left' | 'right';
+  legendOrientation: 'horizontal' | 'vertical';
+  legendWidth: number;             // side-column width when position is left/right
   legendDotSize: number;
   legendFontSize: number;
   legendFontWeight: FontWeight;
   legendColor: string;
   legendAlign: 'left' | 'center' | 'right';
-  legendGap: number;
+  legendGap: number;               // gap from the bar
+  legendItemGapX: number;          // horizontal gap between items
+  legendItemGapY: number;          // vertical gap between items / rows
+  legendVisibleRows: Record<string, boolean>; // force a segment in/out of the legend
 
   // Difference / info bar
   diffShow: boolean;
