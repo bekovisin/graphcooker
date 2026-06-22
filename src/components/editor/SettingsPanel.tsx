@@ -38,7 +38,7 @@ import { DesignVersionSection } from '@/components/settings/DesignVersionSection
 import { HeatmapSection } from '@/components/settings/HeatmapSection';
 import { DivergingBarSection } from '@/components/settings/DivergingBarSection';
 import { ColumnsSection } from '@/components/settings/ColumnsSection';
-import { ResultBarSection } from '@/components/settings/ResultBarSection';
+import { ResultBarSection, ResultImagesSection, ResultLabelsSection, ResultLegendSection, ResultDifferenceSection } from '@/components/settings/ResultBarSection';
 
 const barSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
@@ -130,7 +130,11 @@ const resultBarSections = [
   { id: 'chart-type', title: 'Chart type', Component: ChartTypeSection },
   { id: 'design-version', title: 'Design version', Component: DesignVersionSection },
   { id: 'colors', title: 'Colors', Component: ColorsSection },
-  { id: 'result-bar', title: 'Result bar', Component: ResultBarSection },
+  { id: 'result-bar', title: 'Bars', Component: ResultBarSection },
+  { id: 'result-images', title: 'Images', Component: ResultImagesSection },
+  { id: 'result-labels', title: 'Labels', Component: ResultLabelsSection },
+  { id: 'result-legend', title: 'Legend', Component: ResultLegendSection },
+  { id: 'result-difference', title: 'Difference bar', Component: ResultDifferenceSection },
   { id: 'animations', title: 'Animations', Component: AnimationsSection },
   { id: 'layout', title: 'Layout', Component: LayoutSection },
   { id: 'question', title: 'Question', Component: QuestionSection },

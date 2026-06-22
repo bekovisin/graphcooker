@@ -687,7 +687,7 @@ export const defaultChartSettings: ChartSettings = {
     belowColorMode: 'match' as const,
     belowColor: '#334155',
     belowNumberFormat: { decimalPlaces: 2, thousandsSeparator: '.' as const, decimalSeparator: ',' as const, prefix: '', suffix: '', showTrailingZeros: true },
-    namePosition: 'auto' as const,
+    namePosition: 'above' as const,
     nameFontFamily: 'Inter, sans-serif',
     nameFontSize: 22,
     nameFontWeight: 'bold' as const,

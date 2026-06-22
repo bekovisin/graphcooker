@@ -7,6 +7,8 @@ import { NumberInput } from '@/components/shared/NumberInput';
 import { ColorPicker } from '@/components/shared/ColorPicker';
 import { SettingRow } from '@/components/shared/SettingRow';
 import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -22,10 +24,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Settings2, X, ImageIcon, ChevronDown, ChevronRight } from 'lucide-react';
+import { Settings2, X, ImageIcon } from 'lucide-react';
 import type {
   ResultBarSettings,
   ResultBarNumberFormat,
+  ResultSegmentOverride,
   ResultValuePosition,
   ResultNamePosition,
   FontWeight,
@@ -33,19 +36,108 @@ import type {
   DecimalSeparator,
 } from '@/types/chart';
 
+// ─── Shared options ──────────────────────────────────────────────────
 const fontFamilyOptions = ['Inter, sans-serif', 'Roboto, sans-serif', 'Montserrat, sans-serif', 'Arial', 'Helvetica', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana', 'system-ui'];
 const fontWeightOptions: { value: FontWeight; label: string }[] = [
-  { value: '300', label: 'Light' }, { value: 'normal', label: 'Normal' }, { value: '500', label: '500' },
-  { value: '600', label: '600' }, { value: 'bold', label: 'Bold' }, { value: '800', label: '800' }, { value: '900', label: '900' },
+  { value: '300', label: 'Light' }, { value: 'normal', label: 'Normal' }, { value: '500', label: 'Medium' },
+  { value: '600', label: 'Semi-bold' }, { value: 'bold', label: 'Bold' }, { value: '800', label: 'Extra-bold' }, { value: '900', label: 'Black' },
 ];
 const ACCEPT = 'image/png,image/jpeg,image/svg+xml,image/webp';
 
-// ── helpers ──
-function SubHeader({ children, open, onToggle }: { children: React.ReactNode; open: boolean; onToggle: () => void }) {
+// ─── Design-language primitives ──────────────────────────────────────
+function TabMenu<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <button type="button" className="flex items-center gap-1 text-[11px] font-semibold text-gray-500 uppercase tracking-wide mt-3 mb-1 border-b border-gray-200 pb-1 w-full text-left" onClick={onToggle}>
-      {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}{children}
-    </button>
+    <div className="flex rounded-md border border-gray-300 overflow-hidden w-full">
+      {options.map((opt, i) => (
+        <button key={opt.value} onClick={() => onChange(opt.value)}
+          className={`flex-1 px-2 py-1.5 text-xs transition-colors ${value === opt.value ? 'bg-blue-500 text-white font-medium' : 'bg-white text-gray-600 hover:bg-gray-50'} ${i > 0 ? 'border-l border-gray-300' : ''}`}>
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SubHeader({ children }: { children: React.ReactNode }) {
+  return <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider pt-3 pb-1 mt-1 border-t border-gray-100">{children}</div>;
+}
+
+function SliderWithInput({ label, value, onChange, min, max, step, suffix }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number; step: number; suffix?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-4">
+        <Label className="text-xs text-gray-600 shrink-0">{label}</Label>
+        <div className="flex items-center gap-1">
+          <Input type="number" value={value} onChange={(e) => { const n = parseFloat(e.target.value); if (!isNaN(n)) onChange(Math.max(min, Math.min(max, n))); }} min={min} max={max} step={step} className="h-7 text-xs w-20" />
+          {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
+        </div>
+      </div>
+      <Slider value={[value]} onValueChange={([v]) => onChange(v)} min={min} max={max} step={step} />
+    </div>
+  );
+}
+
+function FontGrid({ family, size, weight, color, onFamily, onSize, onWeight, onColor }: {
+  family: string; size: number; weight: FontWeight; color: string;
+  onFamily: (v: string) => void; onSize: (v: number) => void; onWeight: (v: FontWeight) => void; onColor: (v: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Select value={family} onValueChange={onFamily}>
+        <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+        <SelectContent>{fontFamilyOptions.map((f) => <SelectItem key={f} value={f} className="text-xs">{f.split(',')[0]}</SelectItem>)}</SelectContent>
+      </Select>
+      <div className="grid grid-cols-2 gap-1.5">
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Size</label>
+          <Input type="number" value={size} onChange={(e) => onSize(parseInt(e.target.value) || size)} className="h-8 text-xs w-full" min={6} max={140} />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Weight</label>
+          <Select value={weight} onValueChange={(v) => onWeight(v as FontWeight)}>
+            <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+      <ColorPicker label="Color" value={color} onChange={onColor} />
+    </div>
+  );
+}
+
+function NumberFormatRows({ fmt, onChange }: { fmt: ResultBarNumberFormat; onChange: (u: Partial<ResultBarNumberFormat>) => void }) {
+  return (
+    <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput label="Decimals" value={fmt.decimalPlaces} onChange={(v) => onChange({ decimalPlaces: v })} min={0} max={10} />
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Thousands</label>
+          <Select value={fmt.thousandsSeparator} onValueChange={(v) => onChange({ thousandsSeparator: v as ThousandsSeparator })}>
+            <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="," className="text-xs">Comma</SelectItem><SelectItem value="." className="text-xs">Dot</SelectItem><SelectItem value=" " className="text-xs">Space</SelectItem><SelectItem value="none" className="text-xs">None</SelectItem></SelectContent>
+          </Select>
+        </div>
+      </div>
+      <SettingRow label="Decimal separator">
+        <Select value={fmt.decimalSeparator} onValueChange={(v) => onChange({ decimalSeparator: v as DecimalSeparator })}>
+          <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="." className="text-xs">Dot (.)</SelectItem><SelectItem value="," className="text-xs">Comma (,)</SelectItem></SelectContent>
+        </Select>
+      </SettingRow>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Prefix</label>
+          <Input value={fmt.prefix} onChange={(e) => onChange({ prefix: e.target.value })} className="h-8 text-xs w-full" />
+        </div>
+        <div>
+          <label className="text-[10px] text-gray-400 mb-0.5 block">Suffix</label>
+          <Input value={fmt.suffix} onChange={(e) => onChange({ suffix: e.target.value })} className="h-8 text-xs w-full" />
+        </div>
+      </div>
+      <SettingRow label="Trailing zeros" variant="inline">
+        <Switch checked={fmt.showTrailingZeros} onCheckedChange={(v) => onChange({ showTrailingZeros: v })} />
+      </SettingRow>
+    </div>
   );
 }
 
@@ -53,7 +145,7 @@ function ImageUploader({ value, onChange }: { value: string; onChange: (v: strin
   const inputRef = useRef<HTMLInputElement>(null);
   const handleFile = useCallback((file: File) => { const r = new FileReader(); r.onload = () => onChange(r.result as string); r.readAsDataURL(file); }, [onChange]);
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {value ? (
         <div className="relative inline-block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -61,273 +153,282 @@ function ImageUploader({ value, onChange }: { value: string; onChange: (v: strin
           <button className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5" onClick={() => { onChange(''); if (inputRef.current) inputRef.current.value = ''; }}><X className="w-3 h-3" /></button>
         </div>
       ) : (
-        <div className="border-2 border-dashed rounded flex flex-col items-center justify-center cursor-pointer border-gray-300 p-2" onClick={() => inputRef.current?.click()}>
-          <ImageIcon className="w-4 h-4 text-gray-400" /><span className="text-[10px] text-gray-400">Upload</span>
+        <div className="border-2 border-dashed rounded-md flex flex-col items-center justify-center cursor-pointer border-gray-300 py-3" onClick={() => inputRef.current?.click()}>
+          <ImageIcon className="w-4 h-4 text-gray-400" /><span className="text-[10px] text-gray-400 mt-0.5">Upload image</span>
         </div>
       )}
       <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { handleFile(f); e.target.value = ''; } }} />
-      <Input value={value.startsWith('data:') ? '' : value} onChange={(e) => onChange(e.target.value)} placeholder="Image URL" className="h-7 text-xs" />
-    </div>
-  );
-}
-
-function FontRow({ family, weight, size, color, onChange }: { family: string; weight: FontWeight; size: number; color: string; onChange: (u: { family?: string; weight?: FontWeight; size?: number; color?: string }) => void }) {
-  return (
-    <div className="space-y-1.5 pl-2 border-l-2 border-gray-200">
-      <Select value={family} onValueChange={(v) => onChange({ family: v })}>
-        <SelectTrigger className="h-7 text-[10px] w-full"><SelectValue placeholder="Font" /></SelectTrigger>
-        <SelectContent>{fontFamilyOptions.map((f) => <SelectItem key={f} value={f} className="text-xs">{f.split(',')[0]}</SelectItem>)}</SelectContent>
-      </Select>
-      <div className="grid grid-cols-3 gap-1 items-center">
-        <Select value={weight} onValueChange={(v) => onChange({ weight: v as FontWeight })}>
-          <SelectTrigger className="h-7 text-[10px]"><SelectValue placeholder="Wt" /></SelectTrigger>
-          <SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent>
-        </Select>
-        <div className="flex items-center gap-0.5"><NumberInput value={size} onChange={(v) => onChange({ size: v })} min={6} max={140} className="h-7 text-[10px] w-full" /><span className="text-[9px] text-gray-400">px</span></div>
-        <ColorPicker value={color} onChange={(c) => onChange({ color: c })} />
-      </div>
-    </div>
-  );
-}
-
-function NumberFormatEditor({ fmt, onChange }: { fmt: ResultBarNumberFormat; onChange: (u: Partial<ResultBarNumberFormat>) => void }) {
-  return (
-    <div className="space-y-1.5 pl-2 border-l-2 border-gray-200">
-      <SettingRow label="Decimals"><NumberInput value={fmt.decimalPlaces} onChange={(v) => onChange({ decimalPlaces: v })} min={0} max={10} className="h-7 text-xs w-16" /></SettingRow>
-      <SettingRow label="Thousands"><Select value={fmt.thousandsSeparator} onValueChange={(v) => onChange({ thousandsSeparator: v as ThousandsSeparator })}><SelectTrigger className="h-7 text-xs w-20"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="," className="text-xs">,</SelectItem><SelectItem value="." className="text-xs">.</SelectItem><SelectItem value=" " className="text-xs">Space</SelectItem><SelectItem value="none" className="text-xs">None</SelectItem></SelectContent></Select></SettingRow>
-      <SettingRow label="Decimal sep."><Select value={fmt.decimalSeparator} onValueChange={(v) => onChange({ decimalSeparator: v as DecimalSeparator })}><SelectTrigger className="h-7 text-xs w-20"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="." className="text-xs">.</SelectItem><SelectItem value="," className="text-xs">,</SelectItem></SelectContent></Select></SettingRow>
-      <SettingRow label="Trailing zeros"><Switch checked={fmt.showTrailingZeros} onCheckedChange={(v) => onChange({ showTrailingZeros: v })} /></SettingRow>
+      <Input value={value.startsWith('data:') ? '' : value} onChange={(e) => onChange(e.target.value)} placeholder="…or paste image URL" className="h-8 text-xs w-full" />
     </div>
   );
 }
 
 const valuePosOptions: { value: ResultValuePosition; label: string }[] = [
-  { value: 'auto', label: 'Auto (overflow → below)' }, { value: 'inside', label: 'Inside' }, { value: 'below', label: 'Below + line' }, { value: 'hidden', label: 'Hidden' },
+  { value: 'auto', label: 'Auto' }, { value: 'inside', label: 'Inside' }, { value: 'below', label: 'Below' }, { value: 'hidden', label: 'Off' },
 ];
 const namePosOptions: { value: ResultNamePosition; label: string }[] = [
-  { value: 'auto', label: 'Auto (overflow → legend)' }, { value: 'above', label: 'Above' }, { value: 'legend', label: 'Legend' }, { value: 'hidden', label: 'Hidden' },
+  { value: 'above', label: 'Above' }, { value: 'legend', label: 'Legend' }, { value: 'hidden', label: 'Off' },
 ];
 
-export function ResultBarSection() {
+// ─── Store hook helper ───────────────────────────────────────────────
+function useRB() {
   const rb = useEditorStore((s) => s.settings.resultBar);
   const columnMapping = useEditorStore((s) => s.columnMapping);
   const seriesNames = useEditorStore((s) => s.seriesNames);
   const updateSettings = useEditorStore((s) => s.updateSettings);
   const update = (u: Partial<ResultBarSettings>) => updateSettings('resultBar', u);
+  const segmentNames = useMemo(() => (columnMapping.values || []).map((c) => seriesNames?.[c] || c), [columnMapping.values, seriesNames]);
+  const setSeg = (name: string, u: Partial<ResultSegmentOverride>) =>
+    update({ perSegment: { ...rb.perSegment, [name]: { ...(rb.perSegment?.[name] || {}), ...u } } });
+  return { rb, update, segmentNames, setSeg };
+}
 
-  const [open, setOpen] = useState<Record<string, boolean>>({ bar: true, images: false, names: false, values: false, below: false, legend: false, diff: false });
-  const toggle = (k: string) => setOpen((p) => ({ ...p, [k]: !p[k] }));
+// ═══════════════════════════════════════════════════════════════════════
+// 1. BARS  (geometry + per-segment overrides modal)
+// ═══════════════════════════════════════════════════════════════════════
+export function ResultBarSection() {
+  const { rb, update, segmentNames, setSeg } = useRB();
   const [showOverrides, setShowOverrides] = useState(false);
 
-  const segmentNames = useMemo(() => {
-    const vals = columnMapping.values || [];
-    return vals.map((c) => seriesNames?.[c] || c);
-  }, [columnMapping.values, seriesNames]);
-
   return (
-    <AccordionSection id="result-bar" title="Result bar" defaultOpen>
-      {/* ── Bar Layout ── */}
-      <SubHeader open={open.bar} onToggle={() => toggle('bar')}>Bar Layout</SubHeader>
-      {open.bar && (
-        <>
-          <SettingRow label="Bar height"><NumberInput value={rb.barHeight} onChange={(v) => update({ barHeight: v })} min={20} max={300} className="h-7 text-xs w-20" /></SettingRow>
-          <SettingRow label="Segment spacing"><NumberInput value={rb.segmentSpacing} onChange={(v) => update({ segmentSpacing: v })} min={0} max={20} className="h-7 text-xs w-20" /></SettingRow>
-          <SettingRow label="Corner radius"><NumberInput value={rb.cornerRadius} onChange={(v) => update({ cornerRadius: v })} min={0} max={60} className="h-7 text-xs w-20" /></SettingRow>
-          <SettingRow label="Opacity"><NumberInput value={rb.barOpacity} onChange={(v) => update({ barOpacity: v })} min={0} max={1} step={0.05} className="h-7 text-xs w-20" /></SettingRow>
-          <SettingRow label="Outline"><Switch checked={rb.outline} onCheckedChange={(v) => update({ outline: v })} /></SettingRow>
-          {rb.outline && (
-            <>
-              <SettingRow label="Outline color"><ColorPicker value={rb.outlineColor} onChange={(c) => update({ outlineColor: c })} /></SettingRow>
-              <SettingRow label="Outline width"><NumberInput value={rb.outlineWidth} onChange={(v) => update({ outlineWidth: v })} min={0.5} max={10} step={0.5} className="h-7 text-xs w-20" /></SettingRow>
-            </>
-          )}
-          <SettingRow label="Manual plot width"><Switch checked={rb.manualPlotWidth} onCheckedChange={(v) => update({ manualPlotWidth: v })} /></SettingRow>
-          {rb.manualPlotWidth && <SettingRow label="Plot width"><NumberInput value={rb.manualPlotWidthValue} onChange={(v) => update({ manualPlotWidthValue: v })} min={100} max={2000} className="h-7 text-xs w-20" /></SettingRow>}
-          <button onClick={() => setShowOverrides(true)} className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1 mt-1"><Settings2 className="w-3.5 h-3.5" />Per-segment overrides…</button>
-        </>
+    <AccordionSection id="result-bar" title="Bars" defaultOpen>
+      <SliderWithInput label="Bar height" value={rb.barHeight} onChange={(v) => update({ barHeight: v })} min={20} max={300} step={1} suffix="px" />
+      <SliderWithInput label="Segment spacing" value={rb.segmentSpacing} onChange={(v) => update({ segmentSpacing: v })} min={0} max={20} step={1} suffix="px" />
+      <SliderWithInput label="Corner radius" value={rb.cornerRadius} onChange={(v) => update({ cornerRadius: v })} min={0} max={60} step={1} suffix="px" />
+      <SliderWithInput label="Bar opacity" value={rb.barOpacity} onChange={(v) => update({ barOpacity: v })} min={0} max={1} step={0.05} />
+
+      <SettingRow label="Outline" variant="inline">
+        <Switch checked={rb.outline} onCheckedChange={(v) => update({ outline: v })} />
+      </SettingRow>
+      {rb.outline && (
+        <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+          <ColorPicker label="Outline color" value={rb.outlineColor} onChange={(c) => update({ outlineColor: c })} />
+          <NumberInput label="Outline width" value={rb.outlineWidth} onChange={(v) => update({ outlineWidth: v })} min={0.5} max={10} step={0.5} suffix="px" />
+        </div>
       )}
 
-      {/* ── Images ── */}
-      <SubHeader open={open.images} onToggle={() => toggle('images')}>Images</SubHeader>
-      {open.images && (
-        <>
-          <SettingRow label="Left image"><Switch checked={rb.leftImage.show} onCheckedChange={(v) => update({ leftImage: { ...rb.leftImage, show: v } })} /></SettingRow>
-          {rb.leftImage.show && (
-            <div className="pl-2 border-l-2 border-gray-100 space-y-1.5">
-              <ImageUploader value={rb.leftImage.url} onChange={(u) => update({ leftImage: { ...rb.leftImage, url: u } })} />
-              <div className="grid grid-cols-2 gap-2">
-                <NumberInput label="Width" value={rb.leftImage.width} onChange={(v) => update({ leftImage: { ...rb.leftImage, width: v } })} min={10} max={300} suffix="px" />
-                <NumberInput label="Height" value={rb.leftImage.height} onChange={(v) => update({ leftImage: { ...rb.leftImage, height: v } })} min={10} max={300} suffix="px" />
-                <NumberInput label="Radius" value={rb.leftImage.borderRadius} onChange={(v) => update({ leftImage: { ...rb.leftImage, borderRadius: v } })} min={0} max={150} suffix="px" />
-                <NumberInput label="Padding X" value={rb.leftImage.paddingX} onChange={(v) => update({ leftImage: { ...rb.leftImage, paddingX: v } })} min={0} max={100} suffix="px" />
-              </div>
-            </div>
-          )}
-          <SettingRow label="Right image"><Switch checked={rb.rightImage.show} onCheckedChange={(v) => update({ rightImage: { ...rb.rightImage, show: v } })} /></SettingRow>
-          {rb.rightImage.show && (
-            <div className="pl-2 border-l-2 border-gray-100 space-y-1.5">
-              <ImageUploader value={rb.rightImage.url} onChange={(u) => update({ rightImage: { ...rb.rightImage, url: u } })} />
-              <div className="grid grid-cols-2 gap-2">
-                <NumberInput label="Width" value={rb.rightImage.width} onChange={(v) => update({ rightImage: { ...rb.rightImage, width: v } })} min={10} max={300} suffix="px" />
-                <NumberInput label="Height" value={rb.rightImage.height} onChange={(v) => update({ rightImage: { ...rb.rightImage, height: v } })} min={10} max={300} suffix="px" />
-                <NumberInput label="Radius" value={rb.rightImage.borderRadius} onChange={(v) => update({ rightImage: { ...rb.rightImage, borderRadius: v } })} min={0} max={150} suffix="px" />
-                <NumberInput label="Padding X" value={rb.rightImage.paddingX} onChange={(v) => update({ rightImage: { ...rb.rightImage, paddingX: v } })} min={0} max={100} suffix="px" />
-              </div>
-            </div>
-          )}
-        </>
+      <SettingRow label="Manual plot width" variant="inline">
+        <Switch checked={rb.manualPlotWidth} onCheckedChange={(v) => update({ manualPlotWidth: v })} />
+      </SettingRow>
+      {rb.manualPlotWidth && (
+        <div className="pl-2 border-l-2 border-gray-100">
+          <SliderWithInput label="Plot width" value={rb.manualPlotWidthValue} onChange={(v) => update({ manualPlotWidthValue: v })} min={100} max={2000} step={1} suffix="px" />
+        </div>
       )}
 
-      {/* ── Names ── */}
-      <SubHeader open={open.names} onToggle={() => toggle('names')}>Names</SubHeader>
-      {open.names && (
-        <>
-          <SettingRow label="Position"><Select value={rb.namePosition} onValueChange={(v) => update({ namePosition: v as ResultNamePosition })}><SelectTrigger className="h-7 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{namePosOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-          <SettingRow label="Color"><Select value={rb.nameColorMode} onValueChange={(v) => update({ nameColorMode: v as 'match' | 'custom' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="match" className="text-xs">Match segment</SelectItem><SelectItem value="custom" className="text-xs">Custom</SelectItem></SelectContent></Select></SettingRow>
-          <FontRow family={rb.nameFontFamily} weight={rb.nameFontWeight} size={rb.nameFontSize} color={rb.nameColor} onChange={(u) => update({ nameFontFamily: u.family ?? rb.nameFontFamily, nameFontWeight: u.weight ?? rb.nameFontWeight, nameFontSize: u.size ?? rb.nameFontSize, nameColor: u.color ?? rb.nameColor })} />
-          <SettingRow label="Bold weight"><Select value={rb.nameBoldWeight} onValueChange={(v) => update({ nameBoldWeight: v as FontWeight })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-          <div className="text-[10px] text-gray-400 -mt-1">Wrap part of a name in **double asterisks** for the bold weight — e.g. {'Ekrem **İMAMOĞLU**'}</div>
-          <SettingRow label="Gap above"><NumberInput value={rb.nameGap} onChange={(v) => update({ nameGap: v })} min={0} max={40} className="h-7 text-xs w-20" /></SettingRow>
-        </>
-      )}
+      <button onClick={() => setShowOverrides(true)} className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium py-1 mt-2">
+        <Settings2 className="w-3.5 h-3.5" /> Configure per-segment overrides…
+      </button>
 
-      {/* ── Values ── */}
-      <SubHeader open={open.values} onToggle={() => toggle('values')}>Values</SubHeader>
-      {open.values && (
-        <>
-          <SettingRow label="Position"><Select value={rb.valuePosition} onValueChange={(v) => update({ valuePosition: v as ResultValuePosition })}><SelectTrigger className="h-7 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{valuePosOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-          <SettingRow label="Align to edges"><Switch checked={rb.valueAlignEdges} onCheckedChange={(v) => update({ valueAlignEdges: v })} /></SettingRow>
-          <SettingRow label="Color"><Select value={rb.valueColorMode} onValueChange={(v) => update({ valueColorMode: v as 'auto' | 'custom' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="auto" className="text-xs">Auto (contrast)</SelectItem><SelectItem value="custom" className="text-xs">Custom</SelectItem></SelectContent></Select></SettingRow>
-          <FontRow family={rb.valueFontFamily} weight={rb.valueFontWeight} size={rb.valueFontSize} color={rb.valueColor} onChange={(u) => update({ valueFontFamily: u.family ?? rb.valueFontFamily, valueFontWeight: u.weight ?? rb.valueFontWeight, valueFontSize: u.size ?? rb.valueFontSize, valueColor: u.color ?? rb.valueColor })} />
-          <SettingRow label="Padding X"><NumberInput value={rb.valuePaddingX} onChange={(v) => update({ valuePaddingX: v })} min={0} max={80} className="h-7 text-xs w-20" /></SettingRow>
-          <SettingRow label="Prefix"><Switch checked={rb.prefixShow} onCheckedChange={(v) => update({ prefixShow: v })} /></SettingRow>
-          {rb.prefixShow && (
-            <div className="grid grid-cols-3 gap-1 pl-2 border-l-2 border-gray-100">
-              <Input value={rb.prefixText} onChange={(e) => update({ prefixText: e.target.value })} className="h-7 text-xs" />
-              <Select value={rb.prefixPosition} onValueChange={(v) => update({ prefixPosition: v as 'left' | 'right' })}><SelectTrigger className="h-7 text-[10px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select>
-              <div className="flex items-center gap-0.5"><NumberInput value={rb.prefixFontSize} onChange={(v) => update({ prefixFontSize: v })} min={6} max={80} className="h-7 text-[10px] w-full" /><span className="text-[9px] text-gray-400">px</span></div>
-            </div>
-          )}
-          <div className="text-[10px] font-medium text-gray-500 mt-1">Number format</div>
-          <NumberFormatEditor fmt={rb.numberFormat} onChange={(u) => update({ numberFormat: { ...rb.numberFormat, ...u } })} />
-        </>
-      )}
-
-      {/* ── Below values ── */}
-      <SubHeader open={open.below} onToggle={() => toggle('below')}>Below values (overflow)</SubHeader>
-      {open.below && (
-        <>
-          <SettingRow label="Line color"><ColorPicker value={rb.belowLineColor} onChange={(c) => update({ belowLineColor: c })} /></SettingRow>
-          <div className="grid grid-cols-2 gap-2">
-            <NumberInput label="Line width" value={rb.belowLineWidth} onChange={(v) => update({ belowLineWidth: v })} min={0.5} max={6} step={0.5} suffix="px" />
-            <NumberInput label="Line length" value={rb.belowLineLength} onChange={(v) => update({ belowLineLength: v })} min={0} max={60} suffix="px" />
-            <NumberInput label="Gap" value={rb.belowGap} onChange={(v) => update({ belowGap: v })} min={0} max={40} suffix="px" />
-            <NumberInput label="Font size" value={rb.belowFontSize} onChange={(v) => update({ belowFontSize: v })} min={6} max={60} suffix="px" />
-          </div>
-          <SettingRow label="Font weight"><Select value={rb.belowFontWeight} onValueChange={(v) => update({ belowFontWeight: v as FontWeight })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-          <SettingRow label="Color"><Select value={rb.belowColorMode} onValueChange={(v) => update({ belowColorMode: v as 'match' | 'custom' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="match" className="text-xs">Match segment</SelectItem><SelectItem value="custom" className="text-xs">Custom</SelectItem></SelectContent></Select></SettingRow>
-          {rb.belowColorMode === 'custom' && <SettingRow label="Custom color"><ColorPicker value={rb.belowColor} onChange={(c) => update({ belowColor: c })} /></SettingRow>}
-          <div className="text-[10px] font-medium text-gray-500 mt-1">Number format</div>
-          <NumberFormatEditor fmt={rb.belowNumberFormat} onChange={(u) => update({ belowNumberFormat: { ...rb.belowNumberFormat, ...u } })} />
-        </>
-      )}
-
-      {/* ── Legend ── */}
-      <SubHeader open={open.legend} onToggle={() => toggle('legend')}>Legend</SubHeader>
-      {open.legend && (
-        <>
-          <SettingRow label="Position"><Select value={rb.legendPosition} onValueChange={(v) => update({ legendPosition: v as 'below' | 'left' | 'right' })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="below" className="text-xs">Below</SelectItem><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>
-          <SettingRow label="Orientation"><Select value={rb.legendOrientation} onValueChange={(v) => update({ legendOrientation: v as 'horizontal' | 'vertical' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="horizontal" className="text-xs">Horizontal</SelectItem><SelectItem value="vertical" className="text-xs">Vertical</SelectItem></SelectContent></Select></SettingRow>
-          {rb.legendPosition !== 'below' && <SettingRow label="Column width"><NumberInput value={rb.legendWidth} onChange={(v) => update({ legendWidth: v })} min={40} max={500} className="h-7 text-xs w-20" /></SettingRow>}
-          {rb.legendPosition === 'below' && <SettingRow label="Align"><Select value={rb.legendAlign} onValueChange={(v) => update({ legendAlign: v as 'left' | 'center' | 'right' })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="center" className="text-xs">Center</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>}
-          <div className="grid grid-cols-2 gap-2">
-            <NumberInput label="Dot size" value={rb.legendDotSize} onChange={(v) => update({ legendDotSize: v })} min={4} max={24} suffix="px" />
-            <NumberInput label="Font size" value={rb.legendFontSize} onChange={(v) => update({ legendFontSize: v })} min={6} max={40} suffix="px" />
-            <NumberInput label="Gap from bar" value={rb.legendGap} onChange={(v) => update({ legendGap: v })} min={0} max={80} suffix="px" />
-            <NumberInput label="Gap horizontal" value={rb.legendItemGapX} onChange={(v) => update({ legendItemGapX: v })} min={0} max={80} suffix="px" />
-            <NumberInput label="Gap vertical" value={rb.legendItemGapY} onChange={(v) => update({ legendItemGapY: v })} min={0} max={40} suffix="px" />
-          </div>
-          <SettingRow label="Font weight"><Select value={rb.legendFontWeight} onValueChange={(v) => update({ legendFontWeight: v as FontWeight })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-          <SettingRow label="Color"><ColorPicker value={rb.legendColor} onChange={(c) => update({ legendColor: c })} /></SettingRow>
-          {segmentNames.length > 0 && (
-            <>
-              <div className="text-[10px] font-medium text-gray-500 mt-2">Segments in legend</div>
-              {segmentNames.map((name) => {
-                const cur = rb.legendVisibleRows?.[name];
-                const val = cur === undefined ? 'auto' : cur ? 'show' : 'hide';
-                return (
-                  <SettingRow key={name} label={name}>
-                    <Select value={val} onValueChange={(v) => { const next = { ...rb.legendVisibleRows }; if (v === 'auto') delete next[name]; else next[name] = v === 'show'; update({ legendVisibleRows: next }); }}>
-                      <SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger>
-                      <SelectContent><SelectItem value="auto" className="text-xs">Auto</SelectItem><SelectItem value="show" className="text-xs">Show</SelectItem><SelectItem value="hide" className="text-xs">Hide</SelectItem></SelectContent>
-                    </Select>
-                  </SettingRow>
-                );
-              })}
-            </>
-          )}
-        </>
-      )}
-
-      {/* ── Difference bar ── */}
-      <SubHeader open={open.diff} onToggle={() => toggle('diff')}>Difference Bar</SubHeader>
-      {open.diff && (
-        <>
-          <SettingRow label="Show"><Switch checked={rb.diffShow} onCheckedChange={(v) => update({ diffShow: v })} /></SettingRow>
-          {rb.diffShow && (
-            <>
-              <SettingRow label="Value source"><Select value={rb.diffSource} onValueChange={(v) => update({ diffSource: v as 'info' | 'auto' })}><SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="info" className="text-xs">Info column</SelectItem><SelectItem value="auto" className="text-xs">Auto (leader − next)</SelectItem></SelectContent></Select></SettingRow>
-              <SettingRow label="Template"><Input value={rb.diffTemplate} onChange={(e) => update({ diffTemplate: e.target.value })} className="h-7 text-xs w-full" /></SettingRow>
-              <div className="text-[10px] text-gray-400 -mt-1">Placeholders: {'{leader} {trailer} {value}'}</div>
-              <div className="grid grid-cols-2 gap-2">
-                <NumberInput label="Height" value={rb.diffHeight} onChange={(v) => update({ diffHeight: v })} min={10} max={120} suffix="px" />
-                <NumberInput label="Margin top" value={rb.diffMarginTop} onChange={(v) => update({ diffMarginTop: v })} min={0} max={80} suffix="px" />
-                <NumberInput label="Corner radius" value={rb.diffCornerRadius} onChange={(v) => update({ diffCornerRadius: v })} min={0} max={60} suffix="px" />
-                <NumberInput label="Font size" value={rb.diffFontSize} onChange={(v) => update({ diffFontSize: v })} min={8} max={80} suffix="px" />
-              </div>
-              <SettingRow label="Background"><ColorPicker value={rb.diffBackgroundColor} onChange={(c) => update({ diffBackgroundColor: c })} /></SettingRow>
-              <SettingRow label="Align"><Select value={rb.diffAlign} onValueChange={(v) => update({ diffAlign: v as 'left' | 'center' | 'right' })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="center" className="text-xs">Center</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>
-              <SettingRow label="Match leader color"><Switch checked={rb.diffMatchLeaderColor} onCheckedChange={(v) => update({ diffMatchLeaderColor: v })} /></SettingRow>
-              {!rb.diffMatchLeaderColor && <SettingRow label="Text color"><ColorPicker value={rb.diffColor} onChange={(c) => update({ diffColor: c })} /></SettingRow>}
-              <SettingRow label="Font weight"><Select value={rb.diffFontWeight} onValueChange={(v) => update({ diffFontWeight: v as FontWeight })}><SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-              <div className="text-[10px] font-medium text-gray-500 mt-1">Number format</div>
-              <NumberFormatEditor fmt={rb.diffNumberFormat} onChange={(u) => update({ diffNumberFormat: { ...rb.diffNumberFormat, ...u } })} />
-            </>
-          )}
-        </>
-      )}
-
-      {/* ── Per-segment overrides modal ── */}
       <Dialog open={showOverrides} onOpenChange={setShowOverrides}>
         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Per-segment overrides</DialogTitle>
-            <DialogDescription>Override the name, color and label positions for each segment.</DialogDescription>
+            <DialogDescription>Override the display name, color and value-label settings for each segment.</DialogDescription>
           </DialogHeader>
           {segmentNames.length === 0 && <div className="text-xs text-gray-400">Map value columns (series) first.</div>}
           {segmentNames.map((name) => {
             const o = rb.perSegment?.[name] || {};
-            const setO = (u: Partial<typeof o>) => update({ perSegment: { ...rb.perSegment, [name]: { ...o, ...u } } });
             return (
-              <div key={name} className="border rounded p-2 mb-2 space-y-1.5">
+              <div key={name} className="border rounded-md p-3 mb-2 space-y-2">
                 <div className="text-xs font-semibold truncate">{name}</div>
-                <SettingRow label="Display name"><Input value={o.name ?? ''} onChange={(e) => setO({ name: e.target.value || undefined })} placeholder={name} className="h-7 text-xs w-40" /></SettingRow>
-                <SettingRow label="Color"><ColorPicker value={o.color || '#cccccc'} onChange={(c) => setO({ color: c })} /></SettingRow>
-                <SettingRow label="Value position"><Select value={o.valuePosition || 'auto'} onValueChange={(v) => setO({ valuePosition: v as ResultValuePosition })}><SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger><SelectContent>{valuePosOptions.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-                <SettingRow label="Name position"><Select value={o.namePosition || 'auto'} onValueChange={(v) => setO({ namePosition: v as ResultNamePosition })}><SelectTrigger className="h-7 text-xs w-36"><SelectValue /></SelectTrigger><SelectContent>{namePosOptions.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-                <SettingRow label="Prefix"><Select value={o.prefixShow === undefined ? 'default' : o.prefixShow ? 'on' : 'off'} onValueChange={(v) => setO({ prefixShow: v === 'default' ? undefined : v === 'on' })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default" className="text-xs">Default</SelectItem><SelectItem value="on" className="text-xs">On</SelectItem><SelectItem value="off" className="text-xs">Off</SelectItem></SelectContent></Select></SettingRow>
-                <SettingRow label="Value align"><Select value={o.valueAlign || 'default'} onValueChange={(v) => setO({ valueAlign: v === 'default' ? undefined : (v as 'left' | 'center' | 'right') })}><SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default" className="text-xs">Default</SelectItem><SelectItem value="left" className="text-xs">Left</SelectItem><SelectItem value="center" className="text-xs">Center</SelectItem><SelectItem value="right" className="text-xs">Right</SelectItem></SelectContent></Select></SettingRow>
-                <SettingRow label="Value padding (X / Y)">
-                  <div className="flex items-center gap-1">
-                    <NumberInput value={o.valuePadX ?? 0} onChange={(v) => setO({ valuePadX: v })} min={-300} max={300} className="h-7 text-xs w-16" />
-                    <NumberInput value={o.valuePadY ?? 0} onChange={(v) => setO({ valuePadY: v })} min={-300} max={300} className="h-7 text-xs w-16" />
-                  </div>
-                </SettingRow>
+                <SettingRow label="Display name"><Input value={o.name ?? ''} onChange={(e) => setSeg(name, { name: e.target.value || undefined })} placeholder={name} className="h-8 text-xs w-full" /></SettingRow>
+                <SettingRow label="Color"><ColorPicker value={o.color || '#cccccc'} onChange={(c) => setSeg(name, { color: c })} /></SettingRow>
+                <SettingRow label="Value label"><TabMenu value={o.valuePosition || 'auto'} onChange={(v) => setSeg(name, { valuePosition: v })} options={valuePosOptions} /></SettingRow>
+                <SettingRow label="Prefix (%)"><TabMenu value={o.prefixShow === undefined ? 'default' : o.prefixShow ? 'on' : 'off'} onChange={(v) => setSeg(name, { prefixShow: v === 'default' ? undefined : v === 'on' })} options={[{ value: 'default', label: 'Default' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} /></SettingRow>
+                <SettingRow label="Value align"><TabMenu value={o.valueAlign || 'default'} onChange={(v) => setSeg(name, { valueAlign: v === 'default' ? undefined : (v as 'left' | 'center' | 'right') })} options={[{ value: 'default', label: 'Auto' }, { value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberInput label="Padding X" value={o.valuePadX ?? 0} onChange={(v) => setSeg(name, { valuePadX: v })} min={-300} max={300} suffix="px" />
+                  <NumberInput label="Padding Y" value={o.valuePadY ?? 0} onChange={(v) => setSeg(name, { valuePadY: v })} min={-300} max={300} suffix="px" />
+                </div>
               </div>
             );
           })}
         </DialogContent>
       </Dialog>
+    </AccordionSection>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 2. IMAGES
+// ═══════════════════════════════════════════════════════════════════════
+export function ResultImagesSection() {
+  const { rb, update } = useRB();
+  const imgRow = (side: 'leftImage' | 'rightImage', label: string) => {
+    const img = rb[side];
+    const set = (u: Partial<typeof img>) => update({ [side]: { ...img, ...u } } as Partial<ResultBarSettings>);
+    return (
+      <>
+        <SettingRow label={label} variant="inline">
+          <Switch checked={img.show} onCheckedChange={(v) => set({ show: v })} />
+        </SettingRow>
+        {img.show && (
+          <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+            <ImageUploader value={img.url} onChange={(u) => set({ url: u })} />
+            <div className="grid grid-cols-2 gap-2">
+              <NumberInput label="Width" value={img.width} onChange={(v) => set({ width: v })} min={10} max={400} suffix="px" />
+              <NumberInput label="Height" value={img.height} onChange={(v) => set({ height: v })} min={10} max={400} suffix="px" />
+              <NumberInput label="Corner radius" value={img.borderRadius} onChange={(v) => set({ borderRadius: v })} min={0} max={200} suffix="px" />
+              <NumberInput label="Padding X" value={img.paddingX} onChange={(v) => set({ paddingX: v })} min={0} max={100} suffix="px" />
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+  return (
+    <AccordionSection id="result-images" title="Images">
+      {imgRow('leftImage', 'Left image')}
+      {imgRow('rightImage', 'Right image')}
+    </AccordionSection>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 3. LABELS  (value labels + overflow value + names)
+// ═══════════════════════════════════════════════════════════════════════
+export function ResultLabelsSection() {
+  const { rb, update, segmentNames, setSeg } = useRB();
+  return (
+    <AccordionSection id="result-labels" title="Labels">
+      {/* VALUE LABELS */}
+      <SubHeader>Value labels</SubHeader>
+      <SettingRow label="Position"><TabMenu value={rb.valuePosition} onChange={(v) => update({ valuePosition: v })} options={valuePosOptions} /></SettingRow>
+      <SettingRow label="Align to edges" variant="inline"><Switch checked={rb.valueAlignEdges} onCheckedChange={(v) => update({ valueAlignEdges: v })} /></SettingRow>
+      <SettingRow label="Color"><TabMenu value={rb.valueColorMode} onChange={(v) => update({ valueColorMode: v })} options={[{ value: 'auto', label: 'Auto (contrast)' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
+      <FontGrid family={rb.valueFontFamily} size={rb.valueFontSize} weight={rb.valueFontWeight} color={rb.valueColor}
+        onFamily={(v) => update({ valueFontFamily: v })} onSize={(v) => update({ valueFontSize: v })} onWeight={(v) => update({ valueFontWeight: v })} onColor={(v) => update({ valueColor: v })} />
+      <NumberInput label="Padding X" value={rb.valuePaddingX} onChange={(v) => update({ valuePaddingX: v })} min={0} max={80} suffix="px" />
+      <SettingRow label="Prefix (%)" variant="inline"><Switch checked={rb.prefixShow} onCheckedChange={(v) => update({ prefixShow: v })} /></SettingRow>
+      {rb.prefixShow && (
+        <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+          <div className="grid grid-cols-2 gap-2">
+            <div><label className="text-[10px] text-gray-400 mb-0.5 block">Text</label><Input value={rb.prefixText} onChange={(e) => update({ prefixText: e.target.value })} className="h-8 text-xs w-full" /></div>
+            <NumberInput label="Size" value={rb.prefixFontSize} onChange={(v) => update({ prefixFontSize: v })} min={6} max={80} suffix="px" />
+          </div>
+          <SettingRow label="Position"><TabMenu value={rb.prefixPosition} onChange={(v) => update({ prefixPosition: v })} options={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+        </div>
+      )}
+      <SubHeader>Value number format</SubHeader>
+      <NumberFormatRows fmt={rb.numberFormat} onChange={(u) => update({ numberFormat: { ...rb.numberFormat, ...u } })} />
+
+      {/* OVERFLOW VALUE (below the bar) */}
+      <SubHeader>Overflow value (below + line)</SubHeader>
+      <SettingRow label="Line color"><ColorPicker value={rb.belowLineColor} onChange={(c) => update({ belowLineColor: c })} /></SettingRow>
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput label="Line width" value={rb.belowLineWidth} onChange={(v) => update({ belowLineWidth: v })} min={0.5} max={6} step={0.5} suffix="px" />
+        <NumberInput label="Line length" value={rb.belowLineLength} onChange={(v) => update({ belowLineLength: v })} min={0} max={60} suffix="px" />
+        <NumberInput label="Gap" value={rb.belowGap} onChange={(v) => update({ belowGap: v })} min={0} max={40} suffix="px" />
+        <NumberInput label="Font size" value={rb.belowFontSize} onChange={(v) => update({ belowFontSize: v })} min={6} max={60} suffix="px" />
+      </div>
+      <SettingRow label="Weight"><Select value={rb.belowFontWeight} onValueChange={(v) => update({ belowFontWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
+      <SettingRow label="Color"><TabMenu value={rb.belowColorMode} onChange={(v) => update({ belowColorMode: v })} options={[{ value: 'match', label: 'Match segment' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
+      {rb.belowColorMode === 'custom' && <div className="pl-2 border-l-2 border-gray-100"><ColorPicker label="Custom color" value={rb.belowColor} onChange={(c) => update({ belowColor: c })} /></div>}
+      <SubHeader>Overflow number format</SubHeader>
+      <NumberFormatRows fmt={rb.belowNumberFormat} onChange={(u) => update({ belowNumberFormat: { ...rb.belowNumberFormat, ...u } })} />
+
+      {/* NAMES */}
+      <SubHeader>Names (above the bar)</SubHeader>
+      <SettingRow label="Default position"><TabMenu value={rb.namePosition === 'auto' ? 'above' : rb.namePosition} onChange={(v) => update({ namePosition: v })} options={namePosOptions} /></SettingRow>
+      <SettingRow label="Color"><TabMenu value={rb.nameColorMode} onChange={(v) => update({ nameColorMode: v })} options={[{ value: 'match', label: 'Match segment' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
+      <FontGrid family={rb.nameFontFamily} size={rb.nameFontSize} weight={rb.nameFontWeight} color={rb.nameColor}
+        onFamily={(v) => update({ nameFontFamily: v })} onSize={(v) => update({ nameFontSize: v })} onWeight={(v) => update({ nameFontWeight: v })} onColor={(v) => update({ nameColor: v })} />
+      <SettingRow label="Bold weight"><Select value={rb.nameBoldWeight} onValueChange={(v) => update({ nameBoldWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
+      <p className="text-[10px] text-gray-400">Wrap part of a name in **double asterisks** for the bold weight — e.g. {'Ekrem **İMAMOĞLU**'}</p>
+      <NumberInput label="Gap above" value={rb.nameGap} onChange={(v) => update({ nameGap: v })} min={0} max={40} suffix="px" />
+
+      {segmentNames.length > 0 && (
+        <>
+          <div className="text-[10px] text-gray-500 mt-2 mb-1">Show each column name above its bar</div>
+          {segmentNames.map((name) => {
+            const cur = (rb.perSegment?.[name]?.namePosition || rb.namePosition);
+            const resolved = cur === 'auto' ? 'above' : cur;
+            return (
+              <SettingRow key={name} label={name}>
+                <TabMenu value={resolved} onChange={(v) => setSeg(name, { namePosition: v as ResultNamePosition })} options={namePosOptions} />
+              </SettingRow>
+            );
+          })}
+        </>
+      )}
+    </AccordionSection>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 4. LEGEND
+// ═══════════════════════════════════════════════════════════════════════
+export function ResultLegendSection() {
+  const { rb, update, segmentNames } = useRB();
+  return (
+    <AccordionSection id="result-legend" title="Legend">
+      <SettingRow label="Position"><TabMenu value={rb.legendPosition} onChange={(v) => update({ legendPosition: v })} options={[{ value: 'below', label: 'Below' }, { value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+      <SettingRow label="Orientation"><TabMenu value={rb.legendOrientation} onChange={(v) => update({ legendOrientation: v })} options={[{ value: 'horizontal', label: 'Horizontal' }, { value: 'vertical', label: 'Vertical' }]} /></SettingRow>
+      {rb.legendPosition === 'below' && <SettingRow label="Align"><TabMenu value={rb.legendAlign} onChange={(v) => update({ legendAlign: v })} options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></SettingRow>}
+      {rb.legendPosition !== 'below' && <NumberInput label="Column width" value={rb.legendWidth} onChange={(v) => update({ legendWidth: v })} min={40} max={500} suffix="px" />}
+
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput label="Dot size" value={rb.legendDotSize} onChange={(v) => update({ legendDotSize: v })} min={4} max={24} suffix="px" />
+        <NumberInput label="Font size" value={rb.legendFontSize} onChange={(v) => update({ legendFontSize: v })} min={6} max={40} suffix="px" />
+      </div>
+      <SettingRow label="Weight"><Select value={rb.legendFontWeight} onValueChange={(v) => update({ legendFontWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
+      <SettingRow label="Color"><ColorPicker value={rb.legendColor} onChange={(c) => update({ legendColor: c })} /></SettingRow>
+
+      <SubHeader>Spacing</SubHeader>
+      <div className="grid grid-cols-2 gap-2">
+        <NumberInput label="Gap from bar" value={rb.legendGap} onChange={(v) => update({ legendGap: v })} min={0} max={80} suffix="px" />
+        <NumberInput label="Gap horizontal" value={rb.legendItemGapX} onChange={(v) => update({ legendItemGapX: v })} min={0} max={80} suffix="px" />
+        <NumberInput label="Gap vertical" value={rb.legendItemGapY} onChange={(v) => update({ legendItemGapY: v })} min={0} max={40} suffix="px" />
+      </div>
+
+      {segmentNames.length > 0 && (
+        <>
+          <SubHeader>Segments in legend</SubHeader>
+          {segmentNames.map((name) => {
+            const cur = rb.legendVisibleRows?.[name];
+            const val = cur === undefined ? 'auto' : cur ? 'show' : 'hide';
+            return (
+              <SettingRow key={name} label={name}>
+                <TabMenu value={val} onChange={(v) => { const next = { ...rb.legendVisibleRows }; if (v === 'auto') delete next[name]; else next[name] = v === 'show'; update({ legendVisibleRows: next }); }}
+                  options={[{ value: 'auto', label: 'Auto' }, { value: 'show', label: 'Show' }, { value: 'hide', label: 'Hide' }]} />
+              </SettingRow>
+            );
+          })}
+        </>
+      )}
+    </AccordionSection>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// 5. DIFFERENCE BAR
+// ═══════════════════════════════════════════════════════════════════════
+export function ResultDifferenceSection() {
+  const { rb, update } = useRB();
+  return (
+    <AccordionSection id="result-difference" title="Difference bar">
+      <SettingRow label="Show difference bar" variant="inline"><Switch checked={rb.diffShow} onCheckedChange={(v) => update({ diffShow: v })} /></SettingRow>
+      {rb.diffShow && (
+        <div className="space-y-3 pl-2 border-l-2 border-gray-100">
+          <SettingRow label="Value source"><TabMenu value={rb.diffSource} onChange={(v) => update({ diffSource: v })} options={[{ value: 'info', label: 'Info column' }, { value: 'auto', label: 'Auto' }]} /></SettingRow>
+          <SettingRow label="Template"><Input value={rb.diffTemplate} onChange={(e) => update({ diffTemplate: e.target.value })} className="h-8 text-xs w-full" /></SettingRow>
+          <p className="text-[10px] text-gray-400 -mt-1.5">Placeholders: {'{leader} {trailer} {value}'}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <NumberInput label="Height" value={rb.diffHeight} onChange={(v) => update({ diffHeight: v })} min={10} max={120} suffix="px" />
+            <NumberInput label="Margin top" value={rb.diffMarginTop} onChange={(v) => update({ diffMarginTop: v })} min={0} max={80} suffix="px" />
+            <NumberInput label="Corner radius" value={rb.diffCornerRadius} onChange={(v) => update({ diffCornerRadius: v })} min={0} max={60} suffix="px" />
+            <NumberInput label="Font size" value={rb.diffFontSize} onChange={(v) => update({ diffFontSize: v })} min={8} max={80} suffix="px" />
+          </div>
+          <ColorPicker label="Background" value={rb.diffBackgroundColor} onChange={(c) => update({ diffBackgroundColor: c })} />
+          <SettingRow label="Align"><TabMenu value={rb.diffAlign} onChange={(v) => update({ diffAlign: v })} options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+          <SettingRow label="Weight"><Select value={rb.diffFontWeight} onValueChange={(v) => update({ diffFontWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
+          <SettingRow label="Text color"><TabMenu value={rb.diffMatchLeaderColor ? 'leader' : 'custom'} onChange={(v) => update({ diffMatchLeaderColor: v === 'leader' })} options={[{ value: 'leader', label: 'Match leader' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
+          {!rb.diffMatchLeaderColor && <ColorPicker label="Custom color" value={rb.diffColor} onChange={(c) => update({ diffColor: c })} />}
+          <SubHeader>Value number format</SubHeader>
+          <NumberFormatRows fmt={rb.diffNumberFormat} onChange={(u) => update({ diffNumberFormat: { ...rb.diffNumberFormat, ...u } })} />
+        </div>
+      )}
     </AccordionSection>
   );
 }
