@@ -29,7 +29,10 @@ function roundedRect(x: number, y: number, w: number, h: number, r: number): str
   return `M${x + radius},${y} h${w - 2 * radius} a${radius},${radius} 0 0 1 ${radius},${radius} v${h - 2 * radius} a${radius},${radius} 0 0 1 ${-radius},${radius} h${-(w - 2 * radius)} a${radius},${radius} 0 0 1 ${-radius},${-radius} v${-(h - 2 * radius)} a${radius},${radius} 0 0 1 ${radius},${-radius} Z`;
 }
 
-const WEIGHT_SUFFIX = /\|(100|200|300|400|500|600|700|800|900|normal|bold|light|medium|semibold|black)$/i;
+const WL = '100|200|300|400|500|600|700|800|900|normal|bold|light|medium|semibold|black';
+const WORD_WEIGHT = new RegExp(`\\|(${WL})$`, 'i');           // a "|weight" suffix on a single word
+const STRIP_WEIGHT = new RegExp(`\\|(${WL})(?=\\s|$)`, 'gi');  // for measurement
+
 function aliasWeight(w: string): string {
   const l = w.toLowerCase();
   if (l === 'light') return '300';
@@ -41,24 +44,39 @@ function aliasWeight(w: string): string {
   return l;
 }
 
-// Strip the **bold** markers (and any |weight suffix) for width measurement
-function stripMarks(s: string): string {
-  return s.replace(/\*\*([^*]+)\*\*/g, (_, inner: string) => inner.replace(WEIGHT_SUFFIX, '')).replace(/\*\*/g, '');
+// A word may carry its own weight as a "word|600" suffix.
+function parseWeight(word: string, fallback: string): { t: string; w: string } {
+  const m = word.match(WORD_WEIGHT);
+  return m ? { t: word.slice(0, m.index), w: aliasWeight(m[1]) } : { t: word, w: fallback };
 }
 
-// Render text with **double-asterisk** parts in a bolder weight. Each wrapped part may carry an
-// explicit per-word weight via a "|weight" suffix, e.g. "**Ekrem|300** **İMAMOĞLU|800**".
+// Strip **markers** and |weight suffixes for width measurement
+function stripMarks(s: string): string {
+  return s.replace(/\*\*([^*]+)\*\*/g, '$1').replace(STRIP_WEIGHT, '');
+}
+
+// Render rich text where EACH WORD can have its own weight:
+//   • "Ekrem|300 İMAMOĞLU|800"  → per-word weight, no markers needed
+//   • "Ekrem **İMAMOĞLU**"      → wrapped part uses the bold weight
 function renderRich(text: string, baseW: string, boldW: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
-  return parts.map((p, i) => {
+  const out: React.ReactNode[] = [];
+  let k = 0;
+  parts.forEach((p) => {
     if (p.startsWith('**') && p.endsWith('**')) {
-      const inner = p.slice(2, -2);
-      const m = inner.match(WEIGHT_SUFFIX);
-      if (m) return <tspan key={i} fontWeight={fontWeightToCSS(aliasWeight(m[1]))}>{inner.replace(WEIGHT_SUFFIX, '')}</tspan>;
-      return <tspan key={i} fontWeight={fontWeightToCSS(boldW)}>{inner}</tspan>;
+      const { t, w } = parseWeight(p.slice(2, -2), boldW); // ** parts default to the bold weight
+      out.push(<tspan key={k++} fontWeight={fontWeightToCSS(w)}>{t}</tspan>);
+    } else {
+      // keep whitespace; give each word its own weight (or the base weight)
+      p.split(/(\s+)/).forEach((tok) => {
+        if (!tok) return;
+        if (/^\s+$/.test(tok)) { out.push(<tspan key={k++}>{tok}</tspan>); return; }
+        const { t, w } = parseWeight(tok, baseW);
+        out.push(<tspan key={k++} fontWeight={fontWeightToCSS(w)}>{t}</tspan>);
+      });
     }
-    return <tspan key={i} fontWeight={fontWeightToCSS(baseW)}>{p}</tspan>;
   });
+  return out;
 }
 
 interface Seg {
@@ -376,7 +394,7 @@ export const ResultBar = React.memo(function ResultBar({
         {resolved.map(({ seg, valueMode }) => {
           if (valueMode !== 'below' && valueMode !== 'both') return null;
           const o = ov(seg.key);
-          const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
+          const segPrefixShow = o.belowPrefixShow !== undefined ? o.belowPrefixShow : rb.belowPrefixShow;
           const color = o.belowColor || fontStyleFor(rb.belowColorMode, rb.belowColor, seg.color);
           const cx = seg.x + seg.w / 2;
           const lineTop = barBottom + rb.belowGap;

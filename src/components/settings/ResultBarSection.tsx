@@ -306,6 +306,7 @@ export function ResultLabelsSection() {
       <SettingRow label="Weight"><Select value={rb.belowFontWeight} onValueChange={(v) => update({ belowFontWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
       <SettingRow label="Color"><TabMenu value={rb.belowColorMode} onChange={(v) => update({ belowColorMode: v })} options={[{ value: 'match', label: 'Match segment' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
       {rb.belowColorMode === 'custom' && <div className="pl-2 border-l-2 border-gray-100"><ColorPicker label="Custom color" value={rb.belowColor} onChange={(c) => update({ belowColor: c })} /></div>}
+      <SettingRow label="Prefix (%)" variant="inline"><Switch checked={rb.belowPrefixShow} onCheckedChange={(v) => update({ belowPrefixShow: v })} /></SettingRow>
       <SubHeader>Overflow number format</SubHeader>
       <NumberFormatRows fmt={rb.belowNumberFormat} onChange={(u) => update({ belowNumberFormat: { ...rb.belowNumberFormat, ...u } })} />
 
@@ -316,7 +317,7 @@ export function ResultLabelsSection() {
       <FontGrid family={rb.nameFontFamily} size={rb.nameFontSize} weight={rb.nameFontWeight} color={rb.nameColor}
         onFamily={(v) => update({ nameFontFamily: v })} onSize={(v) => update({ nameFontSize: v })} onWeight={(v) => update({ nameFontWeight: v })} onColor={(v) => update({ nameColor: v })} />
       <SettingRow label="Bold weight"><Select value={rb.nameBoldWeight} onValueChange={(v) => update({ nameBoldWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-      <p className="text-[10px] text-gray-400">Wrap a word in **double asterisks** for the bold weight, or set a per-word weight with **word|600** — e.g. {'**Ekrem|300** **İMAMOĞLU|800**'}</p>
+      <p className="text-[10px] text-gray-400">Give each word its own weight with “word|weight”, e.g. {'Ekrem|300 İMAMOĞLU|800'} — or wrap a word in **asterisks** for the bold weight.</p>
       <NumberInput label="Gap above" value={rb.nameGap} onChange={(v) => update({ nameGap: v })} min={0} max={40} suffix="px" />
 
       {/* PER-SEGMENT MODAL */}
@@ -342,7 +343,8 @@ export function ResultLabelsSection() {
                     <SelectContent>{valuePosOptions.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </SettingRow>
-                <SettingRow label="Prefix (%)"><TabMenu value={o.prefixShow === undefined ? 'default' : o.prefixShow ? 'on' : 'off'} onChange={(v) => setSeg(name, { prefixShow: v === 'default' ? undefined : v === 'on' })} options={[{ value: 'default', label: 'Default' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} /></SettingRow>
+                <SettingRow label="Inside prefix"><TabMenu value={o.prefixShow === undefined ? 'default' : o.prefixShow ? 'on' : 'off'} onChange={(v) => setSeg(name, { prefixShow: v === 'default' ? undefined : v === 'on' })} options={[{ value: 'default', label: 'Default' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} /></SettingRow>
+                <SettingRow label="Below prefix"><TabMenu value={o.belowPrefixShow === undefined ? 'default' : o.belowPrefixShow ? 'on' : 'off'} onChange={(v) => setSeg(name, { belowPrefixShow: v === 'default' ? undefined : v === 'on' })} options={[{ value: 'default', label: 'Default' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} /></SettingRow>
                 <SettingRow label="Custom decimals" variant="inline"><Switch checked={o.valueDecimals !== undefined} onCheckedChange={(v) => setSeg(name, { valueDecimals: v ? rb.numberFormat.decimalPlaces : undefined })} /></SettingRow>
                 {o.valueDecimals !== undefined && <div className="pl-2 border-l-2 border-gray-100"><NumberInput label="Decimals" value={o.valueDecimals} onChange={(v) => setSeg(name, { valueDecimals: v })} min={0} max={10} /></div>}
                 <SettingRow label="Align"><TabMenu value={o.valueAlign || 'default'} onChange={(v) => setSeg(name, { valueAlign: v === 'default' ? undefined : (v as 'left' | 'center' | 'right') })} options={[{ value: 'default', label: 'Auto' }, { value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></SettingRow>

@@ -1163,6 +1163,7 @@ export interface ResultSegmentOverride {
   valueFontWeight?: FontWeight;
   valueLetterSpacing?: number;
   valueDecimals?: number;        // custom decimal places for this segment's inside value
+  belowPrefixShow?: boolean;     // prefix for this segment's below value (independent of inside)
 }
 
 export interface ResultBarSettings {
@@ -1202,6 +1203,7 @@ export interface ResultBarSettings {
   belowFontWeight: FontWeight;
   belowColorMode: 'match' | 'custom';  // match = segment color
   belowColor: string;
+  belowPrefixShow: boolean;            // prefix for the below value — independent of the inside value
   belowNumberFormat: ResultBarNumberFormat;
 
   // Names (above the bar / legend)
