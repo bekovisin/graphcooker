@@ -1215,6 +1215,10 @@ export interface ResultBarSettings {
   belowColorMode: 'match' | 'custom';  // match = segment color
   belowColor: string;
   belowPrefixShow: boolean;            // prefix for the below value — independent of the inside value
+  belowPrefixFontSize: number;         // 0 = match the below value's font size
+  belowPrefixPosition: 'left' | 'right';
+  belowPrefixVAlign: 'top' | 'center' | 'bottom';
+  belowPrefixPadding: number;
   belowNumberFormat: ResultBarNumberFormat;
 
   // Names (above the bar / legend)

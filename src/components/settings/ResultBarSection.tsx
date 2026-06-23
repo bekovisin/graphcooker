@@ -313,6 +313,14 @@ export function ResultLabelsSection() {
       <SettingRow label="Color"><TabMenu value={rb.belowColorMode} onChange={(v) => update({ belowColorMode: v })} options={[{ value: 'match', label: 'Match segment' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
       {rb.belowColorMode === 'custom' && <div className="pl-2 border-l-2 border-gray-100"><ColorPicker label="Custom color" value={rb.belowColor} onChange={(c) => update({ belowColor: c })} /></div>}
       <SettingRow label="Prefix (%)" variant="inline"><Switch checked={rb.belowPrefixShow} onCheckedChange={(v) => update({ belowPrefixShow: v })} /></SettingRow>
+      {rb.belowPrefixShow && (
+        <div className="space-y-2 pl-2 border-l-2 border-gray-100">
+          <NumberInput label="Prefix size (0 = match value)" value={rb.belowPrefixFontSize} onChange={(v) => update({ belowPrefixFontSize: v })} min={0} max={80} suffix="px" />
+          <SettingRow label="Position"><TabMenu value={rb.belowPrefixPosition} onChange={(v) => update({ belowPrefixPosition: v })} options={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+          <SettingRow label="Vertical"><TabMenu value={rb.belowPrefixVAlign} onChange={(v) => update({ belowPrefixVAlign: v })} options={[{ value: 'top', label: 'Top' }, { value: 'center', label: 'Middle' }, { value: 'bottom', label: 'Bottom' }]} /></SettingRow>
+          <NumberInput label="Padding" value={rb.belowPrefixPadding} onChange={(v) => update({ belowPrefixPadding: v })} min={-100} max={100} suffix="px" />
+        </div>
+      )}
       <SubHeader>Overflow number format</SubHeader>
       <NumberFormatRows fmt={rb.belowNumberFormat} onChange={(u) => update({ belowNumberFormat: { ...rb.belowNumberFormat, ...u } })} />
 

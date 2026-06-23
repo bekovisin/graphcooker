@@ -430,12 +430,20 @@ export const ResultBar = React.memo(function ResultBar({
           const cx = seg.x + seg.w / 2;
           const lineTop = barBottom + rb.belowGap;
           const lineBottom = lineTop + rb.belowLineLength;
-          const text = (segPrefixShow && rb.prefixPosition === 'left' ? rb.prefixText : '') + fmt(Math.abs(seg.rawValue), rb.belowNumberFormat) + (segPrefixShow && rb.prefixPosition === 'right' ? rb.prefixText : '');
+          const numText = fmt(Math.abs(seg.rawValue), rb.belowNumberFormat);
+          const bSize = rb.belowFontSize;
+          const bpxSize = rb.belowPrefixFontSize > 0 ? rb.belowPrefixFontSize : bSize;
+          const bpPad = rb.belowPrefixPadding;
+          const bpShift = rb.belowPrefixVAlign === 'top' ? (bSize - bpxSize) * 0.32 : rb.belowPrefixVAlign === 'bottom' ? -(bSize - bpxSize) * 0.32 : 0;
+          const bHasLeft = segPrefixShow && rb.belowPrefixPosition === 'left';
+          const bHasRight = segPrefixShow && rb.belowPrefixPosition === 'right';
           return (
             <g key={`below-${seg.index}`}>
               <line x1={cx} y1={lineTop} x2={cx} y2={lineBottom} stroke={rb.belowLineColor} strokeWidth={rb.belowLineWidth} />
-              <text x={cx} y={lineBottom + rb.belowFontSize} textAnchor="middle" fontSize={rb.belowFontSize} fontFamily={rb.nameFontFamily} fontWeight={fontWeightToCSS(rb.belowFontWeight)} fill={color}>
-                {text}
+              <text x={cx} y={lineBottom + bSize} textAnchor="middle" xmlSpace="preserve" fontSize={bSize} fontFamily={rb.nameFontFamily} fontWeight={fontWeightToCSS(rb.belowFontWeight)} fill={color}>
+                {bHasLeft && <tspan fontSize={bpxSize} baselineShift={bpShift}>{rb.prefixText}</tspan>}
+                <tspan dx={bHasLeft ? bpPad : 0}>{numText}</tspan>
+                {bHasRight && <tspan fontSize={bpxSize} baselineShift={bpShift} dx={bpPad}>{rb.prefixText}</tspan>}
               </text>
             </g>
           );
