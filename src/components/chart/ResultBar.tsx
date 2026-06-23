@@ -68,42 +68,42 @@ function stripMarks(s: string): string {
   return normW(s).replace(/\*\*([^*]+)\*\*/g, '$1').replace(STRIP_WEIGHT, '');
 }
 
-// Render rich text where EACH WORD can have its own weight:
-//   • "Ekrem|300 İMAMOĞLU|800"  → per-word weight, no markers needed
-//   • "Ekrem **İMAMOĞLU**"      → wrapped part uses the bold weight
-function renderRich(text: string, baseW: string, boldW: string, wordWeights?: (string | null)[]): React.ReactNode {
-  // UI-based per-word weights (set in settings) take precedence over inline markup.
+// Text width including SVG letter-spacing (applied after each glyph).
+function measureRun(text: string, size: number, family: string, weight: string, letter: number): number {
+  return measureTextWidth(text, size, family, weight) + (letter ? text.length * letter : 0);
+}
+
+// Build word runs (text + weight) from a name, honoring UI per-word weights or inline markup
+//   • per-word weights set in settings, or
+//   • "Ekrem|300 İMAMOĞLU|800" / "Ekrem **İMAMOĞLU**" markup (fallback)
+function nameRuns(text: string, baseW: string, boldW: string, wordWeights?: (string | null)[]): { text: string; weight: string }[] {
   if (wordWeights && wordWeights.length) {
-    const out: React.ReactNode[] = [];
-    let k = 0;
-    let wi = 0;
-    text.split(/(\s+)/).forEach((tok) => {
-      if (!tok) return;
-      if (/^\s+$/.test(tok)) { out.push(<tspan key={k++}>{tok}</tspan>); return; }
-      const w = wordWeights[wi] || baseW;
-      wi++;
-      out.push(<tspan key={k++} fontWeight={fontWeightToCSS(w)}>{tok}</tspan>);
-    });
-    return out;
+    return text.split(/\s+/).filter(Boolean).map((word, i) => ({ text: word, weight: wordWeights[i] || baseW }));
   }
-  const parts = normW(text).split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
-  const out: React.ReactNode[] = [];
-  let k = 0;
-  parts.forEach((p) => {
-    if (p.startsWith('**') && p.endsWith('**')) {
-      const { t, w } = parseWeight(p.slice(2, -2), boldW); // ** parts default to the bold weight
-      out.push(<tspan key={k++} fontWeight={fontWeightToCSS(w)}>{t}</tspan>);
-    } else {
-      // keep whitespace; give each word its own weight (or the base weight)
-      p.split(/(\s+)/).forEach((tok) => {
-        if (!tok) return;
-        if (/^\s+$/.test(tok)) { out.push(<tspan key={k++}>{tok}</tspan>); return; }
-        const { t, w } = parseWeight(tok, baseW);
-        out.push(<tspan key={k++} fontWeight={fontWeightToCSS(w)}>{t}</tspan>);
-      });
-    }
+  const runs: { text: string; weight: string }[] = [];
+  normW(text).split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0).forEach((p) => {
+    const bold = p.startsWith('**') && p.endsWith('**');
+    (bold ? p.slice(2, -2) : p).split(/\s+/).filter(Boolean).forEach((word) => {
+      const { t, w } = parseWeight(word, bold ? boldW : baseW);
+      runs.push({ text: t, weight: w });
+    });
   });
-  return out;
+  return runs.length ? runs : [{ text, weight: baseW }];
+}
+
+// Render words as ABSOLUTELY-positioned tspans (explicit x/y, no whitespace chars between them).
+// Export-safe: relies on nothing fragile (no xml:space, dx, or baseline-shift), so words never
+// collapse together and the layout is byte-for-byte identical in any SVG renderer.
+function renderWordTspans(runs: { text: string; weight: string }[], anchorX: number, baseY: number, anchor: 'start' | 'middle' | 'end', family: string, size: number): React.ReactNode {
+  const spaceW = measureTextWidth(' ', size, family, 'normal');
+  const widths = runs.map((r) => measureTextWidth(r.text, size, family, r.weight));
+  const total = widths.reduce((a, b) => a + b, 0) + Math.max(0, runs.length - 1) * spaceW;
+  let cx = anchor === 'middle' ? anchorX - total / 2 : anchor === 'end' ? anchorX - total : anchorX;
+  return runs.map((r, i) => {
+    const el = <tspan key={i} x={cx} y={baseY} fontWeight={fontWeightToCSS(r.weight)}>{r.text}</tspan>;
+    cx += widths[i] + spaceW;
+    return el;
+  });
 }
 
 interface Seg {
@@ -372,9 +372,9 @@ export const ResultBar = React.memo(function ResultBar({
           else if (rb.valueAlignEdges && seg.isLast) { x = seg.x + seg.w; anchor = 'end'; }
           else { x = seg.x + seg.w / 2; anchor = 'middle'; }
           return (
-            <text key={`name-${seg.index}`} x={x} y={barY - rb.nameGap} textAnchor={anchor} xmlSpace="preserve"
+            <text key={`name-${seg.index}`} textAnchor="start"
               fontSize={rb.nameFontSize} fontFamily={rb.nameFontFamily} fill={color}>
-              {renderRich(seg.name, rb.nameFontWeight, rb.nameBoldWeight, o.nameWordWeights)}
+              {renderWordTspans(nameRuns(seg.name, rb.nameFontWeight, rb.nameBoldWeight, o.nameWordWeights), x, barY - rb.nameGap, anchor, rb.nameFontFamily, rb.nameFontSize)}
             </text>
           );
         })}
@@ -397,26 +397,32 @@ export const ResultBar = React.memo(function ResultBar({
           const prefixPad = o.prefixPadding ?? rb.prefixPadding;
           const prefixPos = o.prefixPosition || rb.prefixPosition;
           const prefixVAlign = o.prefixVAlign || rb.prefixVAlign;
-          // baseline-shift is self-contained (no dy reset) so it survives SVG export cleanly. +up.
-          const pShift = prefixVAlign === 'top' ? (vSize - pxSize) * 0.32 : prefixVAlign === 'bottom' ? -(vSize - pxSize) * 0.32 : 0;
           const padX = o.valuePadX ?? 0;
           const padY = o.valuePadY ?? 0;
           const edgeAlign = rb.valueAlignEdges ? (seg.isFirst ? 'left' : seg.isLast ? 'right' : 'center') : 'center';
           const align = o.valueAlign || edgeAlign;
-          let x: number; let anchor: 'start' | 'middle' | 'end';
-          if (align === 'left') { x = seg.x + rb.valuePaddingX + padX; anchor = 'start'; }
-          else if (align === 'right') { x = seg.x + seg.w - rb.valuePaddingX - padX; anchor = 'end'; }
-          else { x = seg.x + seg.w / 2 + padX; anchor = 'middle'; }
-          const y = barY + rb.barHeight / 2 + padY;
+          let anchorX: number; let anchor: 'start' | 'middle' | 'end';
+          if (align === 'left') { anchorX = seg.x + rb.valuePaddingX + padX; anchor = 'start'; }
+          else if (align === 'right') { anchorX = seg.x + seg.w - rb.valuePaddingX - padX; anchor = 'end'; }
+          else { anchorX = seg.x + seg.w / 2 + padX; anchor = 'middle'; }
+          const cy = barY + rb.barHeight / 2 + padY;
           const px = rb.prefixText;
           const hasLeft = segPrefixShow && prefixPos === 'left';
           const hasRight = segPrefixShow && prefixPos === 'right';
+          // Absolute x/y per part — no dx / baseline-shift / whitespace, so export is pixel-exact.
+          const numW = measureRun(numText, vSize, vFamily, vWeight, vLetter);
+          const pxW = (hasLeft || hasRight) ? measureRun(px, pxSize, vFamily, vWeight, vLetter) : 0;
+          const totalW = numW + ((hasLeft || hasRight) ? pxW + prefixPad : 0);
+          let sx = anchor === 'middle' ? anchorX - totalW / 2 : anchor === 'end' ? anchorX - totalW : anchorX;
+          const pcy = cy + (prefixVAlign === 'top' ? -(vSize - pxSize) * 0.32 : prefixVAlign === 'bottom' ? (vSize - pxSize) * 0.32 : 0);
+          const parts: React.ReactNode[] = [];
+          if (hasLeft) { parts.push(<tspan key="p" x={sx} y={pcy} fontSize={pxSize}>{px}</tspan>); sx += pxW + prefixPad; }
+          parts.push(<tspan key="n" x={sx} y={cy}>{numText}</tspan>); sx += numW;
+          if (hasRight) { sx += prefixPad; parts.push(<tspan key="p" x={sx} y={pcy} fontSize={pxSize}>{px}</tspan>); }
           return (
-            <text key={`val-${seg.index}`} x={x} y={y} textAnchor={anchor} dominantBaseline="central" xmlSpace="preserve"
+            <text key={`val-${seg.index}`} textAnchor="start" dominantBaseline="central"
               fontSize={vSize} fontFamily={vFamily} fontWeight={fontWeightToCSS(vWeight)} fill={color} letterSpacing={vLetter}>
-              {hasLeft && <tspan fontSize={pxSize} baselineShift={pShift}>{px}</tspan>}
-              <tspan dx={hasLeft ? prefixPad : 0}>{numText}</tspan>
-              {hasRight && <tspan fontSize={pxSize} baselineShift={pShift} dx={prefixPad}>{px}</tspan>}
+              {parts}
             </text>
           );
         })}
@@ -434,16 +440,24 @@ export const ResultBar = React.memo(function ResultBar({
           const bSize = rb.belowFontSize;
           const bpxSize = rb.belowPrefixFontSize > 0 ? rb.belowPrefixFontSize : bSize;
           const bpPad = rb.belowPrefixPadding;
-          const bpShift = rb.belowPrefixVAlign === 'top' ? (bSize - bpxSize) * 0.32 : rb.belowPrefixVAlign === 'bottom' ? -(bSize - bpxSize) * 0.32 : 0;
+          const bWeight = String(rb.belowFontWeight);
           const bHasLeft = segPrefixShow && rb.belowPrefixPosition === 'left';
           const bHasRight = segPrefixShow && rb.belowPrefixPosition === 'right';
+          const cy = lineBottom + bSize / 2 + 2;
+          const bpcy = cy + (rb.belowPrefixVAlign === 'top' ? -(bSize - bpxSize) * 0.32 : rb.belowPrefixVAlign === 'bottom' ? (bSize - bpxSize) * 0.32 : 0);
+          const bNumW = measureRun(numText, bSize, rb.nameFontFamily, bWeight, 0);
+          const bPxW = (bHasLeft || bHasRight) ? measureRun(rb.prefixText, bpxSize, rb.nameFontFamily, bWeight, 0) : 0;
+          const bTotal = bNumW + ((bHasLeft || bHasRight) ? bPxW + bpPad : 0);
+          let bsx = cx - bTotal / 2;
+          const bParts: React.ReactNode[] = [];
+          if (bHasLeft) { bParts.push(<tspan key="p" x={bsx} y={bpcy} fontSize={bpxSize}>{rb.prefixText}</tspan>); bsx += bPxW + bpPad; }
+          bParts.push(<tspan key="n" x={bsx} y={cy}>{numText}</tspan>); bsx += bNumW;
+          if (bHasRight) { bsx += bpPad; bParts.push(<tspan key="p" x={bsx} y={bpcy} fontSize={bpxSize}>{rb.prefixText}</tspan>); }
           return (
             <g key={`below-${seg.index}`}>
               <line x1={cx} y1={lineTop} x2={cx} y2={lineBottom} stroke={rb.belowLineColor} strokeWidth={rb.belowLineWidth} />
-              <text x={cx} y={lineBottom + bSize} textAnchor="middle" xmlSpace="preserve" fontSize={bSize} fontFamily={rb.nameFontFamily} fontWeight={fontWeightToCSS(rb.belowFontWeight)} fill={color}>
-                {bHasLeft && <tspan fontSize={bpxSize} baselineShift={bpShift}>{rb.prefixText}</tspan>}
-                <tspan dx={bHasLeft ? bpPad : 0}>{numText}</tspan>
-                {bHasRight && <tspan fontSize={bpxSize} baselineShift={bpShift} dx={bpPad}>{rb.prefixText}</tspan>}
+              <text textAnchor="start" dominantBaseline="central" fontSize={bSize} fontFamily={rb.nameFontFamily} fontWeight={fontWeightToCSS(rb.belowFontWeight)} fill={color}>
+                {bParts}
               </text>
             </g>
           );
@@ -461,7 +475,7 @@ export const ResultBar = React.memo(function ResultBar({
           const renderItem = (s: Seg, x: number, y: number, i: number) => (
             <g key={`leg-${i}`}>
               <circle cx={x + dot / 2} cy={y} r={dot / 2} fill={s.color} />
-              <text x={x + dot + gap} y={y} dominantBaseline="central" xmlSpace="preserve" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fill={rb.legendColor}>{renderRich(s.name, rb.legendFontWeight, rb.nameBoldWeight, ov(s.key).nameWordWeights)}</text>
+              <text textAnchor="start" dominantBaseline="central" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fill={rb.legendColor}>{renderWordTspans(nameRuns(s.name, rb.legendFontWeight, rb.nameBoldWeight, ov(s.key).nameWordWeights), x + dot + gap, y, 'start', rb.nameFontFamily, rb.legendFontSize)}</text>
             </g>
           );
 
