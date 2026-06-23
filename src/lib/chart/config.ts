@@ -671,6 +671,7 @@ export const defaultChartSettings: ChartSettings = {
     valueFontWeight: 'bold' as const,
     valueColorMode: 'auto' as const,
     valueColor: '#ffffff',
+    valueContrastThreshold: 50,
     valueLetterSpacing: 0,
     valueAlignEdges: true,
     valuePaddingX: 20,
@@ -727,8 +728,8 @@ export const defaultChartSettings: ChartSettings = {
     diffFontStyle: 'normal' as const,
     diffAlign: 'center' as const,
     diffNumberFormat: { decimalPlaces: 2, thousandsSeparator: '.' as const, decimalSeparator: ',' as const, prefix: '', suffix: '', showTrailingZeros: true },
-    leftImage: { show: false, url: '', width: 110, height: 110, borderRadius: 10, paddingX: 16 },
-    rightImage: { show: false, url: '', width: 110, height: 110, borderRadius: 10, paddingX: 16 },
+    leftImage: { show: false, url: '', width: 110, height: 110, borderRadius: 10, paddingX: 16, gap: 0 },
+    rightImage: { show: false, url: '', width: 110, height: 110, borderRadius: 10, paddingX: 16, gap: 0 },
     perSegment: {},
   },
   lineInfoAnnotation: {

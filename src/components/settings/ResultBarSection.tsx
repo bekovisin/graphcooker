@@ -242,6 +242,7 @@ export function ResultImagesSection() {
               <NumberInput label="Height" value={img.height} onChange={(v) => set({ height: v })} min={10} max={400} suffix="px" />
               <NumberInput label="Corner radius" value={img.borderRadius} onChange={(v) => set({ borderRadius: v })} min={0} max={200} suffix="px" />
               <NumberInput label="Padding X" value={img.paddingX} onChange={(v) => set({ paddingX: v })} min={0} max={100} suffix="px" />
+              <NumberInput label="Gap to bar" value={img.gap} onChange={(v) => set({ gap: v })} min={0} max={200} suffix="px" />
             </div>
           </div>
         )}
@@ -275,6 +276,9 @@ export function ResultLabelsSection() {
       </SettingRow>
       <SettingRow label="Align to edges" variant="inline"><Switch checked={rb.valueAlignEdges} onCheckedChange={(v) => update({ valueAlignEdges: v })} /></SettingRow>
       <SettingRow label="Color"><TabMenu value={rb.valueColorMode} onChange={(v) => update({ valueColorMode: v })} options={[{ value: 'auto', label: 'Auto (contrast)' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
+      {rb.valueColorMode === 'auto' && (
+        <SliderWithInput label="Contrast (white ↔ black)" value={rb.valueContrastThreshold} onChange={(v) => update({ valueContrastThreshold: v })} min={0} max={100} step={1} suffix="%" />
+      )}
       <FontGrid family={rb.valueFontFamily} size={rb.valueFontSize} weight={rb.valueFontWeight} color={rb.valueColor}
         onFamily={(v) => update({ valueFontFamily: v })} onSize={(v) => update({ valueFontSize: v })} onWeight={(v) => update({ valueFontWeight: v })} onColor={(v) => update({ valueColor: v })} />
       <div className="grid grid-cols-2 gap-2">
@@ -370,8 +374,9 @@ export function ResultLabelsSection() {
                     </Select>
                   </div>
                   <NumberInput label="Letter spacing" value={o.valueLetterSpacing ?? rb.valueLetterSpacing} onChange={(v) => setSeg(name, { valueLetterSpacing: v })} min={-10} max={30} step={0.1} />
-                  <ColorPicker label="Color" value={o.valueColor || rb.valueColor} onChange={(c) => setSeg(name, { valueColor: c })} />
                 </div>
+                <SettingRow label="Text color"><TabMenu value={o.valueColor ? 'custom' : 'auto'} onChange={(v) => setSeg(name, { valueColor: v === 'auto' ? undefined : (o.valueColor || rb.valueColor || '#ffffff') })} options={[{ value: 'auto', label: 'Auto' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
+                {o.valueColor && <div className="pl-2 border-l-2 border-gray-100"><ColorPicker label="Color" value={o.valueColor} onChange={(c) => setSeg(name, { valueColor: c })} /></div>}
                 <div className="grid grid-cols-2 gap-2">
                   <NumberInput label="Padding X" value={o.valuePadX ?? 0} onChange={(v) => setSeg(name, { valuePadX: v })} min={-300} max={300} suffix="px" />
                   <NumberInput label="Padding Y" value={o.valuePadY ?? 0} onChange={(v) => setSeg(name, { valuePadY: v })} min={-300} max={300} suffix="px" />

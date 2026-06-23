@@ -6,7 +6,6 @@ import type { DataRow } from '@/types/data';
 import {
   resolveColors,
   formatElectionNumber,
-  getContrastColor,
   fontWeightToCSS,
   measureTextWidth,
 } from '@/lib/chart/utils';
@@ -45,6 +44,17 @@ function aliasWeight(w: string): string {
   if (l === '400') return 'normal';
   if (l === '700') return 'bold';
   return l;
+}
+
+// Auto black/white text color with an adjustable luminance cutoff (threshold 0–100).
+function autoTextColor(hex: string, threshold: number): string {
+  const h = (hex || '').replace('#', '');
+  if (h.length < 6) return '#000000';
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= (threshold / 100) * 255 ? '#000000' : '#ffffff';
 }
 
 // A word may carry its own weight as a "word|600" suffix.
@@ -187,8 +197,8 @@ export const ResultBar = React.memo(function ResultBar({
 
   // ── Layout sizes ──
   const pad = { top: settings.layout.paddingTop, right: settings.layout.paddingRight, bottom: settings.layout.paddingBottom, left: settings.layout.paddingLeft };
-  const leftImgSpace = rb.leftImage.show && rb.leftImage.url ? rb.leftImage.width + rb.leftImage.paddingX * 2 : 0;
-  const rightImgSpace = rb.rightImage.show && rb.rightImage.url ? rb.rightImage.width + rb.rightImage.paddingX * 2 : 0;
+  const leftImgSpace = rb.leftImage.show && rb.leftImage.url ? rb.leftImage.width + rb.leftImage.paddingX * 2 + (rb.leftImage.gap || 0) : 0;
+  const rightImgSpace = rb.rightImage.show && rb.rightImage.url ? rb.rightImage.width + rb.rightImage.paddingX * 2 + (rb.rightImage.gap || 0) : 0;
   const legendSideBlock = rb.legendPosition === 'left' || rb.legendPosition === 'right' ? rb.legendWidth : 0;
   const plotWidth = rb.manualPlotWidth ? rb.manualPlotWidthValue : Math.max(10, width - pad.left - pad.right - leftImgSpace - rightImgSpace - legendSideBlock);
   const barLeft = pad.left + leftImgSpace + (rb.legendPosition === 'left' ? legendSideBlock : 0);
@@ -327,7 +337,7 @@ export const ResultBar = React.memo(function ResultBar({
         {/* Right image (last segment) */}
         {rb.rightImage.show && rb.rightImage.url && (() => {
           const img = rb.rightImage;
-          const x = barLeft + plotWidth + img.paddingX;
+          const x = barLeft + plotWidth + (img.gap || 0) + img.paddingX;
           const y = barY + (rb.barHeight - img.height) / 2;
           return (
             <g>
@@ -362,7 +372,7 @@ export const ResultBar = React.memo(function ResultBar({
           else if (rb.valueAlignEdges && seg.isLast) { x = seg.x + seg.w; anchor = 'end'; }
           else { x = seg.x + seg.w / 2; anchor = 'middle'; }
           return (
-            <text key={`name-${seg.index}`} x={x} y={barY - rb.nameGap} textAnchor={anchor}
+            <text key={`name-${seg.index}`} x={x} y={barY - rb.nameGap} textAnchor={anchor} xmlSpace="preserve"
               fontSize={rb.nameFontSize} fontFamily={rb.nameFontFamily} fill={color}>
               {renderRich(seg.name, rb.nameFontWeight, rb.nameBoldWeight, o.nameWordWeights)}
             </text>
@@ -377,7 +387,7 @@ export const ResultBar = React.memo(function ResultBar({
           const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
           const segNf = o.valueDecimals !== undefined ? { ...rb.numberFormat, decimalPlaces: o.valueDecimals } : rb.numberFormat;
           const numText = fmt(Math.abs(seg.rawValue), segNf);
-          const color = o.valueColor || (rb.valueColorMode === 'auto' ? getContrastColor(seg.color) : rb.valueColor);
+          const color = o.valueColor || (rb.valueColorMode === 'auto' ? autoTextColor(seg.color, rb.valueContrastThreshold) : rb.valueColor);
           const vSize = o.valueFontSize ?? rb.valueFontSize;
           const vFamily = o.valueFontFamily || rb.valueFontFamily;
           const vWeight = o.valueFontWeight || rb.valueFontWeight;
@@ -387,7 +397,8 @@ export const ResultBar = React.memo(function ResultBar({
           const prefixPad = o.prefixPadding ?? rb.prefixPadding;
           const prefixPos = o.prefixPosition || rb.prefixPosition;
           const prefixVAlign = o.prefixVAlign || rb.prefixVAlign;
-          const vShift = prefixVAlign === 'top' ? -(vSize - pxSize) * 0.32 : prefixVAlign === 'bottom' ? (vSize - pxSize) * 0.32 : 0;
+          // baseline-shift is self-contained (no dy reset) so it survives SVG export cleanly. +up.
+          const pShift = prefixVAlign === 'top' ? (vSize - pxSize) * 0.32 : prefixVAlign === 'bottom' ? -(vSize - pxSize) * 0.32 : 0;
           const padX = o.valuePadX ?? 0;
           const padY = o.valuePadY ?? 0;
           const edgeAlign = rb.valueAlignEdges ? (seg.isFirst ? 'left' : seg.isLast ? 'right' : 'center') : 'center';
@@ -401,11 +412,11 @@ export const ResultBar = React.memo(function ResultBar({
           const hasLeft = segPrefixShow && prefixPos === 'left';
           const hasRight = segPrefixShow && prefixPos === 'right';
           return (
-            <text key={`val-${seg.index}`} x={x} y={y} textAnchor={anchor} dominantBaseline="central"
+            <text key={`val-${seg.index}`} x={x} y={y} textAnchor={anchor} dominantBaseline="central" xmlSpace="preserve"
               fontSize={vSize} fontFamily={vFamily} fontWeight={fontWeightToCSS(vWeight)} fill={color} letterSpacing={vLetter}>
-              {hasLeft && <tspan fontSize={pxSize} dy={vShift}>{px}</tspan>}
-              <tspan dy={hasLeft ? -vShift : 0} dx={hasLeft ? prefixPad : 0}>{numText}</tspan>
-              {hasRight && <tspan fontSize={pxSize} dy={vShift} dx={prefixPad}>{px}</tspan>}
+              {hasLeft && <tspan fontSize={pxSize} baselineShift={pShift}>{px}</tspan>}
+              <tspan dx={hasLeft ? prefixPad : 0}>{numText}</tspan>
+              {hasRight && <tspan fontSize={pxSize} baselineShift={pShift} dx={prefixPad}>{px}</tspan>}
             </text>
           );
         })}
@@ -442,7 +453,7 @@ export const ResultBar = React.memo(function ResultBar({
           const renderItem = (s: Seg, x: number, y: number, i: number) => (
             <g key={`leg-${i}`}>
               <circle cx={x + dot / 2} cy={y} r={dot / 2} fill={s.color} />
-              <text x={x + dot + gap} y={y} dominantBaseline="central" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fill={rb.legendColor}>{renderRich(s.name, rb.legendFontWeight, rb.nameBoldWeight, ov(s.key).nameWordWeights)}</text>
+              <text x={x + dot + gap} y={y} dominantBaseline="central" xmlSpace="preserve" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fill={rb.legendColor}>{renderRich(s.name, rb.legendFontWeight, rb.nameBoldWeight, ov(s.key).nameWordWeights)}</text>
             </g>
           );
 

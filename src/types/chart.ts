@@ -1134,6 +1134,7 @@ export interface ResultBarImageSettings {
   height: number;
   borderRadius: number;
   paddingX: number;
+  gap: number;          // gap between the image and the bar
 }
 
 export interface ResultBarNumberFormat {
@@ -1192,6 +1193,7 @@ export interface ResultBarSettings {
   valueFontWeight: FontWeight;
   valueColorMode: 'auto' | 'custom'; // auto = contrast against the segment
   valueColor: string;
+  valueContrastThreshold: number;    // 0–100: luminance cutoff for auto black/white (higher = more white)
   valueLetterSpacing: number;
   valueAlignEdges: boolean;          // first segment left / last right / middle centered
   valuePaddingX: number;
