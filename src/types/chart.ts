@@ -1164,6 +1164,11 @@ export interface ResultSegmentOverride {
   valueLetterSpacing?: number;
   valueDecimals?: number;        // custom decimal places for this segment's inside value
   belowPrefixShow?: boolean;     // prefix for this segment's below value (independent of inside)
+  // Per-segment inside-prefix styling
+  prefixFontSize?: number;
+  prefixPadding?: number;
+  prefixPosition?: 'left' | 'right';
+  prefixVAlign?: 'top' | 'center' | 'bottom';
 }
 
 export interface ResultBarSettings {
@@ -1192,6 +1197,8 @@ export interface ResultBarSettings {
   prefixText: string;
   prefixPosition: 'left' | 'right';
   prefixFontSize: number;
+  prefixVAlign: 'top' | 'center' | 'bottom';
+  prefixPadding: number;
   numberFormat: ResultBarNumberFormat;
 
   // Below-the-bar value (for narrow / overflow segments) — connector line + value

@@ -289,6 +289,8 @@ export function ResultLabelsSection() {
             <NumberInput label="Size" value={rb.prefixFontSize} onChange={(v) => update({ prefixFontSize: v })} min={6} max={80} suffix="px" />
           </div>
           <SettingRow label="Position"><TabMenu value={rb.prefixPosition} onChange={(v) => update({ prefixPosition: v })} options={[{ value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+          <SettingRow label="Vertical"><TabMenu value={rb.prefixVAlign} onChange={(v) => update({ prefixVAlign: v })} options={[{ value: 'top', label: 'Top' }, { value: 'center', label: 'Middle' }, { value: 'bottom', label: 'Bottom' }]} /></SettingRow>
+          <NumberInput label="Padding" value={rb.prefixPadding} onChange={(v) => update({ prefixPadding: v })} min={-100} max={100} suffix="px" />
         </div>
       )}
       <SubHeader>Value number format</SubHeader>
@@ -345,6 +347,12 @@ export function ResultLabelsSection() {
                 </SettingRow>
                 <SettingRow label="Inside prefix"><TabMenu value={o.prefixShow === undefined ? 'default' : o.prefixShow ? 'on' : 'off'} onChange={(v) => setSeg(name, { prefixShow: v === 'default' ? undefined : v === 'on' })} options={[{ value: 'default', label: 'Default' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} /></SettingRow>
                 <SettingRow label="Below prefix"><TabMenu value={o.belowPrefixShow === undefined ? 'default' : o.belowPrefixShow ? 'on' : 'off'} onChange={(v) => setSeg(name, { belowPrefixShow: v === 'default' ? undefined : v === 'on' })} options={[{ value: 'default', label: 'Default' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }]} /></SettingRow>
+                <div className="grid grid-cols-2 gap-2">
+                  <NumberInput label="Prefix size" value={o.prefixFontSize ?? rb.prefixFontSize} onChange={(v) => setSeg(name, { prefixFontSize: v })} min={6} max={120} suffix="px" />
+                  <NumberInput label="Prefix padding" value={o.prefixPadding ?? rb.prefixPadding} onChange={(v) => setSeg(name, { prefixPadding: v })} min={-100} max={100} suffix="px" />
+                </div>
+                <SettingRow label="Prefix position"><TabMenu value={o.prefixPosition || 'default'} onChange={(v) => setSeg(name, { prefixPosition: v === 'default' ? undefined : (v as 'left' | 'right') })} options={[{ value: 'default', label: 'Default' }, { value: 'left', label: 'Left' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+                <SettingRow label="Prefix vertical"><TabMenu value={o.prefixVAlign || 'default'} onChange={(v) => setSeg(name, { prefixVAlign: v === 'default' ? undefined : (v as 'top' | 'center' | 'bottom') })} options={[{ value: 'default', label: 'Def' }, { value: 'top', label: 'Top' }, { value: 'center', label: 'Mid' }, { value: 'bottom', label: 'Bot' }]} /></SettingRow>
                 <SettingRow label="Custom decimals" variant="inline"><Switch checked={o.valueDecimals !== undefined} onCheckedChange={(v) => setSeg(name, { valueDecimals: v ? rb.numberFormat.decimalPlaces : undefined })} /></SettingRow>
                 {o.valueDecimals !== undefined && <div className="pl-2 border-l-2 border-gray-100"><NumberInput label="Decimals" value={o.valueDecimals} onChange={(v) => setSeg(name, { valueDecimals: v })} min={0} max={10} /></div>}
                 <SettingRow label="Align"><TabMenu value={o.valueAlign || 'default'} onChange={(v) => setSeg(name, { valueAlign: v === 'default' ? undefined : (v as 'left' | 'center' | 'right') })} options={[{ value: 'default', label: 'Auto' }, { value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></SettingRow>

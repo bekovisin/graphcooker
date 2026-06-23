@@ -30,8 +30,11 @@ function roundedRect(x: number, y: number, w: number, h: number, r: number): str
 }
 
 const WL = '100|200|300|400|500|600|700|800|900|normal|bold|light|medium|semibold|black';
-const WORD_WEIGHT = new RegExp(`\\|(${WL})$`, 'i');           // a "|weight" suffix on a single word
-const STRIP_WEIGHT = new RegExp(`\\|(${WL})(?=\\s|$)`, 'gi');  // for measurement
+const WORD_WEIGHT = new RegExp(`\\|(${WL})$`, 'i');             // a "|weight" suffix on a single word
+const STRIP_WEIGHT = new RegExp(`\\|(${WL})(?=\\s|$)`, 'gi');    // for measurement
+const NORM_WEIGHT = new RegExp(`\\s*\\|\\s*(${WL})\\b`, 'gi');   // tolerate "word |300" / "word | 300"
+// Collapse any spaces around a "|weight" so the per-word parser always sees "word|weight"
+function normW(s: string): string { return s.replace(NORM_WEIGHT, '|$1'); }
 
 function aliasWeight(w: string): string {
   const l = w.toLowerCase();
@@ -52,14 +55,14 @@ function parseWeight(word: string, fallback: string): { t: string; w: string } {
 
 // Strip **markers** and |weight suffixes for width measurement
 function stripMarks(s: string): string {
-  return s.replace(/\*\*([^*]+)\*\*/g, '$1').replace(STRIP_WEIGHT, '');
+  return normW(s).replace(/\*\*([^*]+)\*\*/g, '$1').replace(STRIP_WEIGHT, '');
 }
 
 // Render rich text where EACH WORD can have its own weight:
 //   • "Ekrem|300 İMAMOĞLU|800"  → per-word weight, no markers needed
 //   • "Ekrem **İMAMOĞLU**"      → wrapped part uses the bold weight
 function renderRich(text: string, baseW: string, boldW: string): React.ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
+  const parts = normW(text).split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
   const out: React.ReactNode[] = [];
   let k = 0;
   parts.forEach((p) => {
@@ -369,7 +372,12 @@ export const ResultBar = React.memo(function ResultBar({
           const vFamily = o.valueFontFamily || rb.valueFontFamily;
           const vWeight = o.valueFontWeight || rb.valueFontWeight;
           const vLetter = o.valueLetterSpacing ?? rb.valueLetterSpacing;
-          const pxSize = rb.prefixFontSize * (vSize / rb.valueFontSize);
+          const segPrefixSize = o.prefixFontSize ?? rb.prefixFontSize;
+          const pxSize = segPrefixSize * (vSize / rb.valueFontSize);
+          const prefixPad = o.prefixPadding ?? rb.prefixPadding;
+          const prefixPos = o.prefixPosition || rb.prefixPosition;
+          const prefixVAlign = o.prefixVAlign || rb.prefixVAlign;
+          const vShift = prefixVAlign === 'top' ? -(vSize - pxSize) * 0.32 : prefixVAlign === 'bottom' ? (vSize - pxSize) * 0.32 : 0;
           const padX = o.valuePadX ?? 0;
           const padY = o.valuePadY ?? 0;
           const edgeAlign = rb.valueAlignEdges ? (seg.isFirst ? 'left' : seg.isLast ? 'right' : 'center') : 'center';
@@ -380,12 +388,14 @@ export const ResultBar = React.memo(function ResultBar({
           else { x = seg.x + seg.w / 2 + padX; anchor = 'middle'; }
           const y = barY + rb.barHeight / 2 + padY;
           const px = rb.prefixText;
+          const hasLeft = segPrefixShow && prefixPos === 'left';
+          const hasRight = segPrefixShow && prefixPos === 'right';
           return (
             <text key={`val-${seg.index}`} x={x} y={y} textAnchor={anchor} dominantBaseline="central"
               fontSize={vSize} fontFamily={vFamily} fontWeight={fontWeightToCSS(vWeight)} fill={color} letterSpacing={vLetter}>
-              {segPrefixShow && rb.prefixPosition === 'left' && <tspan fontSize={pxSize}>{px}</tspan>}
-              <tspan>{numText}</tspan>
-              {segPrefixShow && rb.prefixPosition === 'right' && <tspan fontSize={pxSize}>{px}</tspan>}
+              {hasLeft && <tspan fontSize={pxSize} dy={vShift}>{px}</tspan>}
+              <tspan dy={hasLeft ? -vShift : 0} dx={hasLeft ? prefixPad : 0}>{numText}</tspan>
+              {hasRight && <tspan fontSize={pxSize} dy={vShift} dx={prefixPad}>{px}</tspan>}
             </text>
           );
         })}

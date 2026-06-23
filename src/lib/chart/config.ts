@@ -678,6 +678,8 @@ export const defaultChartSettings: ChartSettings = {
     prefixText: '%',
     prefixPosition: 'left' as const,
     prefixFontSize: 24,
+    prefixVAlign: 'center' as const,
+    prefixPadding: 0,
     numberFormat: { decimalPlaces: 2, thousandsSeparator: '.' as const, decimalSeparator: ',' as const, prefix: '', suffix: '', showTrailingZeros: true },
     belowLineColor: '#9ca3af',
     belowLineWidth: 1,
