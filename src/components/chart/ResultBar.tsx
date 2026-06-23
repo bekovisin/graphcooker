@@ -61,7 +61,21 @@ function stripMarks(s: string): string {
 // Render rich text where EACH WORD can have its own weight:
 //   • "Ekrem|300 İMAMOĞLU|800"  → per-word weight, no markers needed
 //   • "Ekrem **İMAMOĞLU**"      → wrapped part uses the bold weight
-function renderRich(text: string, baseW: string, boldW: string): React.ReactNode {
+function renderRich(text: string, baseW: string, boldW: string, wordWeights?: (string | null)[]): React.ReactNode {
+  // UI-based per-word weights (set in settings) take precedence over inline markup.
+  if (wordWeights && wordWeights.length) {
+    const out: React.ReactNode[] = [];
+    let k = 0;
+    let wi = 0;
+    text.split(/(\s+)/).forEach((tok) => {
+      if (!tok) return;
+      if (/^\s+$/.test(tok)) { out.push(<tspan key={k++}>{tok}</tspan>); return; }
+      const w = wordWeights[wi] || baseW;
+      wi++;
+      out.push(<tspan key={k++} fontWeight={fontWeightToCSS(w)}>{tok}</tspan>);
+    });
+    return out;
+  }
   const parts = normW(text).split(/(\*\*[^*]+\*\*)/g).filter((p) => p.length > 0);
   const out: React.ReactNode[] = [];
   let k = 0;
@@ -202,19 +216,15 @@ export const ResultBar = React.memo(function ResultBar({
   const resolved = useMemo(() => {
     return segs.map((seg) => {
       const o = rb.perSegment?.[seg.key] || {};
-      const fullText = (rb.prefixShow && rb.prefixPosition === 'left' ? rb.prefixText : '') + fmt(Math.abs(seg.rawValue), rb.numberFormat) + (rb.prefixShow && rb.prefixPosition === 'right' ? rb.prefixText : '');
-      const fullW = measureTextWidth(fullText, rb.valueFontSize, rb.valueFontFamily, rb.valueFontWeight);
-      const fitsValue = seg.w >= fullW + rb.valuePaddingX * 2;
       const nameW = measureTextWidth(stripMarks(seg.name), rb.nameFontSize, rb.nameFontFamily, rb.nameBoldWeight);
       const fitsName = seg.w >= nameW;
 
       const vPos = o.valuePosition || rb.valuePosition;
       let valueMode: 'inside' | 'below' | 'both' | 'hidden';
       if (vPos === 'hidden') valueMode = 'hidden';
-      else if (vPos === 'inside') valueMode = 'inside';
       else if (vPos === 'below') valueMode = 'below';
       else if (vPos === 'both') valueMode = 'both';
-      else valueMode = fitsValue ? 'inside' : 'below'; // auto
+      else valueMode = 'inside'; // 'auto' / 'inside' → always drawn inside, even if it overflows the segment
 
       const nPos = o.namePosition || rb.namePosition;
       let nameMode: 'above' | 'legend' | 'hidden';
@@ -354,7 +364,7 @@ export const ResultBar = React.memo(function ResultBar({
           return (
             <text key={`name-${seg.index}`} x={x} y={barY - rb.nameGap} textAnchor={anchor}
               fontSize={rb.nameFontSize} fontFamily={rb.nameFontFamily} fill={color}>
-              {renderRich(seg.name, rb.nameFontWeight, rb.nameBoldWeight)}
+              {renderRich(seg.name, rb.nameFontWeight, rb.nameBoldWeight, o.nameWordWeights)}
             </text>
           );
         })}
@@ -423,7 +433,7 @@ export const ResultBar = React.memo(function ResultBar({
         {/* Legend */}
         {legendItems.length > 0 && (() => {
           const dot = rb.legendDotSize;
-          const gap = 6;
+          const gap = rb.legendDotGap;
           const itemGapX = rb.legendItemGapX;
           const itemGapY = rb.legendItemGapY;
           const isSide = rb.legendPosition !== 'below';
@@ -432,7 +442,7 @@ export const ResultBar = React.memo(function ResultBar({
           const renderItem = (s: Seg, x: number, y: number, i: number) => (
             <g key={`leg-${i}`}>
               <circle cx={x + dot / 2} cy={y} r={dot / 2} fill={s.color} />
-              <text x={x + dot + gap} y={y} dominantBaseline="central" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fill={rb.legendColor}>{renderRich(s.name, rb.legendFontWeight, rb.nameBoldWeight)}</text>
+              <text x={x + dot + gap} y={y} dominantBaseline="central" fontSize={rb.legendFontSize} fontFamily={rb.nameFontFamily} fill={rb.legendColor}>{renderRich(s.name, rb.legendFontWeight, rb.nameBoldWeight, ov(s.key).nameWordWeights)}</text>
             </g>
           );
 

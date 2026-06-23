@@ -1169,6 +1169,8 @@ export interface ResultSegmentOverride {
   prefixPadding?: number;
   prefixPosition?: 'left' | 'right';
   prefixVAlign?: 'top' | 'center' | 'bottom';
+  // Per-word font weights for the name (index aligned to whitespace-split words)
+  nameWordWeights?: (FontWeight | null)[];
 }
 
 export interface ResultBarSettings {
@@ -1228,6 +1230,7 @@ export interface ResultBarSettings {
   legendOrientation: 'horizontal' | 'vertical';
   legendWidth: number;             // side-column width when position is left/right
   legendDotSize: number;
+  legendDotGap: number;            // gap between the dot and its label
   legendFontSize: number;
   legendFontWeight: FontWeight;
   legendColor: string;

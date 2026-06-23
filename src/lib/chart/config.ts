@@ -703,6 +703,7 @@ export const defaultChartSettings: ChartSettings = {
     legendOrientation: 'horizontal' as const,
     legendWidth: 170,
     legendDotSize: 10,
+    legendDotGap: 6,
     legendFontSize: 14,
     legendFontWeight: 'bold' as const,
     legendColor: '#334155',

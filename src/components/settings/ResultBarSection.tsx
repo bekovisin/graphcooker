@@ -319,7 +319,7 @@ export function ResultLabelsSection() {
       <FontGrid family={rb.nameFontFamily} size={rb.nameFontSize} weight={rb.nameFontWeight} color={rb.nameColor}
         onFamily={(v) => update({ nameFontFamily: v })} onSize={(v) => update({ nameFontSize: v })} onWeight={(v) => update({ nameFontWeight: v })} onColor={(v) => update({ nameColor: v })} />
       <SettingRow label="Bold weight"><Select value={rb.nameBoldWeight} onValueChange={(v) => update({ nameBoldWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
-      <p className="text-[10px] text-gray-400">Give each word its own weight with “word|weight”, e.g. {'Ekrem|300 İMAMOĞLU|800'} — or wrap a word in **asterisks** for the bold weight.</p>
+      <p className="text-[10px] text-gray-400">Set a different weight per word in “Configure per-segment labels…” below.</p>
       <NumberInput label="Gap above" value={rb.nameGap} onChange={(v) => update({ nameGap: v })} min={0} max={40} suffix="px" />
 
       {/* PER-SEGMENT MODAL */}
@@ -380,6 +380,36 @@ export function ResultLabelsSection() {
                 <div className="text-[10px] font-medium text-gray-500 pt-1">Name above</div>
                 <SettingRow label="Placement"><TabMenu value={(o.namePosition && o.namePosition !== 'auto' ? o.namePosition : (rb.namePosition === 'auto' ? 'above' : rb.namePosition))} onChange={(v) => setSeg(name, { namePosition: v as ResultNamePosition })} options={namePosOptions} /></SettingRow>
                 <SettingRow label="Name color"><ColorPicker value={o.nameColor || rb.nameColor} onChange={(c) => setSeg(name, { nameColor: c })} /></SettingRow>
+                {(() => {
+                  const words = (o.name || name).split(/\s+/).filter(Boolean);
+                  if (words.length === 0) return null;
+                  const ww = o.nameWordWeights || [];
+                  return (
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-gray-500">Per-word weight</div>
+                      {words.map((word, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600 flex-1 truncate min-w-0">{word}</span>
+                          <Select
+                            value={(ww[i] as string) || '__base__'}
+                            onValueChange={(v) => {
+                              const next = [...(o.nameWordWeights || [])];
+                              while (next.length < words.length) next.push(null);
+                              next[i] = v === '__base__' ? null : (v as FontWeight);
+                              setSeg(name, { nameWordWeights: next });
+                            }}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-28 shrink-0"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__base__" className="text-xs">Default</SelectItem>
+                              {fontWeightOptions.map((op) => <SelectItem key={op.value} value={op.value} className="text-xs">{op.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
@@ -403,6 +433,7 @@ export function ResultLegendSection() {
       {rb.legendPosition !== 'below' && <NumberInput label="Column width" value={rb.legendWidth} onChange={(v) => update({ legendWidth: v })} min={40} max={500} suffix="px" />}
       <div className="grid grid-cols-2 gap-2">
         <NumberInput label="Dot size" value={rb.legendDotSize} onChange={(v) => update({ legendDotSize: v })} min={4} max={24} suffix="px" />
+        <NumberInput label="Dot gap" value={rb.legendDotGap} onChange={(v) => update({ legendDotGap: v })} min={0} max={40} suffix="px" />
         <NumberInput label="Font size" value={rb.legendFontSize} onChange={(v) => update({ legendFontSize: v })} min={6} max={40} suffix="px" />
       </div>
       <SettingRow label="Weight"><Select value={rb.legendFontWeight} onValueChange={(v) => update({ legendFontWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>

@@ -2,7 +2,7 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 interface NumberInputProps {
   label?: string;
@@ -17,19 +17,48 @@ interface NumberInputProps {
 }
 
 export function NumberInput({ label, value, onChange, min, max, step = 1, arrowStep, suffix, className }: NumberInputProps) {
-  const clamp = useCallback((num: number) => {
-    return Math.max(min ?? -Infinity, Math.min(max ?? Infinity, num));
-  }, [min, max]);
+  // Keep a local draft string so the user can type freely (e.g. "200") without the
+  // value snapping to `min` the moment a below-min digit ("2") is entered. The min
+  // is only enforced on blur; max is still applied live to avoid overshoot.
+  const [draft, setDraft] = useState(String(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setDraft(String(value));
+  }, [value, focused]);
+
+  const clampBoth = useCallback((n: number) => Math.max(min ?? -Infinity, Math.min(max ?? Infinity, n)), [min, max]);
+  const clampMax = useCallback((n: number) => (max != null ? Math.min(max, n) : n), [max]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setDraft(raw);
+    const num = parseFloat(raw);
+    if (!isNaN(num)) onChange(clampMax(num));
+  };
+
+  const commit = () => {
+    setFocused(false);
+    const num = parseFloat(draft);
+    if (isNaN(num)) { setDraft(String(value)); return; }
+    const c = clampBoth(num);
+    setDraft(String(c));
+    if (c !== value) onChange(c);
+  };
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!arrowStep) return;
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
       const delta = e.key === 'ArrowUp' ? arrowStep : -arrowStep;
-      const rounded = Math.round((value + delta) * 1000) / 1000;
-      onChange(clamp(rounded));
+      const base = parseFloat(draft);
+      const cur = isNaN(base) ? value : base;
+      const rounded = Math.round((cur + delta) * 1000) / 1000;
+      const c = clampBoth(rounded);
+      setDraft(String(c));
+      onChange(c);
     }
-  }, [arrowStep, value, onChange, clamp]);
+  }, [arrowStep, draft, value, onChange, clampBoth]);
 
   return (
     <div className="space-y-1.5">
@@ -37,13 +66,10 @@ export function NumberInput({ label, value, onChange, min, max, step = 1, arrowS
       <div className="flex items-center gap-1">
         <Input
           type="number"
-          value={value}
-          onChange={(e) => {
-            const num = parseFloat(e.target.value);
-            if (!isNaN(num)) {
-              onChange(clamp(num));
-            }
-          }}
+          value={draft}
+          onChange={handleChange}
+          onFocus={() => setFocused(true)}
+          onBlur={commit}
           onKeyDown={arrowStep ? handleKeyDown : undefined}
           min={min}
           max={max}
