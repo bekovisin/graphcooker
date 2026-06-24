@@ -198,8 +198,13 @@ export const ResultBar = React.memo(function ResultBar({
 
   // ── Layout sizes ──
   const pad = { top: settings.layout.paddingTop, right: settings.layout.paddingRight, bottom: settings.layout.paddingBottom, left: settings.layout.paddingLeft };
-  const leftImgSpace = rb.leftImage.show && rb.leftImage.url ? rb.leftImage.width + rb.leftImage.paddingX * 2 + (rb.leftImage.gap || 0) : 0;
-  const rightImgSpace = rb.rightImage.show && rb.rightImage.url ? rb.rightImage.width + rb.rightImage.paddingX * 2 + (rb.rightImage.gap || 0) : 0;
+  const leftShown = rb.leftImage.show && !!rb.leftImage.url;
+  const rightShown = rb.rightImage.show && !!rb.rightImage.url;
+  const leftAbove = rb.leftImage.position === 'above';
+  const rightAbove = rb.rightImage.position === 'above';
+  // Only side images reserve horizontal space (above images sit over the bar at full width).
+  const leftImgSpace = (leftShown && !leftAbove) ? rb.leftImage.paddingLeft + rb.leftImage.width + rb.leftImage.paddingRight + (rb.leftImage.gap || 0) : 0;
+  const rightImgSpace = (rightShown && !rightAbove) ? rb.rightImage.paddingLeft + rb.rightImage.width + rb.rightImage.paddingRight + (rb.rightImage.gap || 0) : 0;
   const legendSideBlock = rb.legendPosition === 'left' || rb.legendPosition === 'right' ? rb.legendWidth : 0;
   const plotWidth = rb.manualPlotWidth ? rb.manualPlotWidthValue : Math.max(10, width - pad.left - pad.right - leftImgSpace - rightImgSpace - legendSideBlock);
   const barLeft = pad.left + leftImgSpace + (rb.legendPosition === 'left' ? legendSideBlock : 0);
@@ -292,17 +297,23 @@ export const ResultBar = React.memo(function ResultBar({
   const diffContribution = rb.diffShow && diffInfo ? rb.diffMarginTop + rb.diffHeight : 0;
 
   // Images may be taller than the bar — reserve the overhang above/below so they aren't clipped.
-  const imgMaxH = Math.max(
-    rb.leftImage.show && rb.leftImage.url ? rb.leftImage.height : 0,
-    rb.rightImage.show && rb.rightImage.url ? rb.rightImage.height : 0,
+  // Above-positioned images sit over the chart at the very top (height + their top/bottom padding).
+  const aboveImgBlock = Math.max(
+    (leftShown && leftAbove) ? rb.leftImage.height + rb.leftImage.paddingTop + rb.leftImage.paddingBottom : 0,
+    (rightShown && rightAbove) ? rb.rightImage.height + rb.rightImage.paddingTop + rb.rightImage.paddingBottom : 0,
   );
-  const imgOverhang = Math.max(0, (imgMaxH - rb.barHeight) / 2);
+  // Only side images can overhang the bar vertically.
+  const sideImgMaxH = Math.max(
+    (leftShown && !leftAbove) ? rb.leftImage.height : 0,
+    (rightShown && !rightAbove) ? rb.rightImage.height : 0,
+  );
+  const sideImgOverhang = Math.max(0, (sideImgMaxH - rb.barHeight) / 2);
 
-  const topSpace = Math.max(aboveHeight, imgOverhang);
+  const topSpace = aboveImgBlock + Math.max(aboveHeight, sideImgOverhang);
   const barY = pad.top + topSpace;
   const barBottom = barY + rb.barHeight;
   const contentBottom = barBottom + belowBandHeight + diffContribution;
-  const imageBottom = barBottom + imgOverhang;
+  const imageBottom = barBottom + sideImgOverhang;
   const totalHeight = Math.max(contentBottom, imageBottom) + pad.bottom;
   const chartHeight = heightProp || totalHeight;
 
@@ -322,11 +333,11 @@ export const ResultBar = React.memo(function ResultBar({
         onMouseLeave={() => setTooltip((t) => ({ ...t, visible: false }))}>
         <rect x={0} y={0} width={width} height={chartHeight} fill={settings.layout.backgroundColor === 'transparent' ? 'none' : settings.layout.backgroundColor} fillOpacity={(settings.layout.backgroundOpacity ?? 100) / 100} />
 
-        {/* Left image (first segment) */}
-        {rb.leftImage.show && rb.leftImage.url && (() => {
+        {/* Left image — beside the bar (side) or above the chart */}
+        {leftShown && (() => {
           const img = rb.leftImage;
-          const x = pad.left + img.paddingX;
-          const y = barY + (rb.barHeight - img.height) / 2;
+          const x = leftAbove ? barLeft + img.paddingLeft : pad.left + img.paddingLeft;
+          const y = leftAbove ? pad.top + img.paddingTop : barY + (rb.barHeight - img.height) / 2 + img.paddingTop - img.paddingBottom;
           return (
             <g>
               <defs><clipPath id="rb-left-clip"><rect x={x} y={y} width={img.width} height={img.height} rx={img.borderRadius} ry={img.borderRadius} /></clipPath></defs>
@@ -335,11 +346,11 @@ export const ResultBar = React.memo(function ResultBar({
           );
         })()}
 
-        {/* Right image (last segment) */}
-        {rb.rightImage.show && rb.rightImage.url && (() => {
+        {/* Right image — beside the bar (side) or above the chart */}
+        {rightShown && (() => {
           const img = rb.rightImage;
-          const x = barLeft + plotWidth + (img.gap || 0) + img.paddingX;
-          const y = barY + (rb.barHeight - img.height) / 2;
+          const x = rightAbove ? barLeft + plotWidth - img.width - img.paddingRight : barLeft + plotWidth + (img.gap || 0) + img.paddingLeft;
+          const y = rightAbove ? pad.top + img.paddingTop : barY + (rb.barHeight - img.height) / 2 + img.paddingTop - img.paddingBottom;
           return (
             <g>
               <defs><clipPath id="rb-right-clip"><rect x={x} y={y} width={img.width} height={img.height} rx={img.borderRadius} ry={img.borderRadius} /></clipPath></defs>

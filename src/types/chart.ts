@@ -1133,8 +1133,13 @@ export interface ResultBarImageSettings {
   width: number;
   height: number;
   borderRadius: number;
-  paddingX: number;
-  gap: number;          // gap between the image and the bar
+  position: 'side' | 'above';   // beside the bar, or above it (over the chart)
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  paddingX: number;             // legacy (kept for back-compat; superseded by 4-way padding)
+  gap: number;                  // gap between a side image and the bar
 }
 
 export interface ResultBarNumberFormat {

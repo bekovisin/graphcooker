@@ -237,12 +237,19 @@ export function ResultImagesSection() {
         {img.show && (
           <div className="space-y-3 pl-2 border-l-2 border-gray-100">
             <ImageUploader value={img.url} onChange={(u) => set({ url: u })} />
+            <SettingRow label="Position"><TabMenu value={img.position} onChange={(v) => set({ position: v })} options={[{ value: 'side', label: 'Beside bar' }, { value: 'above', label: 'Above chart' }]} /></SettingRow>
             <div className="grid grid-cols-2 gap-2">
-              <NumberInput label="Width" value={img.width} onChange={(v) => set({ width: v })} min={10} max={400} suffix="px" />
-              <NumberInput label="Height" value={img.height} onChange={(v) => set({ height: v })} min={10} max={400} suffix="px" />
-              <NumberInput label="Corner radius" value={img.borderRadius} onChange={(v) => set({ borderRadius: v })} min={0} max={200} suffix="px" />
-              <NumberInput label="Padding X" value={img.paddingX} onChange={(v) => set({ paddingX: v })} min={0} max={100} suffix="px" />
-              <NumberInput label="Gap to bar" value={img.gap} onChange={(v) => set({ gap: v })} min={0} max={200} suffix="px" />
+              <NumberInput label="Width" value={img.width} onChange={(v) => set({ width: v })} min={10} max={600} suffix="px" />
+              <NumberInput label="Height" value={img.height} onChange={(v) => set({ height: v })} min={10} max={600} suffix="px" />
+              <NumberInput label="Corner radius" value={img.borderRadius} onChange={(v) => set({ borderRadius: v })} min={0} max={300} suffix="px" />
+              {img.position === 'side' && <NumberInput label="Gap to bar" value={img.gap} onChange={(v) => set({ gap: v })} min={0} max={300} suffix="px" />}
+            </div>
+            <div className="text-[10px] font-medium text-gray-500">Padding</div>
+            <div className="grid grid-cols-2 gap-2">
+              <NumberInput label="Top" value={img.paddingTop} onChange={(v) => set({ paddingTop: v })} min={-400} max={600} suffix="px" />
+              <NumberInput label="Right" value={img.paddingRight} onChange={(v) => set({ paddingRight: v })} min={-400} max={600} suffix="px" />
+              <NumberInput label="Bottom" value={img.paddingBottom} onChange={(v) => set({ paddingBottom: v })} min={-400} max={600} suffix="px" />
+              <NumberInput label="Left" value={img.paddingLeft} onChange={(v) => set({ paddingLeft: v })} min={-400} max={600} suffix="px" />
             </div>
           </div>
         )}
