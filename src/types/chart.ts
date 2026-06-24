@@ -1177,6 +1177,9 @@ export interface ResultSegmentOverride {
   prefixVAlign?: 'top' | 'center' | 'bottom';
   // Per-word font weights for the name (index aligned to whitespace-split words)
   nameWordWeights?: (FontWeight | null)[];
+  // Nudge the above-bar name (px): +x right, +y down
+  namePadX?: number;
+  namePadY?: number;
 }
 
 export interface ResultBarSettings {

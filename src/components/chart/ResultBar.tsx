@@ -265,7 +265,9 @@ export const ResultBar = React.memo(function ResultBar({
     .map((r) => r.seg);
   const legendBelow = rb.legendPosition === 'below' && legendItems.length > 0;
 
-  const aboveHeight = anyAbove ? rb.nameFontSize + rb.nameGap : 0;
+  // Reserve extra top space when a name is nudged upward (negative namePadY) so it isn't clipped.
+  const nameUpPad = anyAbove ? Math.max(0, ...resolved.filter((r) => r.nameMode === 'above').map((r) => -((rb.perSegment?.[r.seg.key]?.namePadY) ?? 0))) : 0;
+  const aboveHeight = anyAbove ? rb.nameFontSize + rb.nameGap + nameUpPad : 0;
   const belowValHeight = anyBelow ? rb.belowGap + rb.belowLineLength + rb.belowFontSize + 4 : 0;
   const legendBelowHeight = legendBelow
     ? rb.legendGap + (rb.legendOrientation === 'vertical' ? legendItems.length * (rb.legendFontSize + rb.legendItemGapY) : rb.legendFontSize) + 4
@@ -383,9 +385,10 @@ export const ResultBar = React.memo(function ResultBar({
           if (rb.valueAlignEdges && seg.isFirst) { x = seg.x; anchor = 'start'; }
           else if (rb.valueAlignEdges && seg.isLast) { x = seg.x + seg.w; anchor = 'end'; }
           else { x = seg.x + seg.w / 2; anchor = 'middle'; }
+          const baseY = barY - rb.nameGap + (o.namePadY ?? 0);
           return (
             <g key={`name-${seg.index}`}>
-              {renderWordTexts(nameRuns(seg.name, rb.nameFontWeight, rb.nameBoldWeight, o.nameWordWeights), x, barY - rb.nameGap, anchor, rb.nameFontFamily, rb.nameFontSize, color, `name-${seg.index}`)}
+              {renderWordTexts(nameRuns(seg.name, rb.nameFontWeight, rb.nameBoldWeight, o.nameWordWeights), x + (o.namePadX ?? 0), baseY, anchor, rb.nameFontFamily, rb.nameFontSize, color, `name-${seg.index}`)}
             </g>
           );
         })}

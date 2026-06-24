@@ -400,6 +400,12 @@ export function ResultLabelsSection() {
                 <div className="text-[10px] font-medium text-gray-500 pt-1">Name above</div>
                 <SettingRow label="Placement"><TabMenu value={(o.namePosition && o.namePosition !== 'auto' ? o.namePosition : (rb.namePosition === 'auto' ? 'above' : rb.namePosition))} onChange={(v) => setSeg(name, { namePosition: v as ResultNamePosition })} options={namePosOptions} /></SettingRow>
                 <SettingRow label="Name color"><ColorPicker value={o.nameColor || rb.nameColor} onChange={(c) => setSeg(name, { nameColor: c })} /></SettingRow>
+                <SettingRow label="Name padding (X / Y)">
+                  <div className="flex items-center gap-1">
+                    <NumberInput value={o.namePadX ?? 0} onChange={(v) => setSeg(name, { namePadX: v })} min={-400} max={400} className="h-7 text-xs w-16" />
+                    <NumberInput value={o.namePadY ?? 0} onChange={(v) => setSeg(name, { namePadY: v })} min={-400} max={400} className="h-7 text-xs w-16" />
+                  </div>
+                </SettingRow>
                 {(() => {
                   const words = (o.name || name).split(/\s+/).filter(Boolean);
                   if (words.length === 0) return null;
