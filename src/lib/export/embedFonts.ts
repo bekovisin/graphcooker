@@ -127,10 +127,20 @@ export async function embedFontWeights(clonedSvg: SVGSVGElement): Promise<boolea
     }
     if (!faces.length) continue;
     allFaces.push(...faces);
-    // Point only these elements at the embedded face; keep original stack as fallback.
+    // Insert the embedded synthetic family AFTER the real family, not before it.
+    // Design tools (Figma, Illustrator, Inkscape) resolve fonts by installed/
+    // available name and mostly ignore the embedded @font-face — keeping the real
+    // family ("Montserrat") first lets them match it. Browsers/viewers that lack
+    // the font fall through to the embedded synthetic. So the synthetic is a
+    // fallback, never the primary, which prevents a default-font substitution
+    // (e.g. Figma → Inter) when the first name is unknown.
     for (const el of g.els) {
       const orig = el.getAttribute('font-family') || g.family;
-      el.setAttribute('font-family', `'${synthetic}', ${orig}`);
+      const parts = orig.split(',').map((p) => p.trim()).filter(Boolean);
+      const rebuilt = parts.length
+        ? [parts[0], `'${synthetic}'`, ...parts.slice(1)].join(', ')
+        : `${g.family}, '${synthetic}'`;
+      el.setAttribute('font-family', rebuilt);
     }
   }
 
