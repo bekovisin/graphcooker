@@ -107,6 +107,23 @@ function renderWordTexts(runs: { text: string; weight: string }[], anchorX: numb
   });
 }
 
+// Render a string with letter-spacing BAKED INTO x positions: one <text> per character spaced by
+// (glyph width + letter). This makes letter-spacing survive export renderers that ignore the
+// letter-spacing attribute. With letter === 0 it falls back to a single <text> (no extra nodes).
+function renderSpacedChars(text: string, startX: number, baselineY: number, size: number, weight: string, family: string, fill: string, letter: number, keyPrefix: string): React.ReactNode[] {
+  if (!letter) {
+    return [<text key={keyPrefix} x={startX} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fontWeight={fontWeightToCSS(weight)} fill={fill}>{text}</text>];
+  }
+  const out: React.ReactNode[] = [];
+  let cx = startX;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    out.push(<text key={`${keyPrefix}-${i}`} x={cx} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fontWeight={fontWeightToCSS(weight)} fill={fill}>{ch}</text>);
+    cx += measureTextWidth(ch, size, family, weight) + letter;
+  }
+  return out;
+}
+
 interface Seg {
   key: string;
   name: string;
@@ -430,10 +447,11 @@ export const ResultBar = React.memo(function ResultBar({
           let sx = anchor === 'middle' ? anchorX - totalW / 2 : anchor === 'end' ? anchorX - totalW : anchorX;
           const numBaseY = cy + vSize * 0.35;        // baseline that visually centers the number
           const pBaseY = numBaseY + (prefixVAlign === 'top' ? -0.7 * (vSize - pxSize) : prefixVAlign === 'center' ? -0.35 * (vSize - pxSize) : 0);
-          const tprops = { fontFamily: vFamily, fontWeight: fontWeightToCSS(vWeight), fill: color, letterSpacing: vLetter, textAnchor: 'start' as const };
+          const tprops = { fontFamily: vFamily, fontWeight: fontWeightToCSS(vWeight), fill: color, textAnchor: 'start' as const };
           const parts: React.ReactNode[] = [];
           if (hasLeft) { parts.push(<text key="p" x={sx} y={pBaseY} fontSize={pxSize} {...tprops}>{px}</text>); sx += pxW + prefixPad; }
-          parts.push(<text key="n" x={sx} y={numBaseY} fontSize={vSize} {...tprops}>{numText}</text>); sx += numW;
+          // Number with letter-spacing baked into per-character x positions (export-safe).
+          parts.push(...renderSpacedChars(numText, sx, numBaseY, vSize, vWeight, vFamily, color, vLetter, `valn-${seg.index}`)); sx += numW;
           if (hasRight) { sx += prefixPad; parts.push(<text key="p" x={sx} y={pBaseY} fontSize={pxSize} {...tprops}>{px}</text>); }
           return (
             <g key={`val-${seg.index}`}>
