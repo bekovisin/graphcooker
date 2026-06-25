@@ -730,6 +730,7 @@ export const defaultChartSettings: ChartSettings = {
     diffFontSize: 22,
     diffFontWeight: 'bold' as const,
     diffFontStyle: 'normal' as const,
+    diffUnderline: false,
     diffAlign: 'center' as const,
     diffNumberFormat: { decimalPlaces: 2, thousandsSeparator: '.' as const, decimalSeparator: ',' as const, prefix: '', suffix: '', showTrailingZeros: true },
     leftImage: { show: false, url: '', width: 110, height: 110, borderRadius: 10, position: 'side' as const, paddingTop: 0, paddingRight: 16, paddingBottom: 0, paddingLeft: 16, paddingX: 16, gap: 0 },

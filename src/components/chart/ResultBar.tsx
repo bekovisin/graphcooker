@@ -541,16 +541,24 @@ export const ResultBar = React.memo(function ResultBar({
           const valueStr = fmt(diffInfo.value, rb.diffNumberFormat);
           const text = (rb.diffTemplate || '{leader} +{value}').replace(/\{leader\}/g, diffInfo.leaderLabel).replace(/\{trailer\}/g, diffInfo.trailerLabel).replace(/\{value\}/g, valueStr);
           const color = rb.diffMatchLeaderColor ? diffInfo.leaderColor : rb.diffColor;
-          let tx: number; let anchor: 'start' | 'middle' | 'end';
-          if (rb.diffAlign === 'left') { tx = barLeft + 12; anchor = 'start'; }
-          else if (rb.diffAlign === 'right') { tx = barLeft + plotWidth - 12; anchor = 'end'; }
-          else { tx = barLeft + plotWidth / 2; anchor = 'middle'; }
+          const size = rb.diffFontSize;
+          const fam = rb.diffFontFamily;
+          const wt = String(rb.diffFontWeight);
+          const w = measureRun(text, size, fam, wt, 0);
+          // left edge from alignment (explicit x + baseline → export-safe, no dominant-baseline)
+          const startX = rb.diffAlign === 'left' ? barLeft + 12 : rb.diffAlign === 'right' ? barLeft + plotWidth - 12 - w : barLeft + plotWidth / 2 - w / 2;
+          const by = top + rb.diffHeight / 2 + size * 0.35;
+          // Italic as a baseline-compensated skew (oblique) — slants in EVERY renderer regardless of
+          // whether the font's italic variant is available, with no embedded font (tiny file size).
+          const SK = 0.2126; // tan(12°)
+          const transform = rb.diffFontStyle === 'italic' ? `translate(${(SK * by).toFixed(2)} 0) skewX(-12)` : undefined;
           return (
             <g>
               <path d={roundedRect(barLeft, top, plotWidth, rb.diffHeight, rb.diffCornerRadius)} fill={rb.diffBackgroundColor} />
-              <text x={tx} y={top + rb.diffHeight / 2} textAnchor={anchor} dominantBaseline="central" fontSize={rb.diffFontSize} fontFamily={rb.diffFontFamily} fontWeight={fontWeightToCSS(rb.diffFontWeight)} fontStyle={rb.diffFontStyle} fill={color}>
+              <text x={startX} y={by} textAnchor="start" fontSize={size} fontFamily={fam} fontWeight={fontWeightToCSS(rb.diffFontWeight)} fill={color} transform={transform}>
                 {text}
               </text>
+              {rb.diffUnderline && <line x1={startX} y1={by + size * 0.16} x2={startX + w} y2={by + size * 0.16} stroke={color} strokeWidth={Math.max(1, size / 16)} />}
             </g>
           );
         })()}

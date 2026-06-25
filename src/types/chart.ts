@@ -1267,7 +1267,8 @@ export interface ResultBarSettings {
   diffFontFamily: string;
   diffFontSize: number;
   diffFontWeight: FontWeight;
-  diffFontStyle: FontStyle;
+  diffFontStyle: FontStyle;       // 'italic' is rendered as a skew transform (export-safe oblique)
+  diffUnderline: boolean;
   diffAlign: 'left' | 'center' | 'right';
   diffNumberFormat: ResultBarNumberFormat;
 

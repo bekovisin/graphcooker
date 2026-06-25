@@ -516,7 +516,15 @@ export function ResultDifferenceSection() {
           </div>
           <ColorPicker label="Background" value={rb.diffBackgroundColor} onChange={(c) => update({ diffBackgroundColor: c })} />
           <SettingRow label="Align"><TabMenu value={rb.diffAlign} onChange={(v) => update({ diffAlign: v })} options={[{ value: 'left', label: 'Left' }, { value: 'center', label: 'Center' }, { value: 'right', label: 'Right' }]} /></SettingRow>
+          <SettingRow label="Font">
+            <Select value={rb.diffFontFamily} onValueChange={(v) => update({ diffFontFamily: v })}>
+              <SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>{fontFamilyOptions.map((f) => <SelectItem key={f} value={f} className="text-xs">{f.split(',')[0]}</SelectItem>)}</SelectContent>
+            </Select>
+          </SettingRow>
           <SettingRow label="Weight"><Select value={rb.diffFontWeight} onValueChange={(v) => update({ diffFontWeight: v as FontWeight })}><SelectTrigger className="h-8 text-xs w-full"><SelectValue /></SelectTrigger><SelectContent>{fontWeightOptions.map((o) => <SelectItem key={o.value} value={o.value} className="text-xs">{o.label}</SelectItem>)}</SelectContent></Select></SettingRow>
+          <SettingRow label="Style"><TabMenu value={rb.diffFontStyle} onChange={(v) => update({ diffFontStyle: v })} options={[{ value: 'normal', label: 'Normal' }, { value: 'italic', label: 'Italic' }]} /></SettingRow>
+          <SettingRow label="Underline" variant="inline"><Switch checked={rb.diffUnderline} onCheckedChange={(v) => update({ diffUnderline: v })} /></SettingRow>
           <SettingRow label="Text color"><TabMenu value={rb.diffMatchLeaderColor ? 'leader' : 'custom'} onChange={(v) => update({ diffMatchLeaderColor: v === 'leader' })} options={[{ value: 'leader', label: 'Match leader' }, { value: 'custom', label: 'Custom' }]} /></SettingRow>
           {!rb.diffMatchLeaderColor && <ColorPicker label="Custom color" value={rb.diffColor} onChange={(c) => update({ diffColor: c })} />}
           <SubHeader>Value number format</SubHeader>
