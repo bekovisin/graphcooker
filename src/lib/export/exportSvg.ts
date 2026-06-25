@@ -10,6 +10,8 @@
  * Used by both editor single-export (`exportSvg`) and dashboard/bulk export
  * (`captureAsSvgBlob`, `captureAsPdfBlob`).
  */
+import { embedFontWeights } from './embedFonts';
+
 export function prepareSvgForExport(
   svgElement: SVGSVGElement,
   options?: { width?: number; height?: number; transparent?: boolean }
@@ -127,6 +129,15 @@ export async function exportSvg(
     }
 
     const clonedSvg = prepareSvgForExport(svgElement, options);
+
+    // Embed any non-standard font weights actually used (e.g. Montserrat
+    // medium/semibold) so they render correctly even where the font isn't
+    // installed. No-op (zero added bytes) when the chart uses only regular/bold.
+    try {
+      await embedFontWeights(clonedSvg);
+    } catch (e) {
+      console.warn('Font embedding skipped:', e);
+    }
 
     let svgString = new XMLSerializer().serializeToString(clonedSvg);
 
