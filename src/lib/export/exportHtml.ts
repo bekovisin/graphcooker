@@ -1,5 +1,6 @@
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
+import { embedFontWeights } from './embedFonts';
 
 /** Check if HTML content has meaningful text (not just empty tags) */
 function hasContent(html: string): boolean {
@@ -38,7 +39,7 @@ function buildQuestionHtml(settings: ChartSettings): string {
   </div>`;
 }
 
-export function exportHtml(
+export async function exportHtml(
   settings: ChartSettings,
   _data: DataRow[],
   _columnMapping: ColumnMapping,
@@ -74,6 +75,10 @@ export function exportHtml(
         bgRect.removeAttribute('opacity');
       }
     }
+
+    // Embed used non-standard font weights so the HTML renders medium/semibold
+    // correctly even where the font isn't installed.
+    try { await embedFontWeights(clonedSvg); } catch { /* degrade gracefully */ }
 
     // Make SVG responsive
     clonedSvg.setAttribute('width', '100%');

@@ -1,3 +1,5 @@
+import { embedFontWeights } from './embedFonts';
+
 export async function exportPng(
   element: HTMLElement,
   filename: string,
@@ -95,6 +97,10 @@ async function svgToCanvas(
     }
     clonedSvg.setAttribute('width', String(targetW));
     clonedSvg.setAttribute('height', String(targetH));
+
+    // Embed used non-standard weights so the isolated <img> rasterization (no
+    // page fonts) renders medium/semibold correctly into the PNG.
+    try { await embedFontWeights(clonedSvg); } catch { /* degrade gracefully */ }
 
     const svgString = new XMLSerializer().serializeToString(clonedSvg);
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });

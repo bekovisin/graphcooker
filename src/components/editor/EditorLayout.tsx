@@ -243,7 +243,7 @@ export function EditorLayout({ visualizationId }: EditorLayoutProps) {
     // HTML export doesn't need DOM manipulation — it builds standalone HTML
     if (format === 'html') {
       const { exportHtml } = await import('@/lib/export/exportHtml');
-      exportHtml(settings, data, columnMapping, visualizationName, options);
+      await exportHtml(settings, data, columnMapping, visualizationName, options);
       return;
     }
 
