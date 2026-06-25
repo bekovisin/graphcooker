@@ -91,6 +91,19 @@ function nameRuns(text: string, baseW: string, boldW: string, wordWeights?: (str
   return runs.length ? runs : [{ text, weight: baseW }];
 }
 
+// Faux intermediate font weights for portable export. The export context usually only has the
+// font's 400 and 700 cuts (e.g. Montserrat), so 500/600 collapse to 400/700 and 800/900 to 700.
+// To keep medium/semibold visible in ANY viewer WITHOUT embedding a font (which would bloat the
+// file), we render at the nearest available cut (400 or 700) and thicken the glyphs with a
+// same-color stroke — a geometric faux-weight every renderer honors. Applied in preview too, so
+// preview and export stay pixel-identical. Native weights (100–400, bold) pass through unchanged.
+function weightProps(weight: string, size: number, fill: string): { fontWeight: number; stroke?: string; strokeWidth?: number; paintOrder?: 'stroke' } {
+  const w = fontWeightToCSS(weight);
+  if (w === 500 || w === 600) return { fontWeight: 400, stroke: fill, strokeWidth: ((w - 400) / 100) * size * 0.013, paintOrder: 'stroke' };
+  if (w === 800 || w === 900) return { fontWeight: 700, stroke: fill, strokeWidth: ((w - 700) / 100) * size * 0.013, paintOrder: 'stroke' };
+  return { fontWeight: w };
+}
+
 // Render each word as a SEPARATE <text x y> element — the most universally-supported SVG text
 // construct. No tspans, no dominantBaseline, no whitespace/dx/baseline-shift. Every renderer
 // (browsers, Illustrator, Inkscape, PowerPoint, rasterizers…) draws this identically, so exported
@@ -101,7 +114,7 @@ function renderWordTexts(runs: { text: string; weight: string }[], anchorX: numb
   const total = widths.reduce((a, b) => a + b, 0) + Math.max(0, runs.length - 1) * spaceW;
   let cx = anchor === 'middle' ? anchorX - total / 2 : anchor === 'end' ? anchorX - total : anchorX;
   return runs.map((r, i) => {
-    const el = <text key={`${keyPrefix}-${i}`} x={cx} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fontWeight={fontWeightToCSS(r.weight)} fill={fill}>{r.text}</text>;
+    const el = <text key={`${keyPrefix}-${i}`} x={cx} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fill={fill} {...weightProps(r.weight, size, fill)}>{r.text}</text>;
     cx += widths[i] + spaceW;
     return el;
   });
@@ -112,13 +125,13 @@ function renderWordTexts(runs: { text: string; weight: string }[], anchorX: numb
 // letter-spacing attribute. With letter === 0 it falls back to a single <text> (no extra nodes).
 function renderSpacedChars(text: string, startX: number, baselineY: number, size: number, weight: string, family: string, fill: string, letter: number, keyPrefix: string): React.ReactNode[] {
   if (!letter) {
-    return [<text key={keyPrefix} x={startX} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fontWeight={fontWeightToCSS(weight)} fill={fill}>{text}</text>];
+    return [<text key={keyPrefix} x={startX} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fill={fill} {...weightProps(weight, size, fill)}>{text}</text>];
   }
   const out: React.ReactNode[] = [];
   let cx = startX;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    out.push(<text key={`${keyPrefix}-${i}`} x={cx} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fontWeight={fontWeightToCSS(weight)} fill={fill}>{ch}</text>);
+    out.push(<text key={`${keyPrefix}-${i}`} x={cx} y={baselineY} textAnchor="start" fontSize={size} fontFamily={family} fill={fill} {...weightProps(weight, size, fill)}>{ch}</text>);
     cx += measureTextWidth(ch, size, family, weight) + letter;
   }
   return out;
@@ -447,12 +460,13 @@ export const ResultBar = React.memo(function ResultBar({
           let sx = anchor === 'middle' ? anchorX - totalW / 2 : anchor === 'end' ? anchorX - totalW : anchorX;
           const numBaseY = cy + vSize * 0.35;        // baseline that visually centers the number
           const pBaseY = numBaseY + (prefixVAlign === 'top' ? -0.7 * (vSize - pxSize) : prefixVAlign === 'center' ? -0.35 * (vSize - pxSize) : 0);
-          const tprops = { fontFamily: vFamily, fontWeight: fontWeightToCSS(vWeight), fill: color, textAnchor: 'start' as const };
+          const tprops = { fontFamily: vFamily, fill: color, textAnchor: 'start' as const };
+          const pWeight = weightProps(vWeight, pxSize, color);
           const parts: React.ReactNode[] = [];
-          if (hasLeft) { parts.push(<text key="p" x={sx} y={pBaseY} fontSize={pxSize} {...tprops}>{px}</text>); sx += pxW + prefixPad; }
+          if (hasLeft) { parts.push(<text key="p" x={sx} y={pBaseY} fontSize={pxSize} {...tprops} {...pWeight}>{px}</text>); sx += pxW + prefixPad; }
           // Number with letter-spacing baked into per-character x positions (export-safe).
           parts.push(...renderSpacedChars(numText, sx, numBaseY, vSize, vWeight, vFamily, color, vLetter, `valn-${seg.index}`)); sx += numW;
-          if (hasRight) { sx += prefixPad; parts.push(<text key="p" x={sx} y={pBaseY} fontSize={pxSize} {...tprops}>{px}</text>); }
+          if (hasRight) { sx += prefixPad; parts.push(<text key="p" x={sx} y={pBaseY} fontSize={pxSize} {...tprops} {...pWeight}>{px}</text>); }
           return (
             <g key={`val-${seg.index}`}>
               {parts}
@@ -482,11 +496,13 @@ export const ResultBar = React.memo(function ResultBar({
           const bPxW = (bHasLeft || bHasRight) ? measureRun(rb.prefixText, bpxSize, rb.nameFontFamily, bWeight, 0) : 0;
           const bTotal = bNumW + ((bHasLeft || bHasRight) ? bPxW + bpPad : 0);
           let bsx = cx - bTotal / 2;
-          const btprops = { fontFamily: rb.nameFontFamily, fontWeight: fontWeightToCSS(rb.belowFontWeight), fill: color, textAnchor: 'start' as const };
+          const btprops = { fontFamily: rb.nameFontFamily, fill: color, textAnchor: 'start' as const };
+          const bNumWeight = weightProps(bWeight, bSize, color);
+          const bpWeight = weightProps(bWeight, bpxSize, color);
           const bParts: React.ReactNode[] = [];
-          if (bHasLeft) { bParts.push(<text key="p" x={bsx} y={bpBaseY} fontSize={bpxSize} {...btprops}>{rb.prefixText}</text>); bsx += bPxW + bpPad; }
-          bParts.push(<text key="n" x={bsx} y={bNumBaseY} fontSize={bSize} {...btprops}>{numText}</text>); bsx += bNumW;
-          if (bHasRight) { bsx += bpPad; bParts.push(<text key="p" x={bsx} y={bpBaseY} fontSize={bpxSize} {...btprops}>{rb.prefixText}</text>); }
+          if (bHasLeft) { bParts.push(<text key="p" x={bsx} y={bpBaseY} fontSize={bpxSize} {...btprops} {...bpWeight}>{rb.prefixText}</text>); bsx += bPxW + bpPad; }
+          bParts.push(<text key="n" x={bsx} y={bNumBaseY} fontSize={bSize} {...btprops} {...bNumWeight}>{numText}</text>); bsx += bNumW;
+          if (bHasRight) { bsx += bpPad; bParts.push(<text key="p" x={bsx} y={bpBaseY} fontSize={bpxSize} {...btprops} {...bpWeight}>{rb.prefixText}</text>); }
           return (
             <g key={`below-${seg.index}`}>
               <line x1={cx} y1={lineTop} x2={cx} y2={lineBottom} stroke={rb.belowLineColor} strokeWidth={rb.belowLineWidth} />
@@ -555,7 +571,7 @@ export const ResultBar = React.memo(function ResultBar({
           return (
             <g>
               <path d={roundedRect(barLeft, top, plotWidth, rb.diffHeight, rb.diffCornerRadius)} fill={rb.diffBackgroundColor} />
-              <text x={startX} y={by} textAnchor="start" fontSize={size} fontFamily={fam} fontWeight={fontWeightToCSS(rb.diffFontWeight)} fill={color} transform={transform}>
+              <text x={startX} y={by} textAnchor="start" fontSize={size} fontFamily={fam} fill={color} transform={transform} {...weightProps(rb.diffFontWeight, size, color)}>
                 {text}
               </text>
               {rb.diffUnderline && <line x1={startX} y1={by + size * 0.16} x2={startX + w} y2={by + size * 0.16} stroke={color} strokeWidth={Math.max(1, size / 16)} />}
