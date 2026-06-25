@@ -1,6 +1,6 @@
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
-import { embedFontWeights } from './embedFonts';
+import { outlineNonStandardWeights } from './outlineFonts';
 
 /** Check if HTML content has meaningful text (not just empty tags) */
 function hasContent(html: string): boolean {
@@ -76,9 +76,9 @@ export async function exportHtml(
       }
     }
 
-    // Embed used non-standard font weights so the HTML renders medium/semibold
+    // Outline used non-standard font weights so the HTML renders medium/semibold
     // correctly even where the font isn't installed.
-    try { await embedFontWeights(clonedSvg); } catch { /* degrade gracefully */ }
+    try { await outlineNonStandardWeights(clonedSvg); } catch { /* degrade gracefully */ }
 
     // Make SVG responsive
     clonedSvg.setAttribute('width', '100%');

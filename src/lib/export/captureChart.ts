@@ -11,7 +11,7 @@
 import { ChartSettings, ColumnMapping } from '@/types/chart';
 import { DataRow } from '@/types/data';
 import { prepareSvgForExport } from './exportSvg';
-import { embedFontWeights } from './embedFonts';
+import { outlineNonStandardWeights } from './outlineFonts';
 
 /** Helper: data-URL → Blob */
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -47,9 +47,9 @@ async function svgToCanvasDataUrl(
   try {
     // Use the shared post-processing pipeline for consistent output
     const clonedSvg = prepareSvgForExport(svgElement, { transparent: options?.transparent });
-    // Embed non-standard weights so the isolated <img> rasterization (which has
-    // no access to page fonts) renders medium/semibold correctly into the PNG.
-    try { await embedFontWeights(clonedSvg); } catch { /* degrade gracefully */ }
+    // Outline non-standard weights so the isolated <img> rasterization (which
+    // has no access to page fonts) renders medium/semibold correctly into the PNG.
+    try { await outlineNonStandardWeights(clonedSvg); } catch { /* degrade gracefully */ }
 
     const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
     const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
@@ -99,7 +99,7 @@ export async function captureAsSvgBlob(
   }
 
   const clonedSvg = prepareSvgForExport(svgElement, options);
-  try { await embedFontWeights(clonedSvg); } catch { /* degrade gracefully */ }
+  try { await outlineNonStandardWeights(clonedSvg); } catch { /* degrade gracefully */ }
 
   let svgString = new XMLSerializer().serializeToString(clonedSvg);
   if (!svgString.startsWith('<?xml')) {
@@ -150,7 +150,7 @@ export async function captureAsHtmlBlob(
 
   if (svgElement) {
     const clonedSvg = prepareSvgForExport(svgElement as SVGSVGElement, options);
-    try { await embedFontWeights(clonedSvg); } catch { /* degrade gracefully */ }
+    try { await outlineNonStandardWeights(clonedSvg); } catch { /* degrade gracefully */ }
     clonedSvg.setAttribute('width', '100%');
     clonedSvg.style.maxWidth = options?.width ? `${options.width}px` : '100%';
     clonedSvg.style.height = 'auto';

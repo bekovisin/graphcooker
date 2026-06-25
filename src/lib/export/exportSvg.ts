@@ -10,7 +10,7 @@
  * Used by both editor single-export (`exportSvg`) and dashboard/bulk export
  * (`captureAsSvgBlob`, `captureAsPdfBlob`).
  */
-import { embedFontWeights } from './embedFonts';
+import { outlineNonStandardWeights } from './outlineFonts';
 
 export function prepareSvgForExport(
   svgElement: SVGSVGElement,
@@ -130,13 +130,14 @@ export async function exportSvg(
 
     const clonedSvg = prepareSvgForExport(svgElement, options);
 
-    // Embed any non-standard font weights actually used (e.g. Montserrat
-    // medium/semibold) so they render correctly even where the font isn't
-    // installed. No-op (zero added bytes) when the chart uses only regular/bold.
+    // Outline non-standard font weights (e.g. Montserrat medium/semibold) to
+    // vector paths so they render correctly in any viewer — including design
+    // tools (Figma/Illustrator) that round numeric weights or ignore embedded
+    // fonts. No-op when the chart uses only regular/bold.
     try {
-      await embedFontWeights(clonedSvg);
+      await outlineNonStandardWeights(clonedSvg);
     } catch (e) {
-      console.warn('Font embedding skipped:', e);
+      console.warn('Font outlining skipped:', e);
     }
 
     let svgString = new XMLSerializer().serializeToString(clonedSvg);

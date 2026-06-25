@@ -1,4 +1,4 @@
-import { embedFontWeights } from './embedFonts';
+import { outlineNonStandardWeights } from './outlineFonts';
 
 export async function exportPng(
   element: HTMLElement,
@@ -98,9 +98,9 @@ async function svgToCanvas(
     clonedSvg.setAttribute('width', String(targetW));
     clonedSvg.setAttribute('height', String(targetH));
 
-    // Embed used non-standard weights so the isolated <img> rasterization (no
+    // Outline used non-standard weights so the isolated <img> rasterization (no
     // page fonts) renders medium/semibold correctly into the PNG.
-    try { await embedFontWeights(clonedSvg); } catch { /* degrade gracefully */ }
+    try { await outlineNonStandardWeights(clonedSvg); } catch { /* degrade gracefully */ }
 
     const svgString = new XMLSerializer().serializeToString(clonedSvg);
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
