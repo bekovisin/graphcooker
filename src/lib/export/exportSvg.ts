@@ -110,15 +110,17 @@ export function prepareSvgForExport(
     clonedSvg.setAttribute('height', String(options.height));
   }
 
-  // Mirror <image href> → xlink:href. Browsers and Figma read the SVG2 `href`,
-  // but Microsoft Word/Office (and older renderers like Illustrator/Inkscape)
-  // only honor the SVG 1.1 `xlink:href`, so embedded images vanish there. Keep
-  // both so the picture shows everywhere.
+  // <image> with the SVG2 `href` renders in browsers/Figma but NOT in Microsoft
+  // Word/Office (or older Illustrator/Inkscape), which only honor the SVG 1.1
+  // `xlink:href` — so embedded photos vanished there. Convert href → xlink:href.
+  // xlink:href renders identically in browsers/Figma too, so using it alone (vs.
+  // keeping both) gives universal support without duplicating the data-URI.
   const XLINK_NS = 'http://www.w3.org/1999/xlink';
   clonedSvg.querySelectorAll('image').forEach((img) => {
     const h = img.getAttribute('href');
-    if (h && !img.getAttributeNS(XLINK_NS, 'href')) {
+    if (h) {
       img.setAttributeNS(XLINK_NS, 'xlink:href', h);
+      img.removeAttribute('href');
     }
   });
 
