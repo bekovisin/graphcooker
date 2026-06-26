@@ -112,14 +112,14 @@ function FontGrid({ family, size, weight, color, onFamily, onSize, onWeight, onC
 }
 
 function NumberFormatRows({ fmt, onChange }: { fmt: ResultBarNumberFormat; onChange: (u: Partial<ResultBarNumberFormat>) => void }) {
-  const round = fmt.rounding === true;
   return (
     <div className="space-y-2 pl-2 border-l-2 border-gray-100">
       <SettingRow label="Round numbers" variant="inline">
-        <Switch checked={round} onCheckedChange={(v) => onChange({ rounding: v })} />
+        <Switch checked={fmt.rounding === true} onCheckedChange={(v) => onChange({ rounding: v })} />
       </SettingRow>
+      <p className="text-[10px] text-gray-400 -mt-1">Off = cut extra decimals (7,88 → 7), On = round (7,88 → 8)</p>
       <div className="grid grid-cols-2 gap-2">
-        {round && <NumberInput label="Decimals" value={fmt.decimalPlaces} onChange={(v) => onChange({ decimalPlaces: v })} min={0} max={10} />}
+        <NumberInput label="Decimals" value={fmt.decimalPlaces} onChange={(v) => onChange({ decimalPlaces: v })} min={0} max={10} />
         <div>
           <label className="text-[10px] text-gray-400 mb-0.5 block">Thousands</label>
           <Select value={fmt.thousandsSeparator} onValueChange={(v) => onChange({ thousandsSeparator: v as ThousandsSeparator })}>
@@ -144,11 +144,9 @@ function NumberFormatRows({ fmt, onChange }: { fmt: ResultBarNumberFormat; onCha
           <Input value={fmt.suffix} onChange={(e) => onChange({ suffix: e.target.value })} className="h-8 text-xs w-full" />
         </div>
       </div>
-      {round && (
-        <SettingRow label="Trailing zeros" variant="inline">
-          <Switch checked={fmt.showTrailingZeros} onCheckedChange={(v) => onChange({ showTrailingZeros: v })} />
-        </SettingRow>
-      )}
+      <SettingRow label="Trailing zeros" variant="inline">
+        <Switch checked={fmt.showTrailingZeros} onCheckedChange={(v) => onChange({ showTrailingZeros: v })} />
+      </SettingRow>
     </div>
   );
 }

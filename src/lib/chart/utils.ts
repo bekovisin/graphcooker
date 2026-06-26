@@ -165,15 +165,25 @@ export function formatElectionNumber(
     rounding?: boolean;
   },
 ): string {
-  // rounding === false → show the value as entered (no rounding to decimalPlaces).
-  // A 6-decimal cap kills floating-point noise while preserving real precision,
-  // and trailing zeros are always trimmed in this mode.
-  const doRound = fmt.rounding !== false;
-  const dp = doRound ? fmt.decimalPlaces : 6;
-  const factor = Math.pow(10, dp);
-  const adjusted = Math.round(value * factor) / factor;
+  // decimalPlaces always controls how many decimals are shown. The `rounding`
+  // flag only decides HOW the last digit is produced:
+  //   rounding !== false → round (7,88 at 0 dp → 8)
+  //   rounding === false → truncate / cut, no rounding up (7,88 at 0 dp → 7)
+  const dp = fmt.decimalPlaces;
+  let adjusted: number;
+  if (fmt.rounding === false) {
+    // toFixed(dp+6) cleans float noise (e.g. 7.879999999) before we cut to dp.
+    const neg = value < 0;
+    const s = Math.abs(value).toFixed(dp + 6);
+    const dot = s.indexOf('.');
+    const cut = dp === 0 ? s.slice(0, dot) : s.slice(0, dot + 1 + dp);
+    adjusted = parseFloat(cut) * (neg ? -1 : 1);
+  } else {
+    const factor = Math.pow(10, dp);
+    adjusted = Math.round(value * factor) / factor;
+  }
   let str = adjusted.toFixed(dp);
-  if ((!doRound || !fmt.showTrailingZeros) && str.includes('.')) {
+  if (!fmt.showTrailingZeros && str.includes('.')) {
     str = str.replace(/0+$/, '').replace(/\.$/, '');
   }
   const [intPart, decPart] = str.split('.');
