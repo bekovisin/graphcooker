@@ -11,7 +11,6 @@
  * (`captureAsSvgBlob`, `captureAsPdfBlob`).
  */
 import { outlineNonStandardWeights } from './outlineFonts';
-import { bakeImages } from './bakeImages';
 
 export function prepareSvgForExport(
   svgElement: SVGSVGElement,
@@ -125,6 +124,26 @@ export function prepareSvgForExport(
     }
   });
 
+  // Merge every <defs> into a single block at the very top of the SVG. The chart
+  // emits a separate <defs> right before each clipped element (e.g. one per
+  // photo), so later clipPaths sit mid-document. Word/Office only registers the
+  // FIRST <defs>, leaving those ids undefined — the referencing element (e.g.
+  // the right-hand photo) then fails to resolve its clip-path and disappears,
+  // while the first one renders. One top-level <defs> makes every id resolvable.
+  const allDefs = Array.from(clonedSvg.querySelectorAll('defs'));
+  if (allDefs.length > 0) {
+    const topDefs = allDefs[0];
+    for (let i = 1; i < allDefs.length; i++) {
+      let child: ChildNode | null;
+      while ((child = allDefs[i].firstChild)) topDefs.appendChild(child);
+      allDefs[i].parentNode?.removeChild(allDefs[i]);
+    }
+    const first = clonedSvg.firstChild;
+    if (first && first !== topDefs) {
+      clonedSvg.insertBefore(topDefs, first);
+    }
+  }
+
   // Inline all computed styles on SVG text/rect elements for cross-platform compatibility
   inlineStyles(clonedSvg);
 
@@ -153,15 +172,6 @@ export async function exportSvg(
       await outlineNonStandardWeights(clonedSvg);
     } catch (e) {
       console.warn('Font outlining skipped:', e);
-    }
-
-    // Bake clipped/cover-cropped photos into plain PNGs so they render correctly
-    // in Word/Office (which ignore clip-path and the `slice` crop). No-op for
-    // charts without such images.
-    try {
-      await bakeImages(clonedSvg);
-    } catch (e) {
-      console.warn('Image baking skipped:', e);
     }
 
     let svgString = new XMLSerializer().serializeToString(clonedSvg);
