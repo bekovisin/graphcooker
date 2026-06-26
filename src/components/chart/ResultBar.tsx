@@ -359,10 +359,15 @@ export const ResultBar = React.memo(function ResultBar({
           const img = rb.leftImage;
           const x = leftAbove ? barLeft + img.paddingLeft : pad.left + img.paddingLeft;
           const y = leftAbove ? pad.top + img.paddingTop : barY + (rb.barHeight - img.height) / 2 + img.paddingTop - img.paddingBottom;
+          // Position via a translate-g and keep the image + clip at LOCAL 0,0.
+          // A clip rect at a large absolute x (e.g. the right photo at x=1260)
+          // is mis-applied by Word/Office and the image vanishes; at 0,0 it works
+          // in every renderer. The clipPath sits inside the g (not a <defs>) so
+          // its coordinate context stays local.
           return (
-            <g>
-              <defs><clipPath id="rb-left-clip"><rect x={x} y={y} width={img.width} height={img.height} rx={img.borderRadius} ry={img.borderRadius} /></clipPath></defs>
-              <image href={img.url} x={x} y={y} width={img.width} height={img.height} clipPath="url(#rb-left-clip)" preserveAspectRatio="xMidYMid slice" />
+            <g transform={`translate(${x}, ${y})`}>
+              <clipPath id="rb-left-clip"><rect x={0} y={0} width={img.width} height={img.height} rx={img.borderRadius} ry={img.borderRadius} /></clipPath>
+              <image href={img.url} x={0} y={0} width={img.width} height={img.height} clipPath="url(#rb-left-clip)" preserveAspectRatio="xMidYMid slice" />
             </g>
           );
         })()}
@@ -372,10 +377,12 @@ export const ResultBar = React.memo(function ResultBar({
           const img = rb.rightImage;
           const x = rightAbove ? barLeft + plotWidth - img.width - img.paddingRight : barLeft + plotWidth + (img.gap || 0) + img.paddingLeft;
           const y = rightAbove ? pad.top + img.paddingTop : barY + (rb.barHeight - img.height) / 2 + img.paddingTop - img.paddingBottom;
+          // Same as the left photo: translate-g + local 0,0 so the clip works in
+          // Word/Office (a clip rect at absolute x=1260 was clipping it away).
           return (
-            <g>
-              <defs><clipPath id="rb-right-clip"><rect x={x} y={y} width={img.width} height={img.height} rx={img.borderRadius} ry={img.borderRadius} /></clipPath></defs>
-              <image href={img.url} x={x} y={y} width={img.width} height={img.height} clipPath="url(#rb-right-clip)" preserveAspectRatio="xMidYMid slice" />
+            <g transform={`translate(${x}, ${y})`}>
+              <clipPath id="rb-right-clip"><rect x={0} y={0} width={img.width} height={img.height} rx={img.borderRadius} ry={img.borderRadius} /></clipPath>
+              <image href={img.url} x={0} y={0} width={img.width} height={img.height} clipPath="url(#rb-right-clip)" preserveAspectRatio="xMidYMid slice" />
             </g>
           );
         })()}
