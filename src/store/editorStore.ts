@@ -5,6 +5,52 @@ import { ColumnTypeConfig } from '@/components/editor/spreadsheet/types';
 import { defaultChartSettings, defaultData, defaultColumnMapping } from '@/lib/chart/config';
 import { initHistory, clearHistory } from '@/lib/history';
 
+/**
+ * The result bar keys its per-segment settings (label placement, legend
+ * visibility, …) and color overrides by the segment's DISPLAY name. Renaming a
+ * column changes that display name, which would orphan those settings and snap
+ * the segment back to defaults. This moves every name-keyed setting from the old
+ * segment key to the new one so the configuration follows the rename. Returns
+ * the same settings reference when nothing changes (no-op).
+ */
+function migrateSegmentKey(settings: ChartSettings, oldKey: string, newKey: string): ChartSettings {
+  if (oldKey === newKey) return settings;
+  let next = settings;
+
+  const moveKey = <T>(rec: Record<string, T> | undefined): Record<string, T> | undefined => {
+    if (!rec || rec[oldKey] === undefined) return rec;
+    const copy = { ...rec };
+    copy[newKey] = copy[oldKey];
+    delete copy[oldKey];
+    return copy;
+  };
+
+  const rb = settings.resultBar;
+  const newPerSegment = moveKey(rb.perSegment);
+  const newLegendRows = moveKey(rb.legendVisibleRows);
+  if (newPerSegment !== rb.perSegment || newLegendRows !== rb.legendVisibleRows) {
+    next = { ...next, resultBar: { ...rb, perSegment: newPerSegment ?? {}, legendVisibleRows: newLegendRows ?? {} } };
+  }
+
+  // Color overrides are a newline-separated "Name: value" string keyed by name.
+  const co = settings.colors.customOverrides;
+  if (co) {
+    const renamed = co
+      .split('\n')
+      .map((line) => {
+        const idx = line.indexOf(':');
+        if (idx === -1) return line;
+        return line.slice(0, idx).trim() === oldKey ? `${newKey}:${line.slice(idx + 1)}` : line;
+      })
+      .join('\n');
+    if (renamed !== co) {
+      next = { ...next, colors: { ...next.colors, customOverrides: renamed } };
+    }
+  }
+
+  return next;
+}
+
 export type EditorTab = 'preview' | 'data';
 export type PreviewDevice = 'desktop' | 'tablet' | 'mobile' | 'fullscreen' | 'custom';
 
@@ -312,10 +358,15 @@ export const useEditorStore = create<EditorState>((set) => ({
     })),
 
   setSeriesName: (colName, displayName) =>
-    set((state) => ({
-      seriesNames: { ...state.seriesNames, [colName]: displayName },
-      isDirty: true,
-    })),
+    set((state) => {
+      const oldKey = state.seriesNames[colName] || colName;
+      const newKey = displayName || colName;
+      return {
+        seriesNames: { ...state.seriesNames, [colName]: displayName },
+        settings: migrateSegmentKey(state.settings, oldKey, newKey),
+        isDirty: true,
+      };
+    }),
 
   updateSettings: (section, updates) =>
     set((state) => {
