@@ -102,6 +102,7 @@ export async function captureAsSvgBlob(
 
   const clonedSvg = prepareSvgForExport(svgElement, options);
   try { await outlineNonStandardWeights(clonedSvg); } catch { /* degrade gracefully */ }
+  try { await bakeImages(clonedSvg); } catch { /* degrade gracefully */ }
 
   let svgString = new XMLSerializer().serializeToString(clonedSvg);
   if (!svgString.startsWith('<?xml')) {
@@ -125,6 +126,7 @@ export async function captureAsPdfBlob(
   }
 
   const clonedSvg = prepareSvgForExport(svgElement, options);
+  try { await bakeImages(clonedSvg); } catch { /* degrade gracefully */ }
 
   const svgWidth = parseFloat(clonedSvg.getAttribute('width') || '800');
   const svgHeight = parseFloat(clonedSvg.getAttribute('height') || '600');
