@@ -110,6 +110,18 @@ export function prepareSvgForExport(
     clonedSvg.setAttribute('height', String(options.height));
   }
 
+  // Mirror <image href> → xlink:href. Browsers and Figma read the SVG2 `href`,
+  // but Microsoft Word/Office (and older renderers like Illustrator/Inkscape)
+  // only honor the SVG 1.1 `xlink:href`, so embedded images vanish there. Keep
+  // both so the picture shows everywhere.
+  const XLINK_NS = 'http://www.w3.org/1999/xlink';
+  clonedSvg.querySelectorAll('image').forEach((img) => {
+    const h = img.getAttribute('href');
+    if (h && !img.getAttributeNS(XLINK_NS, 'href')) {
+      img.setAttributeNS(XLINK_NS, 'xlink:href', h);
+    }
+  });
+
   // Inline all computed styles on SVG text/rect elements for cross-platform compatibility
   inlineStyles(clonedSvg);
 
