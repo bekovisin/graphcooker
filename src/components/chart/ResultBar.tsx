@@ -418,7 +418,8 @@ export const ResultBar = React.memo(function ResultBar({
           if (valueMode !== 'inside' && valueMode !== 'both') return null;
           const o = ov(seg.key);
           const segPrefixShow = o.prefixShow !== undefined ? o.prefixShow : rb.prefixShow;
-          const segNf = o.valueDecimals !== undefined ? { ...rb.numberFormat, decimalPlaces: o.valueDecimals } : rb.numberFormat;
+          // A per-segment custom decimal count forces rounding to exactly that many places.
+          const segNf = o.valueDecimals !== undefined ? { ...rb.numberFormat, decimalPlaces: o.valueDecimals, rounding: true } : rb.numberFormat;
           const numText = fmt(Math.abs(seg.rawValue), segNf);
           const color = o.valueColor || (rb.valueColorMode === 'auto' ? autoTextColor(seg.color, rb.valueContrastThreshold) : rb.valueColor);
           const vSize = o.valueFontSize ?? rb.valueFontSize;
@@ -471,7 +472,8 @@ export const ResultBar = React.memo(function ResultBar({
           const cx = seg.x + seg.w / 2;
           const lineTop = barBottom + rb.belowGap;
           const lineBottom = lineTop + rb.belowLineLength;
-          const numText = fmt(Math.abs(seg.rawValue), rb.belowNumberFormat);
+          const belowNf = o.belowValueDecimals !== undefined ? { ...rb.belowNumberFormat, decimalPlaces: o.belowValueDecimals, rounding: true } : rb.belowNumberFormat;
+          const numText = fmt(Math.abs(seg.rawValue), belowNf);
           const bSize = rb.belowFontSize;
           const bpxSize = rb.belowPrefixFontSize > 0 ? rb.belowPrefixFontSize : bSize;
           const bpPad = rb.belowPrefixPadding;

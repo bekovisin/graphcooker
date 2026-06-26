@@ -1169,7 +1169,8 @@ export interface ResultSegmentOverride {
   valueFontFamily?: string;
   valueFontWeight?: FontWeight;
   valueLetterSpacing?: number;
-  valueDecimals?: number;        // custom decimal places for this segment's inside value
+  valueDecimals?: number;        // custom decimal places for this segment's inside value (forces rounding)
+  belowValueDecimals?: number;   // custom decimal places for this segment's below value (forces rounding)
   belowPrefixShow?: boolean;     // prefix for this segment's below value (independent of inside)
   // Per-segment inside-prefix styling
   prefixFontSize?: number;
