@@ -1149,6 +1149,7 @@ export interface ResultBarNumberFormat {
   prefix: string;
   suffix: string;
   showTrailingZeros: boolean;
+  rounding?: boolean;            // when false → show the value's full precision (no rounding to decimalPlaces)
 }
 
 export interface ResultSegmentOverride {

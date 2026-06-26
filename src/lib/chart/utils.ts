@@ -162,12 +162,18 @@ export function formatElectionNumber(
     prefix: string;
     suffix: string;
     showTrailingZeros: boolean;
+    rounding?: boolean;
   },
 ): string {
-  const factor = Math.pow(10, fmt.decimalPlaces);
+  // rounding === false → show the value as entered (no rounding to decimalPlaces).
+  // A 6-decimal cap kills floating-point noise while preserving real precision,
+  // and trailing zeros are always trimmed in this mode.
+  const doRound = fmt.rounding !== false;
+  const dp = doRound ? fmt.decimalPlaces : 6;
+  const factor = Math.pow(10, dp);
   const adjusted = Math.round(value * factor) / factor;
-  let str = adjusted.toFixed(fmt.decimalPlaces);
-  if (!fmt.showTrailingZeros && str.includes('.')) {
+  let str = adjusted.toFixed(dp);
+  if ((!doRound || !fmt.showTrailingZeros) && str.includes('.')) {
     str = str.replace(/0+$/, '').replace(/\.$/, '');
   }
   const [intPart, decPart] = str.split('.');

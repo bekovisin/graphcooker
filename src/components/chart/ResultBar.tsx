@@ -174,7 +174,9 @@ export const ResultBar = React.memo(function ResultBar({
     return () => cancelAnimationFrame(raf);
   }, [skipAnimation, settings.animations.enabled, settings.animations.duration, data, columnMapping]);
 
-  const fmt = (v: number, f: ResultBarNumberFormat) => formatElectionNumber(v, f);
+  // Result bar defaults to NO rounding (full precision) — opt into rounding via
+  // each number format's "Round numbers" toggle. (BarChartElection keeps rounding.)
+  const fmt = (v: number, f: ResultBarNumberFormat) => formatElectionNumber(v, { ...f, rounding: f.rounding ?? false });
   const ov = (key: string): ResultSegmentOverride => rb.perSegment?.[key] || {};
 
   // ── Build segments (series mode: value columns = segments, from the first row) ──
