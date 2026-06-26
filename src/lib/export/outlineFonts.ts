@@ -95,6 +95,13 @@ export async function outlineNonStandardWeights(clonedSvg: SVGSVGElement): Promi
     const y = parseFloat(el.getAttribute('y') || '0');
     const anchor = el.getAttribute('text-anchor') || 'start';
 
+    // Many charts shift text vertically with a `dy` (e.g. dy="0.35em" to center
+    // on a row). getPath() ignores dy, so fold it into the baseline or the
+    // glyphs land too high. em units are relative to the font size.
+    const dyAttr = (el.getAttribute('dy') || '').trim();
+    const dy = dyAttr.endsWith('em') ? parseFloat(dyAttr) * size : parseFloat(dyAttr) || 0;
+    const baselineY = y + (Number.isFinite(dy) ? dy : 0);
+
     let startX = x;
     if (anchor === 'middle' || anchor === 'end') {
       const adv = font.getAdvanceWidth(text, size);
@@ -105,7 +112,7 @@ export async function outlineNonStandardWeights(clonedSvg: SVGSVGElement): Promi
     try {
       // 1 decimal place keeps glyphs crisp at chart sizes while keeping path
       // data (and thus file size) small.
-      d = font.getPath(text, startX, y, size).toPathData(1);
+      d = font.getPath(text, startX, baselineY, size).toPathData(1);
     } catch {
       continue;
     }
