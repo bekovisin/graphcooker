@@ -11,6 +11,7 @@
  * (`captureAsSvgBlob`, `captureAsPdfBlob`).
  */
 import { outlineNonStandardWeights } from './outlineFonts';
+import { bakeImages } from './bakeImages';
 
 export function prepareSvgForExport(
   svgElement: SVGSVGElement,
@@ -172,6 +173,16 @@ export async function exportSvg(
       await outlineNonStandardWeights(clonedSvg);
     } catch (e) {
       console.warn('Font outlining skipped:', e);
+    }
+
+    // Bake clipped/cover-cropped photos into plain PNGs. SVG clip-path renders
+    // inconsistently across tools (Word drops the second clipped image, Figma
+    // skews it), so a pre-rendered plain image is the only thing that looks the
+    // same everywhere. No-op for charts without such images.
+    try {
+      await bakeImages(clonedSvg);
+    } catch (e) {
+      console.warn('Image baking skipped:', e);
     }
 
     let svgString = new XMLSerializer().serializeToString(clonedSvg);
