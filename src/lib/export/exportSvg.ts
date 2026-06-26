@@ -11,6 +11,7 @@
  * (`captureAsSvgBlob`, `captureAsPdfBlob`).
  */
 import { outlineNonStandardWeights } from './outlineFonts';
+import { bakeImages } from './bakeImages';
 
 export function prepareSvgForExport(
   svgElement: SVGSVGElement,
@@ -152,6 +153,15 @@ export async function exportSvg(
       await outlineNonStandardWeights(clonedSvg);
     } catch (e) {
       console.warn('Font outlining skipped:', e);
+    }
+
+    // Bake clipped/cover-cropped photos into plain PNGs so they render correctly
+    // in Word/Office (which ignore clip-path and the `slice` crop). No-op for
+    // charts without such images.
+    try {
+      await bakeImages(clonedSvg);
+    } catch (e) {
+      console.warn('Image baking skipped:', e);
     }
 
     let svgString = new XMLSerializer().serializeToString(clonedSvg);
